@@ -24,8 +24,8 @@ A 3D remake of the Tiramisu App (the 2D isometric browser game, also called Cozy
 6. Pets: cat, hamster, dog, bunny, panda, otter, capybara, each with coats and moods (walk, sit, groom, sleep, eat, happy) and real sounds.
 7. Time: day and night, four seasons with their own weather, colours and lofi music.
 8. Love letters and the mailbox, with stickers, photos and the envelope animation.
-9. Shared cloud save between two devices (the 2D game uses a Netlify Function plus Netlify Blobs; reuse that idea).
-10. Settings: volumes, graphics modes (Quality, Balanced, Performance, tuned for the iPad Air 5th gen), dark mode for the menus, tutorial, cozy view.
+9. Shared cloud save between two PCs (the 2D game used a Netlify Function plus Netlify Blobs; pick a backend that suits a PC game when we get there).
+10. Settings: volumes, graphics modes (Ultra with ray tracing, Quality as the default, Performance for weaker PCs; DLSS on NVIDIA cards), dark mode for the menus, tutorial, cozy view.
 11. Intro splash "Tiramisu 3D by Zetazuni".
 
 ## Plan by phase
@@ -33,17 +33,17 @@ A 3D remake of the Tiramisu App (the 2D isometric browser game, also called Cozy
 | Phase | Goal | Done when |
 | --- | --- | --- |
 | 0 | Setup: Unity project, Blender and Unity MCP, repo, notes (done, v0.0.1) | Both tools connected, repo public, notes written |
-| 1 | Greybox house in Unity with the orbit camera and wall fading (done in the editor, v0.1.0; iPad touch still to try) | You can spin around the whole house smoothly on PC and touch |
+| 1 | Greybox house in Unity with the orbit camera and wall fading (done, v0.1.0) | You can spin around the whole house smoothly on PC |
 | 2 | Real house and a first furniture set modelled in Blender | House shell plus about 15 pieces exported and placed |
 | 3 | Decorate and economy | Buy, place, rotate, sell, save and load all work |
 | 4 | People and pets | Characters and at least the cat and dog wander and use things |
 | 5 | Day, night, seasons, music | Lighting and music change through the day and year |
 | 6 | Love letters and cloud sync | Two devices share one house |
-| 7 | Polish and builds | Runs well on the iPad and PC, deployed when Amir says so |
+| 7 | Polish and builds | Steady 60 FPS at 1080p on the dev PC in Quality mode, Windows build when Amir asks |
 
 ## Open questions (decide with Amir, then record the answer here)
 
-- **Target platform.** Assumed for now: WebGL build hosted on Netlify, so it still opens on the iPad and PC with no install, like the 2D game. Windows desktop build is the fallback.
+- **Target platform.** Decided (rule 6): Windows PC, DirectX 12, HDRP. No web or iPad version.
 - **Carry over 2D saves?** Probably not worth it (different world), but furniture ids will match the old ones just in case.
 - **Art style detail.** Decided with rule 5: clean, lightly stylised models (not blocky low poly) with realistic materials (wood, marble, fabric, brushed steel, glass) lit cinematically. Pastel warmth comes from the lighting and grading rather than flat colours. Colour options tint the `main` material slot.
 - **House shell vs Blender.** Decided: the architecture (floors, walls, glass, stairs, roof) stays generated in Unity by the builder, because it has to cut away and change often. Blender makes everything that sits in the house: furniture, props, cars, plants, characters and pets.

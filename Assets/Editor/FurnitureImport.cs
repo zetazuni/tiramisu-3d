@@ -15,15 +15,19 @@ namespace Tiramisu.EditorTools
         public const string ModelDir = "Assets/Art/Models";
         const string MatDir = "Assets/Art/Materials/Furniture";
 
-        // name -> colour, smoothness, metallic. Unknown names get a neutral grey so they are easy to spot.
-        static readonly Dictionary<string, (Color c, float smooth, float metal)> Looks = new Dictionary<string, (Color, float, float)>
+        // Blender slot name -> texture set (null = plain), tint, smoothness range, metallic, neutral
+        // (neutral = greyscale detail map so the tint sets the colour; needed for anything the colour options tint).
+        // Unknown names get a neutral grey on purpose so they are easy to spot.
+        static readonly Dictionary<string, (string tex, Color tint, Vector2 smooth, float metal, bool neutral)> Looks =
+            new Dictionary<string, (string, Color, Vector2, float, bool)>
         {
-            { "Fabric_main", (new Color(0.78f, 0.72f, 0.64f), 0.12f, 0f) },
-            { "Walnut",      (new Color(0.33f, 0.20f, 0.12f), 0.55f, 0f) },
-            { "Marble_main", (new Color(0.94f, 0.93f, 0.91f), 0.9f, 0f) },
-            { "BlackSteel",  (new Color(0.06f, 0.06f, 0.065f), 0.7f, 0.9f) },
-            { "Rug_main",    (new Color(0.86f, 0.80f, 0.72f), 0.04f, 0f) },
-            { "RugBorder",   (new Color(0.62f, 0.50f, 0.40f), 0.04f, 0f) },
+            { "Fabric_main",  ("rough_linen", new Color(0.92f, 0.88f, 0.80f), new Vector2(0f, 0.22f), 0f, true) },
+            { "Walnut",       ("american_walnut_veneer", new Color(0.50f, 0.33f, 0.20f), new Vector2(0.45f, 0.78f), 0f, true) },
+            { "Marble_main",  ("marble_01", new Color(0.97f, 0.96f, 0.94f), new Vector2(0.82f, 0.97f), 0f, true) },
+            { "BlackSteel",   (null, new Color(0.04f, 0.04f, 0.045f), new Vector2(0.78f, 0.78f), 1f, false) },
+            { "Rug_main",     ("poly_wool_herringbone", new Color(0.90f, 0.85f, 0.76f), new Vector2(0f, 0.18f), 0f, true) },
+            { "RugBorder",    ("rough_linen", new Color(0.50f, 0.40f, 0.31f), new Vector2(0f, 0.2f), 0f, true) },
+            { "Cushion_main", ("rough_linen", new Color(0.60f, 0.68f, 0.54f), new Vector2(0f, 0.25f), 0f, true) },
         };
 
         [MenuItem("Tiramisu/Import furniture")]
@@ -69,18 +73,11 @@ namespace Tiramisu.EditorTools
         public static Material Material(string name)
         {
             string path = $"{MatDir}/{name}.mat";
-            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (!m)
-            {
-                m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                AssetDatabase.CreateAsset(m, path);
-            }
-            var look = Looks.TryGetValue(name, out var l) ? l : (new Color(0.6f, 0.6f, 0.6f), 0.3f, 0f);
-            m.SetColor("_BaseColor", look.Item1);
-            m.SetFloat("_Smoothness", look.Item2);
-            m.SetFloat("_Metallic", look.Item3);
-            EditorUtility.SetDirty(m);
-            return m;
+            if (!Looks.TryGetValue(name, out var l))
+                return MaterialLibrary.Plain(path, new Color(0.6f, 0.6f, 0.6f), 0.3f);
+            if (l.tex == null)
+                return MaterialLibrary.Plain(path, l.tint, l.smooth.y, l.metal);
+            return MaterialLibrary.Textured(path, l.tex, MaterialLibrary.Mapping.UV0, l.tint, l.smooth, l.metal, 1f, 1f, l.neutral);
         }
     }
 }

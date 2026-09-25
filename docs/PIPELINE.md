@@ -6,7 +6,7 @@ How the tools connect and how an asset gets from Blender into the game.
 
 | Tool | Version | Where |
 | --- | --- | --- |
-| Unity Editor | 6000.6.3f1 (Unity 6) | `C:\Program Files\Unity\Hub\Editor\6000.6.3f1` (Windows and WebGL build support installed) |
+| Unity Editor | 6000.6.3f1 (Unity 6), HDRP 17.6, DirectX 12 | `C:\Program Files\Unity\Hub\Editor\6000.6.3f1` (Windows build target) |
 | Unity Hub | | `S:\Unity\Unity Hub` |
 | Blender | 5.2.2 LTS | Blender MCP add-on v1.7 |
 | uv / uvx | | `S:\Tools\uv` (runs both MCP servers) |
@@ -46,20 +46,35 @@ docs/                    these notes
 - Item ids match the 2D game where the piece exists there (`sofa`, `platformbed`, `marbletable`, `mazda3` ...). The id is the Blender object name, the FBX file name and the id in the item catalogue.
 - New pieces use short lowercase ids with no spaces.
 
+## Modelling standard (rule 6: PC, high poly)
+
+- Real proportions and real sizes. Soft edges everywhere: bevel modifiers with 3 to 10 segments, subdivision (level 2) on anything upholstered, a Cast (sphere) modifier to puff cushions, 32 to 48 sided cylinders, rounded corners on slabs. Small details are welcome (feet, tassels, shelves, seams).
+- **One child mesh per part under an empty named after the item id** (for example `sofa` > `base`, `arm`, `seat 1`...). Unity gives every part its own convex collider, so the physics shape follows the real shape.
+- **UVs in metres:** box mapping in object space where 1 UV unit = 1 m (`box_uv` in the Blender toolkit). Unity tiles each texture at its real size, so every piece matches the others.
+- Apply modifiers and transforms before export. Export the root empty and its children (object types Empty and Mesh).
+- The Blender toolkit (helpers `part`, `rounded_slab`, `cylinder`, `root`, `box_uv`) is recreated at the start of each modelling session; see the session 4 devlog for the recipe.
+
 ## Materials and colour options
 
-- Blender material slots use **shared names** (`Fabric_main`, `Walnut`, `Marble_main`, `BlackSteel`, `Rug_main`, `RugBorder` so far). On import, **Tiramisu > Import furniture** (`Assets/Editor/FurnitureImport.cs`) swaps each slot for the Unity material of the same name in `Assets/Art/Materials/Furniture/`, creating it if needed with the look listed in `FurnitureImport.Looks` (colour, smoothness, metallic). Tune the look there, not in Blender: Blender colours only matter for previewing.
+- Blender material slots use **shared names** (`Fabric_main`, `Walnut`, `Marble_main`, `BlackSteel`, `Rug_main`, `RugBorder`, `Cushion_main` so far). Blender colours are only for previewing.
+- On import, **Tiramisu > Import furniture** (`Assets/Editor/FurnitureImport.cs`) swaps each slot for the Unity material of the same name in `Assets/Art/Materials/Furniture/`. `FurnitureImport.Looks` says which texture set, tint, smoothness range and metallic each name gets (for example `Fabric_main` = wool boucle, `Walnut` = American walnut veneer, `Marble_main` = marble). Tune the look there.
 - A slot name ending in **`_main`** is the part the colour options will tint.
-- New material name? Add it to `Looks` or it arrives neutral grey on purpose, so it is easy to spot.
-- Fewer shared materials also keep draw calls low on the iPad.
+- New material name? Add it to `Looks` (and its texture set to `tools/fetch_textures.py` if needed) or it arrives neutral grey on purpose.
+
+## Physics for a new piece
+
+- Add its id to `PhysicsSetup.Specs` with a real mass in kg, whether it can move, and a drop height if it should fall into place (like cushions).
+- Colliders and physics materials are added automatically from the parts and the material names.
 
 ## Workflow for one asset
 
 1. Model it in Blender (via MCP or by hand) at real size, origin and facing as above, check it with a viewport screenshot.
-2. Save the `.blend` in `Blender/` (one file per set, `furniture_living.blend` holds sofa, marbletable, geomrug), export `<id>.fbx` into `Assets/Art/Models/`.
+2. Save the `.blend` in `Blender/` (one file per set, `furniture_living.blend` holds sofa, marbletable, geomrug, cushion), export `<id>.fbx` into `Assets/Art/Models/`.
 3. In Unity run **Tiramisu > Build greybox house**. It imports the models, links the materials and places everything listed in the builder's `Layout` table (`id, x, z, rotation, floor`).
 4. Check it in play mode from a few angles, then commit the `.blend`, the FBX and the code together.
 
-## Sky and other downloaded assets
+## Textures, sky and other downloaded assets
 
-- `Assets/Art/Sky/kloofendal_partly_cloudy_2k.hdr` from Poly Haven (CC0). Credits in `Assets/Art/Sky/CREDITS.txt`. Only use CC0 or properly licensed assets, since the repo is public, and always add a credit file next to them.
+- PBR texture sets: `python tools/fetch_textures.py` downloads the sets listed in its `SETS` into `Assets/Art/Textures/<id>/` at 2K, packs the HDRP mask map, writes real sizes to `textures.json` and credits to `CREDITS.txt`. About 275 MB for 20 sets, stored with Git LFS (watch the GitHub LFS quota before adding lots more; 4K sets are 4x bigger).
+- The sky is HDRP's physically based sky with a cloud layer (no image needed). The old HDRI (`Assets/Art/Sky`, CC0) is kept in case an HDRI sky option is wanted later.
+- Only use CC0 or properly licensed assets, since the repo is public, and always keep a credit file next to them.

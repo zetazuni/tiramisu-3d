@@ -53,13 +53,13 @@ Click inside the Scene view first, then:
 **Important:** changes you make in the Inspector while playing are **thrown away** when you stop. That is handy for experimenting, but write down values you like and tell Claude.
 
 **Game view tips**
-- The dropdown at the top of the Game view (usually "Free Aspect") sets the screen size. Pick a size like **1920x1080** or add the iPad's **2360x1640** with the **+** button to see how it looks there.
+- The dropdown at the top of the Game view (usually "Free Aspect") sets the screen size. Pick **1920x1080** (Full HD, our performance target) or **2560x1440** to see how it looks on a bigger monitor.
 - **Maximize on Play** (in the Game view's top bar, sometimes under a small menu) makes the game fill the window while playing.
 - **Stats** shows frames per second (FPS) and draw calls. Handy for checking performance.
 
-### Game controls (v0.1)
+### Game controls (v0.3)
 
-| Action | Mouse | Keyboard | Touch (iPad, later) |
+| Action | Mouse | Keyboard | Touch screen |
 | --- | --- | --- | --- |
 | Spin around the house | Left drag | **Q / E** | One finger drag |
 | Tilt up and down | Left drag up or down | | One finger drag up or down |
@@ -69,6 +69,7 @@ Click inside the Scene view first, then:
 | Jump to a room | Room buttons on the left | | Buttons |
 | Walls: automatic, always up, always down | "Walls" button | **Tab** | Button |
 | See the whole house | "See the whole house" button | **F** | Button |
+| Shove something (physics test) | **Click** a sofa, table or cushion without dragging | | Tap |
 
 ## 5. Test checklist
 
@@ -83,12 +84,14 @@ Run through this after each update and tell Claude anything that feels off (with
 - [ ] Click each room button. The camera glides to that room.
 - [ ] Cycle the walls button through all three modes.
 - [ ] The picture looks like a film still: warm light, soft shadows, reflections on glass, water and floors (rule 5).
-- [ ] Stats shows a steady frame rate (60 FPS or more on the PC).
+- [ ] Up close, surfaces show real texture: wood grain in the parquet, the bouclé weave on the sofa, veins in the marble, grass on the lawn (rule 6).
+- [ ] Physics: the two cushions drop onto the sofa when Play starts and settle naturally. Clicking a cushion sends it flying, clicking the sofa only nudges it (rule 6).
+- [ ] Stats shows a steady frame rate (60 FPS or more at 1920x1080).
 
 ## 6. How the project is built (so nothing surprises you)
 
 - **The house is generated.** The menu **Tiramisu > Build greybox house** (menu bar at the top) rebuilds the whole `Main` scene: house, garden, lights, camera and furniture placements. Claude changes the code and reruns it. If the scene ever gets messed up, running this menu puts it back.
-- **Tiramisu > Set up render pipeline** redoes the graphics setup (URP, shadows, reflections, ambient occlusion).
+- **Tiramisu > Set up render pipeline** redoes the graphics setup (HDRP, shadows, reflections, global illumination, DirectX 12) and the physics settings.
 - **Furniture comes from Blender.** Source files live in `Blender/`, exported models in `Assets/Art/Models/`. See `docs/PIPELINE.md`.
 - **Screenshots** Claude takes while testing land in `Assets/Screenshots/`. They are not saved to GitHub, delete them whenever you like.
 
@@ -102,6 +105,8 @@ Run through this after each update and tell Claude anything that feels off (with
 | Unity asks to "Enter Safe Mode" | There is a script error. Choose **Ignore** (or Exit Safe Mode) and ask Claude to fix it. |
 | The layout of panes is a mess | **Window > Layouts > Default**. |
 | Everything is pink | A material's shader broke. Run **Tiramisu > Set up render pipeline**, then **Tiramisu > Build greybox house**. |
+| Lots of red NullReferenceException errors mentioning HDRenderPipeline right after a big graphics change | Close Unity and open the project again. HDRP sometimes needs a fresh start after its settings change. |
+| The picture is very dark or very bright for a second | That is the auto exposure adapting, like a real camera walking from outside to inside. It settles in a moment. |
 | Unity is slow or frozen right after Claude changed scripts | It is recompiling. Watch the small spinner in the bottom right corner and wait. |
 
 ## 8. Glossary
@@ -111,7 +116,9 @@ Run through this after each update and tell Claude anything that feels off (with
 - **Component:** a piece of behaviour on a GameObject (a light, a mesh, one of our scripts like `OrbitCamera`). Shown in the Inspector.
 - **Prefab:** a saved, reusable GameObject (a sofa, for example) that can be placed many times.
 - **Material:** how a surface looks (colour, shine, metal, glass).
-- **URP:** Universal Render Pipeline, the graphics system we use.
+- **HDRP:** High Definition Render Pipeline, the high end graphics system we use (it replaced URP in v0.3).
+- **PBR texture set:** the colour, normal (bumps), roughness and ambient occlusion images that make a surface look real.
+- **Rigidbody:** the component that makes an object obey physics (mass, gravity, collisions).
 - **Post-processing:** film-style effects applied to the whole picture (tonemapping, bloom, colour grading, depth of field).
 - **Reflection probe:** a little camera that captures the surroundings so shiny surfaces can reflect them.
 - **Play mode:** running the game inside the editor.

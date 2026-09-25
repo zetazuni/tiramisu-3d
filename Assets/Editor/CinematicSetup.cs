@@ -1,60 +1,75 @@
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace Tiramisu.EditorTools
 {
     /// <summary>
-    /// The film look (rule 5): high quality shadows, ambient occlusion, HDR sky,
-    /// filmic tonemapping, bloom, grading, depth of field and reflection probes.
-    /// Called by GreyboxBuilder; every number here is meant to be tuned by eye.
+    /// The film look (rules 5 and 6) on HDRP: physically based sky with clouds, volumetric fog,
+    /// camera-like auto exposure, screen space reflections, global illumination, ambient occlusion,
+    /// contact shadows, physically based lights, filmic grade and depth of field.
+    /// Called by GreyboxBuilder; the numbers are meant to be tuned by eye.
     /// </summary>
     public static class CinematicSetup
     {
-        const string SkyHdr = "Assets/Art/Sky/kloofendal_partly_cloudy_2k.hdr";
-        const string SkyMat = "Assets/Art/Sky/Sky.mat";
+        const string AssetPath = "Assets/Settings/Tiramisu_HDRP.asset";
         const string ProfilePath = "Assets/Settings/Cinematic.asset";
         const string LightingPath = "Assets/Settings/Lighting.lighting";
 
-        // ---------- pipeline asset and renderer ----------
+        // ---------- pipeline ----------
 
-        public static void ConfigurePipeline(UniversalRenderPipelineAsset asset)
+        public static HDRenderPipelineAsset Pipeline()
         {
-            var so = new SerializedObject(asset);
-            Set(so, "m_SupportsHDR", true);
-            Set(so, "m_MSAA", 4);
-            Set(so, "m_ShadowDistance", 80f);
-            Set(so, "m_ShadowCascadeCount", 4);
-            Set(so, "m_MainLightShadowmapResolution", 4096);
-            Set(so, "m_SoftShadowsSupported", true);
-            Set(so, "m_SoftShadowQuality", 3);                 // High
-            Set(so, "m_AdditionalLightsRenderingMode", 1);     // per pixel
-            Set(so, "m_AdditionalLightShadowsSupported", true);
-            Set(so, "m_AdditionalLightsShadowmapResolution", 2048);
-            Set(so, "m_ReflectionProbeBlending", true);
-            Set(so, "m_ReflectionProbeBoxProjection", true);
-            Set(so, "m_ColorGradingMode", 1);                  // HDR grading
-            Set(so, "m_ColorGradingLutSize", 64);
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            // Forward+ so every room can have its own lights without a per object limit
-            var rd = asset.rendererDataList.Length > 0 ? asset.rendererDataList[0] as UniversalRendererData : null;
-            if (rd)
+            System.IO.Directory.CreateDirectory("Assets/Settings");
+            var asset = AssetDatabase.LoadAssetAtPath<HDRenderPipelineAsset>(AssetPath);
+            if (!asset)
             {
-                var rso = new SerializedObject(rd);
-                Set(rso, "m_RenderingMode", 2);
-                rso.ApplyModifiedPropertiesWithoutUndo();
-                AddFeature(rd, "UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion", "Ambient Occlusion");
+                asset = ScriptableObject.CreateInstance<HDRenderPipelineAsset>();
+                AssetDatabase.CreateAsset(asset, AssetPath);
             }
+
+            var so = new SerializedObject(asset);
+            const string s = "m_RenderPipelineSettings.";
+            Set(so, s + "supportSSR", true);
+            Set(so, s + "supportSSRTransparent", true);
+            Set(so, s + "supportSSAO", true);
+            Set(so, s + "supportSSGI", true);
+            Set(so, s + "supportVolumetrics", true);
+            Set(so, s + "supportVolumetricClouds", true);
+            Set(so, s + "supportWater", true);
+            Set(so, s + "supportDecals", true);
+            Set(so, s + "supportDistortion", true);
+            Set(so, s + "supportTransparentBackface", true);
+            Set(so, s + "supportMotionVectors", true);
+            Set(so, s + "supportRayTracing", true);                     // for the Ultra mode later, needs DX12
+            Set(so, s + "hdShadowInitParams.maxDirectionalShadowMapResolution", 4096);
+            Set(so, s + "hdShadowInitParams.directionalShadowFilteringQuality", 2); // high (PCSS soft shadows)
+            Set(so, s + "hdShadowInitParams.punctualShadowFilteringQuality", 2);
+            Set(so, s + "hdShadowInitParams.supportContactShadows", true);
+            Set(so, s + "hdShadowInitParams.supportScreenSpaceShadows", true);
+            so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
+
+            GraphicsSettings.defaultRenderPipeline = asset;
+            int current = QualitySettings.GetQualityLevel();
+            for (int i = 0; i < QualitySettings.names.Length; i++)
+            {
+                QualitySettings.SetQualityLevel(i, false);
+                QualitySettings.renderPipeline = asset;
+            }
+            QualitySettings.SetQualityLevel(current, false);
+            PlayerSettings.colorSpace = ColorSpace.Linear;
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { GraphicsDeviceType.Direct3D12 });
+            AssetDatabase.SaveAssets();
+            return asset;
         }
 
-        static void Set(SerializedObject so, string name, object value)
+        static void Set(SerializedObject so, string path, object value)
         {
-            var p = so.FindProperty(name);
-            if (p == null) { Debug.LogWarning($"Tiramisu: pipeline setting {name} not found, skipped."); return; }
+            var p = so.FindProperty(path);
+            if (p == null) { Debug.LogWarning($"Tiramisu: HDRP setting {path} not found, skipped."); return; }
             switch (value)
             {
                 case bool b: p.boolValue = b; break;
@@ -63,121 +78,107 @@ namespace Tiramisu.EditorTools
             }
         }
 
-        static void AddFeature(ScriptableRendererData rd, string typeName, string displayName)
-        {
-            foreach (var f in rd.rendererFeatures) if (f && f.GetType().FullName == typeName) return;
-            System.Type type = null;
-            foreach (var t in TypeCache.GetTypesDerivedFrom<ScriptableRendererFeature>())
-                if (t.FullName == typeName) { type = t; break; }
-            if (type == null) { Debug.LogWarning($"Tiramisu: could not find {typeName}."); return; }
-
-            var feature = (ScriptableRendererFeature)ScriptableObject.CreateInstance(type);
-            feature.name = displayName;
-            AssetDatabase.AddObjectToAsset(feature, rd);
-            rd.rendererFeatures.Add(feature);
-            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(feature, out _, out long localId);
-            var so = new SerializedObject(rd);
-            var map = so.FindProperty("m_RendererFeatureMap");
-            map.InsertArrayElementAtIndex(map.arraySize);
-            map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(rd);
-            AssetDatabase.SaveAssets();
-        }
-
-        // ---------- sky, fog and ambient ----------
-
-        public static void Sky(Light sun)
-        {
-            var imp = AssetImporter.GetAtPath(SkyHdr) as TextureImporter;
-            if (imp && imp.textureShape != TextureImporterShape.TextureCube)
-            {
-                imp.textureShape = TextureImporterShape.TextureCube;
-                imp.maxTextureSize = 2048;
-                imp.textureCompression = TextureImporterCompression.CompressedHQ;
-                imp.SaveAndReimport();
-            }
-            var cube = AssetDatabase.LoadAssetAtPath<Cubemap>(SkyHdr);
-
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(SkyMat);
-            if (!mat)
-            {
-                mat = new Material(Shader.Find("Skybox/Cubemap"));
-                AssetDatabase.CreateAsset(mat, SkyMat);
-            }
-            mat.SetTexture("_Tex", cube);
-            mat.SetFloat("_Exposure", 1.0f);
-            mat.SetFloat("_Rotation", 0f);
-            EditorUtility.SetDirty(mat);
-
-            RenderSettings.skybox = mat;
-            RenderSettings.sun = sun;
-            RenderSettings.ambientMode = AmbientMode.Skybox;
-            RenderSettings.ambientIntensity = 0.55f;
-            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-            RenderSettings.reflectionIntensity = 0.8f;
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = new Color(0.80f, 0.85f, 0.91f);
-            RenderSettings.fogStartDistance = 90f;
-            RenderSettings.fogEndDistance = 320f;
-        }
-
-        // ---------- post processing ----------
+        // ---------- volume: sky, fog, lighting effects and grade ----------
 
         public static Volume PostVolume()
         {
-            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ProfilePath);
-            if (profile) AssetDatabase.DeleteAsset(ProfilePath);
-            profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            AssetDatabase.CreateAsset(profile, ProfilePath);
+            if (AssetDatabase.LoadAssetAtPath<VolumeProfile>(ProfilePath)) AssetDatabase.DeleteAsset(ProfilePath);
+            var p = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(p, ProfilePath);
 
-            var tone = Add<Tonemapping>(profile);
+            var env = Add<VisualEnvironment>(p);
+            env.skyType.Override((int)SkyType.PhysicallyBased);
+            env.cloudType.Override((int)CloudType.CloudLayer);
+            env.skyAmbientMode.Override(SkyAmbientMode.Dynamic);
+
+            var sky = Add<PhysicallyBasedSky>(p);
+            sky.groundTint.Override(new Color(0.45f, 0.52f, 0.36f));
+
+            var clouds = Add<CloudLayer>(p);
+            clouds.opacity.Override(0.85f);
+
+            var fog = Add<Fog>(p);
+            fog.enabled.Override(true);
+            fog.meanFreePath.Override(420f);
+            fog.baseHeight.Override(0f);
+            fog.maximumHeight.Override(80f);
+            fog.enableVolumetricFog.Override(true);
+            fog.albedo.Override(new Color(1f, 0.97f, 0.93f));
+            fog.anisotropy.Override(0.6f);
+
+            var exp = Add<Exposure>(p);
+            exp.mode.Override(ExposureMode.AutomaticHistogram);
+            exp.meteringMode.Override(MeteringMode.CenterWeighted);
+            exp.limitMin.Override(9f);    // opens up for dark interiors and night
+            exp.limitMax.Override(13.8f); // EV 15 is real full sun but looks gloomy after ACES, 13.6 to 13.8 reads right
+            exp.compensation.Override(0f);
+            exp.adaptationSpeedDarkToLight.Override(2f);
+            exp.adaptationSpeedLightToDark.Override(1.5f);
+
+            var shadows = Add<HDShadowSettings>(p);
+            shadows.maxShadowDistance.Override(90f);
+            shadows.cascadeShadowSplitCount.Override(4);
+
+            var contact = Add<ContactShadows>(p);
+            contact.enable.Override(true);
+            contact.length.Override(0.2f);
+
+            var ssr = Add<ScreenSpaceReflection>(p);
+            ssr.enabled.Override(true);
+            ssr.enabledTransparent.Override(true);
+
+            var ssgi = Add<GlobalIllumination>(p);
+            ssgi.enable.Override(true);
+
+            var ao = Add<ScreenSpaceAmbientOcclusion>(p);
+            ao.intensity.Override(1.1f);
+            ao.radius.Override(1.5f);
+
+            var tone = Add<Tonemapping>(p);
             tone.mode.Override(TonemappingMode.ACES);
 
-            var bloom = Add<Bloom>(profile);
-            bloom.threshold.Override(1.0f);
-            bloom.intensity.Override(0.55f);
-            bloom.scatter.Override(0.68f);
-            bloom.tint.Override(new Color(1f, 0.93f, 0.85f));
-            bloom.highQualityFiltering.Override(true);
+            var bloom = Add<Bloom>(p);
+            bloom.intensity.Override(0.18f);
+            bloom.scatter.Override(0.72f);
+            bloom.tint.Override(new Color(1f, 0.94f, 0.86f));
 
-            var grade = Add<ColorAdjustments>(profile);
-            grade.postExposure.Override(-0.3f);
-            grade.contrast.Override(14f);
-            grade.saturation.Override(8f);
+            var grade = Add<ColorAdjustments>(p);
+            grade.contrast.Override(10f);
+            grade.saturation.Override(6f);
 
-            var wb = Add<WhiteBalance>(profile);
-            wb.temperature.Override(7f);
+            var wb = Add<WhiteBalance>(p);
+            wb.temperature.Override(6f);
             wb.tint.Override(2f);
 
-            var smh = Add<ShadowsMidtonesHighlights>(profile);
-            smh.shadows.Override(new Vector4(0.96f, 0.98f, 1.06f, 0f));    // cool shadows
-            smh.highlights.Override(new Vector4(1.05f, 1.0f, 0.93f, 0f));  // warm highlights
+            var smh = Add<ShadowsMidtonesHighlights>(p);
+            smh.shadows.Override(new Vector4(0.96f, 0.98f, 1.06f, 0f));
+            smh.highlights.Override(new Vector4(1.05f, 1.0f, 0.94f, 0f));
 
-            var vig = Add<Vignette>(profile);
+            var vig = Add<Vignette>(p);
             vig.intensity.Override(0.22f);
             vig.smoothness.Override(0.45f);
 
-            var grain = Add<FilmGrain>(profile);
+            var grain = Add<FilmGrain>(p);
             grain.type.Override(FilmGrainLookup.Thin1);
-            grain.intensity.Override(0.12f);
-            grain.response.Override(0.8f);
+            grain.intensity.Override(0.1f);
 
-            var dof = Add<DepthOfField>(profile);
-            dof.mode.Override(DepthOfFieldMode.Bokeh);
-            dof.focusDistance.Override(36f);
-            dof.focalLength.Override(95f);
-            dof.aperture.Override(5.6f);
-            dof.bladeCount.Override(6);
+            var dof = Add<DepthOfField>(p);
+            // Manual ranges driven by CinematicFocus: sharp from a third of the way to the subject out to
+            // 1.6x its distance, softening beyond. (Physical camera mode read the camera's own 10 m focus
+            // and blurred the house, so it is not used.) No motion blur: it smeared every camera spin.
+            dof.focusMode.Override(DepthOfFieldMode.Manual);
+            dof.nearFocusStart.Override(0f);
+            dof.nearFocusEnd.Override(12f);
+            dof.farFocusStart.Override(58f);
+            dof.farFocusEnd.Override(180f);
 
-            EditorUtility.SetDirty(profile);
+            EditorUtility.SetDirty(p);
             AssetDatabase.SaveAssets();
 
-            var go = new GameObject("Film look (post processing)");
+            var go = new GameObject("Film look (volume)");
             var vol = go.AddComponent<Volume>();
             vol.isGlobal = true;
-            vol.sharedProfile = profile;
+            vol.sharedProfile = p;
             return vol;
         }
 
@@ -189,20 +190,41 @@ namespace Tiramisu.EditorTools
             return c;
         }
 
-        // ---------- room lights and reflection probes ----------
+        // ---------- lights ----------
 
-        public static void RoomLightAndProbe(Transform parent, string name, Vector3 floorCentre, Vector2 size, float ceiling, Color warm, bool light)
+        public static Light Sun()
+        {
+            var go = new GameObject("Sun");
+            var l = go.AddComponent<Light>();
+            l.type = LightType.Directional;
+            go.AddComponent<HDAdditionalLightData>();
+            l.lightUnit = LightUnit.Lux;
+            l.intensity = 100000f;
+            l.useColorTemperature = true;
+            l.colorTemperature = 6000f;
+            l.color = Color.white;
+            l.shadows = LightShadows.Soft;
+            go.transform.rotation = Quaternion.Euler(42f, -35f, 0f);
+            RenderSettings.sun = l;
+            return l;
+        }
+
+        public static void RoomLightAndProbe(Transform parent, string name, Vector3 floorCentre, Vector2 size, float ceiling, float kelvin, bool light)
         {
             if (light)
             {
                 var lg = new GameObject($"{name} light");
                 lg.transform.SetParent(parent, false);
-                lg.transform.position = floorCentre + Vector3.up * (ceiling - 0.4f);
+                lg.transform.position = floorCentre + Vector3.up * (ceiling - 0.35f);
                 var l = lg.AddComponent<Light>();
                 l.type = LightType.Point;
-                l.color = warm;
-                l.intensity = 0.6f; // subtle in daylight, the night lighting pass will raise it
-                l.range = Mathf.Max(size.x, size.y) * 0.95f;
+                lg.AddComponent<HDAdditionalLightData>();
+                l.lightUnit = LightUnit.Lumen;
+                l.intensity = 900f;
+                l.useColorTemperature = true;
+                l.colorTemperature = kelvin;
+                l.color = Color.white;
+                l.range = Mathf.Max(size.x, size.y) * 1.1f;
                 l.shadows = LightShadows.None;
             }
 
@@ -211,30 +233,35 @@ namespace Tiramisu.EditorTools
             pg.transform.position = floorCentre + Vector3.up * (ceiling * 0.5f);
             var probe = pg.AddComponent<ReflectionProbe>();
             probe.mode = ReflectionProbeMode.Baked;
-            probe.boxProjection = true;
-            probe.size = new Vector3(size.x, ceiling, size.y);
-            probe.blendDistance = 0.5f;
-            probe.resolution = 256;
-            probe.hdr = true;
-            probe.importance = 2;
+            var hd = pg.AddComponent<HDAdditionalReflectionData>();
+            hd.mode = ProbeSettings.Mode.Baked;
+            hd.influenceVolume.shape = InfluenceShape.Box;
+            hd.influenceVolume.boxSize = new Vector3(size.x, ceiling, size.y);
+            hd.influenceVolume.boxBlendDistancePositive = Vector3.one * 0.4f;
+            hd.influenceVolume.boxBlendDistanceNegative = Vector3.one * 0.4f;
         }
 
-        public static void GardenProbe(Transform parent, Vector3 centre, Vector3 size)
+        // ---------- camera ----------
+
+        public static void Camera(GameObject camGo, Volume volume)
         {
-            var pg = new GameObject("Garden reflections");
-            pg.transform.SetParent(parent, false);
-            pg.transform.position = centre;
-            var probe = pg.AddComponent<ReflectionProbe>();
-            probe.mode = ReflectionProbeMode.Baked;
-            probe.size = size;
-            probe.resolution = 256;
-            probe.hdr = true;
-            probe.importance = 1;
+            var cam = camGo.GetComponent<Camera>();
+            cam.usePhysicalProperties = true;
+            cam.sensorSize = new Vector2(36f, 24f);
+            cam.gateFit = UnityEngine.Camera.GateFitMode.Horizontal;
+            cam.focalLength = 28f;
+            var hd = camGo.AddComponent<HDAdditionalCameraData>();
+            hd.antialiasing = HDAdditionalCameraData.AntialiasingMode.TemporalAntialiasing;
+            hd.TAAQuality = HDAdditionalCameraData.TAAQualityLevel.High;
+            hd.clearColorMode = HDAdditionalCameraData.ClearColorMode.Sky;
+            hd.physicalParameters.aperture = 4.5f;
+            hd.physicalParameters.bladeCount = 7;
+            camGo.AddComponent<CinematicFocus>().volume = volume;
         }
 
         // ---------- baking ----------
 
-        /// <summary>Bakes the ambient light from the sky and every reflection probe. No lightmaps, so it is quick.</summary>
+        /// <summary>Bakes every reflection probe. No lightmaps, so it is quick.</summary>
         public static void Bake()
         {
             var ls = AssetDatabase.LoadAssetAtPath<LightingSettings>(LightingPath);

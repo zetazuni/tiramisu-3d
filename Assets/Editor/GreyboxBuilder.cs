@@ -2,7 +2,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace Tiramisu.EditorTools
 {
@@ -15,7 +14,7 @@ namespace Tiramisu.EditorTools
     {
         const float WX = 30f, WD = 8f, H = 3f, SLAB = 0.3f, UPY = 3.3f;
         const float OUT = 0.28f, PART = 0.14f, GLASS = 0.08f, DOOR_H = 2.3f;
-        const string MatDir = "Assets/Art/Materials/Greybox";
+        const string MatDir = "Assets/Art/Materials/Architecture";
         const float FLOOR_TOP = 0.02f; // room floor plates are 2 cm thick, furniture stands on top
 
         static Material oak, oakDark, wallWhite, cap, slab, tile, bathTile, garageFloor, gym, lawn, lawnDark,
@@ -26,88 +25,48 @@ namespace Tiramisu.EditorTools
         [MenuItem("Tiramisu/Set up render pipeline")]
         public static void SetupPipeline()
         {
-            System.IO.Directory.CreateDirectory("Assets/Settings");
-            const string rdPath = "Assets/Settings/Tiramisu_Renderer.asset";
-            const string rpPath = "Assets/Settings/Tiramisu_URP.asset";
-
-            var asset = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(rpPath);
-            if (!asset)
-            {
-                var rd = ScriptableObject.CreateInstance<UniversalRendererData>();
-                AssetDatabase.CreateAsset(rd, rdPath);
-                asset = UniversalRenderPipelineAsset.Create(rd);
-                AssetDatabase.CreateAsset(asset, rpPath);
-            }
-            CinematicSetup.ConfigurePipeline(asset);
-
-            GraphicsSettings.defaultRenderPipeline = asset;
-            int current = QualitySettings.GetQualityLevel();
-            for (int i = 0; i < QualitySettings.names.Length; i++)
-            {
-                QualitySettings.SetQualityLevel(i, false);
-                QualitySettings.renderPipeline = asset;
-            }
-            QualitySettings.SetQualityLevel(current, false);
-            PlayerSettings.colorSpace = ColorSpace.Linear;
-            AssetDatabase.SaveAssets();
-            Debug.Log("Tiramisu: URP is set up with the film look settings and linear colour.");
+            CinematicSetup.Pipeline();
+            PhysicsSetup.ProjectSettings();
+            Debug.Log("Tiramisu: HDRP is set up with the film look settings, DirectX 12 and linear colour.");
         }
 
         // ---------- materials ----------
 
-        static Material Mat(string name, Color c, float smooth = 0.15f, bool transparent = false, float metal = 0f)
-        {
-            System.IO.Directory.CreateDirectory(MatDir);
-            string path = $"{MatDir}/{name}.mat";
-            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (!m)
-            {
-                m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                AssetDatabase.CreateAsset(m, path);
-            }
-            m.SetColor("_BaseColor", c);
-            m.SetFloat("_Smoothness", smooth);
-            m.SetFloat("_Metallic", metal);
-            if (transparent)
-            {
-                m.SetFloat("_Surface", 1f);
-                m.SetFloat("_Blend", 0f);
-                m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-                m.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-                m.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
-                m.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
-                m.SetFloat("_ZWrite", 0f);
-                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                m.SetOverrideTag("RenderType", "Transparent");
-                m.renderQueue = (int)RenderQueue.Transparent;
-            }
-            EditorUtility.SetDirty(m);
-            return m;
-        }
+        static Material Tx(string name, string tex, MaterialLibrary.Mapping map, Vector2 smooth, float normal = 1f, float metal = 0f, Color? tint = null, float scale = 1f)
+            => MaterialLibrary.Textured($"{MatDir}/{name}.mat", tex, map, tint ?? Color.white, smooth, metal, normal, scale);
+
+        /// <summary>Neutral (greyscale detail) texture with the colour set here.</summary>
+        static Material Tn(string name, string tex, MaterialLibrary.Mapping map, Color tint, Vector2 smooth, float normal = 1f, float metal = 0f, float scale = 1f)
+            => MaterialLibrary.Textured($"{MatDir}/{name}.mat", tex, map, tint, smooth, metal, normal, scale, true);
+
+        static Material Pl(string name, Color c, float smooth, float metal = 0f)
+            => MaterialLibrary.Plain($"{MatDir}/{name}.mat", c, smooth, metal);
 
         static void MakeMaterials()
         {
-            oak = Mat("Oak", new Color(0.80f, 0.64f, 0.46f), 0.5f);
-            oakDark = Mat("OakDark", new Color(0.55f, 0.39f, 0.26f), 0.5f);
-            wallWhite = Mat("WallWhite", new Color(0.96f, 0.94f, 0.91f), 0.05f);
-            cap = Mat("DarkCap", new Color(0.17f, 0.17f, 0.19f), 0.2f);
-            slab = Mat("Slab", new Color(0.78f, 0.77f, 0.76f), 0.1f);
-            tile = Mat("KitchenTile", new Color(0.86f, 0.85f, 0.83f), 0.78f);
-            bathTile = Mat("BathTile", new Color(0.74f, 0.86f, 0.86f), 0.82f);
-            garageFloor = Mat("GarageFloor", new Color(0.52f, 0.53f, 0.55f), 0.62f);
-            gym = Mat("GymFloor", new Color(0.30f, 0.31f, 0.34f), 0.3f);
-            lawn = Mat("Lawn", new Color(0.56f, 0.76f, 0.47f), 0.05f);
-            lawnDark = Mat("LawnEdge", new Color(0.47f, 0.66f, 0.40f), 0.05f);
-            deck = Mat("Deck", new Color(0.66f, 0.49f, 0.35f), 0.2f);
-            water = Mat("PoolWater", new Color(0.22f, 0.62f, 0.78f, 0.7f), 0.97f, true);
-            poolTile = Mat("PoolTile", new Color(0.55f, 0.82f, 0.90f), 0.4f);
-            stone = Mat("Stone", new Color(0.84f, 0.82f, 0.78f), 0.1f);
-            glass = Mat("Glass", new Color(0.62f, 0.74f, 0.80f, 0.16f), 0.98f, true);
-            steel = Mat("BlackSteel", new Color(0.10f, 0.10f, 0.11f), 0.65f, false, 0.8f);
-            roof = Mat("Roof", new Color(0.33f, 0.35f, 0.39f), 0.3f);
-            trunk = Mat("Trunk", new Color(0.45f, 0.33f, 0.24f), 0.1f);
-            leaf = Mat("Leaves", new Color(0.49f, 0.72f, 0.46f), 0.05f);
-            mailbox = Mat("Mailbox", new Color(0.15f, 0.15f, 0.16f), 0.3f);
+            var P = MaterialLibrary.Mapping.Planar;
+            var T = MaterialLibrary.Mapping.Triplanar;
+            oak = Tx("Oak", "herringbone_parquet", P, new Vector2(0.35f, 0.72f));
+            oakDark = Tx("OakDark", "dark_wooden_planks", P, new Vector2(0.3f, 0.65f));
+            wallWhite = Tn("WallWhite", "white_plaster_02", T, new Color(0.95f, 0.94f, 0.92f), new Vector2(0.02f, 0.22f), 0.3f);
+            cap = Pl("DarkCap", new Color(0.05f, 0.05f, 0.055f), 0.5f);
+            slab = Tn("Slab", "brushed_concrete", T, new Color(0.72f, 0.71f, 0.69f), new Vector2(0.1f, 0.4f));
+            tile = Tx("KitchenTile", "marble_tiles", P, new Vector2(0.6f, 0.95f));
+            bathTile = Tx("BathTile", "large_grey_tiles", P, new Vector2(0.5f, 0.9f));
+            garageFloor = Tn("GarageFloor", "concrete_floor", P, new Color(0.62f, 0.62f, 0.63f), new Vector2(0.35f, 0.8f));
+            gym = Tx("GymFloor", "rubber_tiles", P, new Vector2(0.05f, 0.35f));
+            lawn = Tn("Lawn", "leafy_grass", P, new Color(0.40f, 0.58f, 0.24f), new Vector2(0f, 0.3f));
+            lawnDark = Tn("LawnEdge", "leafy_grass", P, new Color(0.33f, 0.48f, 0.21f), new Vector2(0f, 0.25f));
+            deck = Tn("Deck", "wood_floor_deck", P, new Color(0.64f, 0.47f, 0.33f), new Vector2(0.15f, 0.5f));
+            water = MaterialLibrary.Water($"{MatDir}/PoolWater.mat");
+            poolTile = Tn("PoolTile", "blue_floor_tiles_01", T, new Color(0.55f, 0.80f, 0.88f), new Vector2(0.5f, 0.9f));
+            stone = Tn("Stone", "precast_stone_paving", T, new Color(0.80f, 0.78f, 0.74f), new Vector2(0.05f, 0.4f));
+            glass = MaterialLibrary.Glass($"{MatDir}/Glass.mat", new Color(0.88f, 0.93f, 0.95f, 0.06f));
+            steel = Pl("BlackSteel", new Color(0.04f, 0.04f, 0.045f), 0.78f, 1f);
+            roof = Tn("Roof", "box_profile_metal_sheet", T, new Color(0.30f, 0.32f, 0.35f), new Vector2(0.35f, 0.7f), 1f, 1f);
+            trunk = Tx("Trunk", "bark_brown_02", T, new Vector2(0f, 0.3f));
+            leaf = Pl("Leaves", new Color(0.25f, 0.42f, 0.2f), 0.3f);
+            mailbox = Pl("Mailbox", new Color(0.04f, 0.04f, 0.045f), 0.6f, 0.8f);
         }
 
         // ---------- geometry helpers ----------
@@ -183,8 +142,7 @@ namespace Tiramisu.EditorTools
             if (m) // real rooms get a warm ceiling light and a reflection probe
             {
                 bool cool = name == "Garage" || name == "Gym";
-                var warm = cool ? new Color(1f, 0.93f, 0.84f) : new Color(1f, 0.78f, 0.56f);
-                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, warm, true);
+                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, cool ? 4000f : 2700f, true);
             }
         }
 
@@ -208,6 +166,8 @@ namespace Tiramisu.EditorTools
             BuildGarden(Group("Garden", null));
             Furnish(Group("Furniture", house), upper);
             var hv = BuildRig(upper.gameObject, roofGroup.gameObject);
+            PhysicsSetup.AssignSurfaces(house);
+            PhysicsSetup.AssignSurfaces(GameObject.Find("Garden").transform);
 
             System.IO.Directory.CreateDirectory("Assets/Scenes");
             const string scenePath = "Assets/Scenes/Main.unity";
@@ -333,7 +293,6 @@ namespace Tiramisu.EditorTools
             Tree(g, new Vector3(-1.5f, gy, 13f), 1.2f);
 
             Room(g, "Garden & pool", 0, 5, 0, WX, 10.5f, 22f, gy, null);
-            CinematicSetup.GardenProbe(g, new Vector3(15f, 2f, 14f), new Vector3(70f, 24f, 40f));
         }
 
         static void Tree(Transform parent, Vector3 at, float size)
@@ -365,6 +324,8 @@ namespace Tiramisu.EditorTools
             ("geomrug", 4f, 4.3f, 0f, 0),
             ("sofa", 4f, 3.1f, 0f, 0),
             ("marbletable", 4f, 4.6f, 0f, 0),
+            ("cushion", 3.35f, 3.05f, 12f, 0),
+            ("cushion", 4.7f, 3.05f, -8f, 0),
         };
 
         static void Furnish(Transform ground, Transform upper)
@@ -374,8 +335,11 @@ namespace Tiramisu.EditorTools
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{f.id}.fbx");
                 if (!model) { Debug.LogWarning($"Tiramisu: model {f.id} not found, skipped."); continue; }
                 var go = (GameObject)PrefabUtility.InstantiatePrefab(model, f.floor == 0 ? ground : upper);
-                go.transform.position = new Vector3(f.x, (f.floor == 0 ? 0f : UPY) + FLOOR_TOP, f.z);
+                go.name = f.id;
+                var spec = PhysicsSetup.Spec(f.id);
+                go.transform.position = new Vector3(f.x, (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
+                PhysicsSetup.MakeSolid(go, spec);
             }
         }
 
@@ -383,34 +347,18 @@ namespace Tiramisu.EditorTools
 
         static HouseView BuildRig(GameObject upper, GameObject roofGo)
         {
-            var sun = new GameObject("Sun");
-            var light = sun.AddComponent<Light>();
-            light.type = LightType.Directional;
-            light.color = new Color(1f, 0.95f, 0.86f);
-            light.intensity = 1.3f;
-            light.shadows = LightShadows.Soft;
-            light.shadowStrength = 0.75f;
-            sun.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
-            light.shadowStrength = 0.9f;
-            light.shadowBias = 0.03f;
-            light.shadowNormalBias = 0.3f;
-            CinematicSetup.Sky(light);
+            CinematicSetup.Sun();
             var volume = CinematicSetup.PostVolume();
+            RenderSettings.fog = false; // HDRP fog lives in the volume
 
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.Skybox;
-            cam.allowHDR = true;
-            cam.fieldOfView = 40f;
-            cam.nearClipPlane = 0.2f;
-            cam.farClipPlane = 300f;
+            cam.nearClipPlane = 0.1f;
+            cam.farClipPlane = 2000f;
             camGo.AddComponent<AudioListener>();
-            var camData = camGo.AddComponent<UniversalAdditionalCameraData>();
-            camData.renderPostProcessing = true;
-            camData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
-            camData.antialiasingQuality = AntialiasingQuality.High;
-            camGo.AddComponent<CinematicFocus>().volume = volume;
+            CinematicSetup.Camera(camGo, volume);
+            camGo.AddComponent<PhysicsPoke>();
             var orbit = camGo.AddComponent<OrbitCamera>();
             // put the camera where the orbit will start, so the editor view matches play mode
             var rot = Quaternion.Euler(orbit.pitch, orbit.yaw, 0f);

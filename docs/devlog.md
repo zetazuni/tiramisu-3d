@@ -41,3 +41,20 @@
 - Realistic textures for the architecture (oak planks, concrete, grass, tiles) from Poly Haven, since flat colours are now the weakest part of the picture.
 - More living room and kitchen furniture in Blender.
 - Night lighting (sun sets, room lights and LED strips glow) to really sell the film look.
+
+## Session 4: PC first, HDRP, textures, high poly, physics (2026-09-26) · v0.3.0
+
+- **New rule 6 (PC first):** Tiramisu 3D is now a Windows PC game, not a web game. High poly models, detailed PBR textures, realistic physics, HDRP on DirectX 12, 60 FPS at 1080p on the dev PC (RTX 4050 laptop, 6 GB) as the target. Web, WebGL, iPad and Netlify dropped. Rules, design doc, pipeline notes and the Unity guide all updated.
+- **URP replaced by HDRP 17.6.** Physically based sky with a cloud layer, volumetric fog, automatic exposure (EV 9 to 13.8), screen space reflections (also on glass), screen space global illumination, ambient occlusion, contact shadows, 4096 soft PCSS sun shadows, lights in real units (sun 100000 lux, 900 lumen room lights), ACES and a warm grade, TAA, ray tracing support switched on for a future Ultra mode. URP and its leftover assets were removed. Unity needed a restart after the switch (HDRP threw NullReferenceExceptions until then).
+- **Textures:** 20 CC0 Poly Haven sets at 2K (`tools/fetch_textures.py`), tiled at true size with Planar (floors), Triplanar (walls) or UV0 (furniture) mapping. Several sets did not look like their names (leafy grass is autumn yellow, linen is blue, the boucle is plaid, the roof metal is rusty), so the script also makes a neutral greyscale copy and those surfaces take their colour from a tint. That also sets up the furniture colour options. Plaster gets reduced contrast so walls read as smooth paint.
+- **High poly furniture remake in Blender:** sofa (15 parts, about 13k faces, puffy subdivided cushions, rounded arms, steel feet), marble table with rounded corners and 48 sided legs, rug with 128 tassels, two new linen throw cushions. Real UVs in metres. One child mesh per part.
+- **Physics:** 90 Hz, 12/4 solver iterations, 8 surface physics materials matched by material name, fitted box collider per furniture part (PhysX convex hulls are capped at 256 polygons, too few for high poly parts), real masses. Cushions drop onto the sofa at start and settle. Click something to shove it (`PhysicsPoke`). Tested: a shoved cushion flew 2 m and came to rest on the floor, the 70 kg sofa only slid 5 cm and rocked back.
+- **Tuning found by testing:** auto exposure pinned at EV 15 looked gloomy, capped at 13.8. Physical camera depth of field kept reading a 10 m camera focus and blurred the house, replaced by manual focus ranges that follow the orbit distance. Motion blur removed (smeared every camera spin).
+- About 150 FPS in the small editor Game view (880x377). Not yet measured at 1080p.
+
+**Next**
+- Measure FPS at 1920x1080 (Game view set to 1080p, or a Windows build) and add graphics modes (Ultra with ray tracing, Quality, Performance) plus DLSS if the NVIDIA package works.
+- One leftover "missing script" warning comes from an old URP asset, not the scene. Track it down.
+- Real trees and plants (the lollipop trees are the weakest thing on screen now), a proper roof, window frames.
+- More furniture for the living room and kitchen.
+- Night lighting.

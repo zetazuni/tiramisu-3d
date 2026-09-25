@@ -7,6 +7,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: BlackSteel
+    second: {fileID: 2100000, guid: 270037144c7d5fb4fa9dc651db5f64cb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Fabric_main
     second: {fileID: 2100000, guid: 53c6db3ef9c955e4f9d0bfd42878c70d, type: 2}
   - first:
