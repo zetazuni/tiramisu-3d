@@ -48,6 +48,11 @@ namespace Tiramisu.EditorTools
             Set(so, s + "hdShadowInitParams.punctualShadowFilteringQuality", 2);
             Set(so, s + "hdShadowInitParams.supportContactShadows", true);
             Set(so, s + "hdShadowInitParams.supportScreenSpaceShadows", true);
+            // dynamic resolution with NVIDIA DLSS (the graphics modes pick the DLSS quality)
+            Set(so, s + "dynamicResolutionSettings.enabled", true);
+            Set(so, s + "dynamicResolutionSettings.enableDLSS", true);
+            Set(so, s + "dynamicResolutionSettings.dynResType", 1);            // hardware
+            Set(so, s + "dynamicResolutionSettings.DLSSUseOptimalSettings", true);
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
 

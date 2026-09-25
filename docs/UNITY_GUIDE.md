@@ -55,9 +55,9 @@ Click inside the Scene view first, then:
 **Game view tips**
 - The dropdown at the top of the Game view (usually "Free Aspect") sets the screen size. Pick **1920x1080** (Full HD, our performance target) or **2560x1440** to see how it looks on a bigger monitor.
 - **Maximize on Play** (in the Game view's top bar, sometimes under a small menu) makes the game fill the window while playing.
-- **Stats** shows frames per second (FPS) and draw calls. Handy for checking performance.
+- **Stats** shows frames per second (FPS) and draw calls. Handy for checking performance. For a fair number set the Game view to **1920x1080** first (Claude sets a "Full HD benchmark" size for you) and press F9.
 
-### Game controls (v0.3)
+### Game controls (v0.4)
 
 | Action | Mouse | Keyboard | Touch screen |
 | --- | --- | --- | --- |
@@ -69,7 +69,9 @@ Click inside the Scene view first, then:
 | Jump to a room | Room buttons on the left | | Buttons |
 | Walls: automatic, always up, always down | "Walls" button | **Tab** | Button |
 | See the whole house | "See the whole house" button | **F** | Button |
-| Shove something (physics test) | **Click** a sofa, table or cushion without dragging | | Tap |
+| Shove something (physics test) | **Click** a sofa, chair, book, vase or cushion without dragging | | Tap |
+| Graphics mode (Ultra, Quality, Performance) | "Graphics" button | **G** | Button |
+| Run the frame rate benchmark (about a minute) | | **F9** | |
 
 ## 5. Test checklist
 
@@ -86,7 +88,8 @@ Run through this after each update and tell Claude anything that feels off (with
 - [ ] The picture looks like a film still: warm light, soft shadows, reflections on glass, water and floors (rule 5).
 - [ ] Up close, surfaces show real texture: wood grain in the parquet, the bouclé weave on the sofa, veins in the marble, grass on the lawn (rule 6).
 - [ ] Physics: the two cushions drop onto the sofa when Play starts and settle naturally. Clicking a cushion sends it flying, clicking the sofa only nudges it (rule 6).
-- [ ] Stats shows a steady frame rate (60 FPS or more at 1920x1080).
+- [ ] Stats shows a steady frame rate (60 FPS or more at 1920x1080 in Quality mode).
+- [ ] Press F9 once in a while: it measures every graphics mode and writes the results to the Console (and to `benchmark.txt` in the game's data folder). Send Claude the numbers if anything looks slow.
 
 ## 6. How the project is built (so nothing surprises you)
 

@@ -21,6 +21,8 @@ namespace Tiramisu
         public float floorY;
         public float fullHeight = 3f;
         public float stubHeight = 0.25f;
+        [Tooltip("Things hung on this wall (pictures, sconces). Hidden while the wall is cut down.")]
+        public List<GameObject> attachments = new List<GameObject>();
 
         struct Piece { public Transform t; public Renderer r; public Collider c; public float bottom, top; }
         readonly List<Piece> pieces = new List<Piece>();
@@ -61,6 +63,8 @@ namespace Tiramisu
             if (Mathf.Abs(height - targetHeight) < 0.001f) return;
             height = Mathf.MoveTowards(height, targetHeight, 9f * Time.unscaledDeltaTime);
             float limit = floorY + height;
+            bool wallUp = height > fullHeight - 0.3f;
+            foreach (var a in attachments) if (a && a.activeSelf != wallUp) a.SetActive(wallUp);
             foreach (var p in pieces)
             {
                 float top = Mathf.Min(p.top, limit);

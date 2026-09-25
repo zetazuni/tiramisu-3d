@@ -73,6 +73,15 @@ docs/                    these notes
 3. In Unity run **Tiramisu > Build greybox house**. It imports the models, links the materials and places everything listed in the builder's `Layout` table (`id, x, z, rotation, floor`).
 4. Check it in play mode from a few angles, then commit the `.blend`, the FBX and the code together.
 
+## Photoscanned models from Poly Haven (glTF)
+
+- `python tools/fetch_models.py` downloads the models listed in its `MODELS` (id and texture resolution) into `Assets/Art/Models/PolyHaven/<id>/` as glTF with textures, and writes `CREDITS.txt`. `--sizes` only prints sizes. Unity imports them with **glTFast** (`com.unity.cloud.gltfast`), which gives HDRP materials automatically, so these skip Blender.
+- Many files hold several variants side by side (`shrub_02_a` to `_d`, `pachira_aquatica_01_*_d`...). `Assets/Editor/PropPlacer.cs` keeps one variant, re-centres it so the footprint centre sits on the floor at the given spot, and adds physics: `Static` (collider on the pot or trunk only), `Dynamic` (one rigidbody, one box), `DynamicParts` (every child its own rigidbody, like the 20 books) or `None`.
+- Placements live in the builder: `LivingProps` and `GardenProps` (id, variant, position, rotation, scale, body, mass, collider height). Things hung on walls are added to that wall's `WallCutaway.attachments` so they hide when the wall drops.
+- Static foliage and wall decor are left out of ray tracing (`rayTracingMode = Off`), because trees are hundreds of thousands to a million triangles each.
+- Sizes: trees are mostly geometry (island_tree_02 is 46 MB even at 1K), so reuse one tree file for several trees instead of downloading more. The `.bin` geometry files go through Git LFS.
+- **Facing:** Poly Haven furniture faces **-Z** (the opposite of our Blender pieces), so add 180 degrees to the rotation you would use for a Blender piece. Checked with the armchair in session 5.
+
 ## Textures, sky and other downloaded assets
 
 - PBR texture sets: `python tools/fetch_textures.py` downloads the sets listed in its `SETS` into `Assets/Art/Textures/<id>/` at 2K, packs the HDRP mask map, writes real sizes to `textures.json` and credits to `CREDITS.txt`. About 275 MB for 20 sets, stored with Git LFS (watch the GitHub LFS quota before adding lots more; 4K sets are 4x bigger).

@@ -125,6 +125,23 @@ namespace Tiramisu.EditorTools
             Vector3 min = axis == WallCutaway.Axis.X ? new Vector3(at, y0, a) : new Vector3(a, y0, at);
             Vector3 max = axis == WallCutaway.Axis.X ? new Vector3(at + thick, y1, b) : new Vector3(b, y1, at + thick);
             Box(name, line, min, max, m, !isGlass);
+            if (isGlass) Frames(line, name, axis, at, thick, a, b, y0, y1);
+        }
+
+        /// <summary>Slim black steel mullions (at most 1.5 m apart) and top and bottom rails on a glass panel.</summary>
+        static void Frames(Transform line, string name, WallCutaway.Axis axis, float at, float thick, float a, float b, float y0, float y1)
+        {
+            const float w = 0.05f;
+            float d0 = at - 0.015f, d1 = at + thick + 0.015f;
+            Vector3 P(float along, float y, float depth) => axis == WallCutaway.Axis.X ? new Vector3(depth, y, along) : new Vector3(along, y, depth);
+            int n = Mathf.Max(1, Mathf.CeilToInt((b - a) / 1.5f));
+            for (int i = 0; i <= n; i++)
+            {
+                float u = Mathf.Clamp(a + (b - a) * i / n, a + w * 0.5f, b - w * 0.5f);
+                Box($"{name} mullion {i}", line, P(u - w * 0.5f, y0, d0), P(u + w * 0.5f, y1, d1), steel);
+            }
+            Box($"{name} bottom rail", line, P(a, y0, d0), P(b, y0 + w, d1), steel);
+            Box($"{name} top rail", line, P(a, y1 - w, d0), P(b, y1, d1), steel);
         }
 
         static void Room(Transform parent, string name, int floor, float order, float x0, float x1, float z0, float z1, float y, Material m)
@@ -243,9 +260,16 @@ namespace Tiramisu.EditorTools
 
         static void BuildRoof(Transform g)
         {
+            // flat modern roof: deep overhang over the deck, oak soffit underneath, black steel fascia
             float y = UPY + H;
-            Box("Roof slab", g, new Vector3(-0.9f, y, -0.9f), new Vector3(WX + 0.7f, y + 0.28f, WD + 0.9f), roof);
-            Box("Roof fascia", g, new Vector3(-0.92f, y + 0.28f, WD + 0.88f), new Vector3(WX + 0.72f, y + 0.4f, WD + 0.94f), wallWhite);
+            Vector3 lo = new Vector3(-0.7f, y, -0.7f), hi = new Vector3(WX + 0.7f, y + 0.32f, WD + 1.6f);
+            Box("Roof", g, new Vector3(lo.x, y + 0.03f, lo.z), hi, roof);
+            Box("Roof soffit (oak)", g, lo, new Vector3(hi.x, y + 0.03f, hi.z), oakDark);
+            const float f = 0.06f;
+            Box("Fascia front", g, new Vector3(lo.x - f, y - 0.02f, hi.z), new Vector3(hi.x + f, hi.y + 0.08f, hi.z + f), steel);
+            Box("Fascia back", g, new Vector3(lo.x - f, y - 0.02f, lo.z - f), new Vector3(hi.x + f, hi.y + 0.08f, lo.z), steel);
+            Box("Fascia left", g, new Vector3(lo.x - f, y - 0.02f, lo.z), new Vector3(lo.x, hi.y + 0.08f, hi.z), steel);
+            Box("Fascia right", g, new Vector3(hi.x, y - 0.02f, lo.z), new Vector3(hi.x + f, hi.y + 0.08f, hi.z), steel);
         }
 
         static void BuildGarden(Transform g)
@@ -286,11 +310,7 @@ namespace Tiramisu.EditorTools
             }
             Box("Mailbox (placeholder)", g, new Vector3(5.2f, gy, 17f), new Vector3(5.8f, gy + 1.2f, 17.5f), mailbox);
 
-            Tree(g, new Vector3(1.5f, gy, 20f), 1.3f);
-            Tree(g, new Vector3(11f, gy, 20.5f), 1.6f);
-            Tree(g, new Vector3(30.5f, gy, 19.5f), 1.4f);
-            Tree(g, new Vector3(32.5f, gy, 12f), 1.1f);
-            Tree(g, new Vector3(-1.5f, gy, 13f), 1.2f);
+            foreach (var p in GardenProps) PropPlacer.Place(p, g);
 
             Room(g, "Garden & pool", 0, 5, 0, WX, 10.5f, 22f, gy, null);
         }
@@ -328,8 +348,51 @@ namespace Tiramisu.EditorTools
             ("cushion", 4.7f, 3.05f, -8f, 0),
         };
 
+        static PropPlacer.Prop Pr(string id, string variant, float x, float y, float z, float rot, float scale,
+            PropPlacer.Body body, float mass = 0f, float colliderHeight = 0f)
+            => new PropPlacer.Prop { id = id, variant = variant, at = new Vector3(x, y, z), rot = rot, scale = scale, body = body, mass = mass, colliderHeight = colliderHeight };
+
+        const float TableTop = 0.4f + FLOOR_TOP; // marble coffee table
+        const float SideTop = 0.45f + FLOOR_TOP; // side_table_01
+
+        /// <summary>Photoscanned props from Poly Haven (tools/fetch_models.py) in the living room.</summary>
+        static readonly PropPlacer.Prop[] LivingProps =
+        {
+            Pr("modern_arm_chair_01", null, 6.5f, FLOOR_TOP, 4.5f, 70f, 1f, PropPlacer.Body.Dynamic, 18f),
+            Pr("side_table_01", null, 5.55f, FLOOR_TOP, 2.95f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
+            Pr("desk_lamp_arm_01", null, 5.6f, SideTop + 0.002f, 2.9f, 200f, 1f, PropPlacer.Body.Dynamic, 2.5f),
+            Pr("book_encyclopedia_set_01", null, 3.7f, TableTop + 0.004f, 4.6f, 0f, 1f, PropPlacer.Body.DynamicParts, 0.7f),
+            Pr("ceramic_vase_03", null, 4.45f, TableTop + 0.002f, 4.62f, 0f, 1f, PropPlacer.Body.Dynamic, 1.2f),
+            Pr("potted_plant_01", null, 7.3f, FLOOR_TOP, 0.75f, 30f, 1f, PropPlacer.Body.Static, 0f, 0.55f),
+            Pr("pachira_aquatica_01", "_d", 0.75f, FLOOR_TOP, 0.8f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+        };
+
+        /// <summary>Real trees and shrubs for the garden (garden ground sits at -SLAB).</summary>
+        static readonly PropPlacer.Prop[] GardenProps =
+        {
+            Pr("island_tree_02", null, 1.5f, -SLAB, 20f, 0f, 1.5f, PropPlacer.Body.Static, 0f, 2f),
+            Pr("island_tree_02", null, 30.5f, -SLAB, 19.5f, 140f, 1.35f, PropPlacer.Body.Static, 0f, 2f),
+            Pr("searsia_lucida", "_a_LOD0", 11f, -SLAB, 20.5f, 60f, 1.3f, PropPlacer.Body.Static, 0f, 1.5f),
+            Pr("searsia_lucida", "_b_LOD0", 32.5f, -SLAB, 12f, 200f, 1.3f, PropPlacer.Body.Static, 0f, 1.5f),
+            Pr("searsia_lucida", "_c_LOD0", -1.8f, -SLAB, 13f, 20f, 1.3f, PropPlacer.Body.Static, 0f, 1.2f),
+            Pr("shrub_02", "_b", 7.5f, -SLAB, 11.6f, 0f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_d", 13.5f, -SLAB, 11.5f, 90f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_a", 28.5f, -SLAB, 11.4f, 45f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_c", 17f, -SLAB, 19.5f, 0f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_04", null, 2.6f, -SLAB, 12.8f, 0f, 1.2f, PropPlacer.Body.None),
+            Pr("shrub_04", null, 5.3f, -SLAB, 15.2f, 70f, 1.2f, PropPlacer.Body.None),
+            Pr("shrub_04", null, 2.8f, -SLAB, 18.4f, 140f, 1.2f, PropPlacer.Body.None),
+        };
+
         static void Furnish(Transform ground, Transform upper)
         {
+            foreach (var p in LivingProps) PropPlacer.Place(p, ground);
+
+            // a picture above the sofa, hung on the back wall (hidden while that wall is cut down)
+            var pic = PropPlacer.Place(Pr("hanging_picture_frame_02", null, 4f, 1.35f, 0.01f, 0f, 1.4f, PropPlacer.Body.None), ground);
+            var backWall = GameObject.Find("House/Ground floor/Walls/Back wall");
+            if (pic && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(pic);
+
             foreach (var f in Layout)
             {
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{f.id}.fbx");
@@ -370,6 +433,8 @@ namespace Tiramisu.EditorTools
             hv.roof = roofGo;
             hv.upperFloorY = UPY;
             game.AddComponent<HouseHud>();
+            game.AddComponent<GraphicsModes>().volume = volume;
+            game.AddComponent<FpsBenchmark>();
             return hv;
         }
     }

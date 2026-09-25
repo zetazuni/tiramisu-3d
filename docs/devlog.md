@@ -58,3 +58,20 @@
 - Real trees and plants (the lollipop trees are the weakest thing on screen now), a proper roof, window frames.
 - More furniture for the living room and kitchen.
 - Night lighting.
+
+## Session 5: real trees, photoscanned props, graphics modes and DLSS (2026-09-26) · v0.4.0
+
+- **Measured performance at 1920x1080** in the editor (Game view set to Full HD): the v0.3 scene ran at 65 FPS, then 54 once the new trees and props went in.
+- **Graphics modes with DLSS** (NVIDIA module + dynamic resolution in HDRP): Ultra (DLSS Quality, ray traced reflections, full res SSGI), Quality (default, DLSS Quality, half res low SSGI), Performance (DLSS Balanced, no SSGI, no volumetric fog, lighter shadows). G key or the HUD button. DLSS is detected on the RTX 4050.
+- **Benchmark tool** (F9): measures every mode and Quality with each effect off. It showed SSGI was the big cost (6.4 ms), so Quality now runs it at half resolution on the low preset. Final numbers at 1920x1080, DLSS on, RTX 4050 laptop, in the editor: **Performance 112 FPS, Quality 78 FPS, Ultra 44 FPS** (Ultra went from 20 to 44 by leaving static foliage out of ray tracing).
+- **Photoscanned CC0 models from Poly Haven** through glTFast (`tools/fetch_models.py`, `Assets/Editor/PropPlacer.cs`): two kinds of olive-like trees, shrubs, a potted plant and a money tree, a mid-century lounge chair, side table, arm lamp, 20 encyclopedias (each its own physics body), a vase and a picture frame. Trees are huge (island_tree_02 is 46 MB and a million triangles even at 1K), so one tree file is reused.
+- **Architecture:** black steel window mullions and rails on every glass wall (they cut away with the walls), a flat roof with a deep front overhang, oak soffit and black steel fascia. The lollipop trees are gone.
+- The armchair first faced away from the rug: Poly Haven furniture faces -Z, the opposite of our Blender pieces. Documented in the pipeline notes.
+- Project art is about 425 MB (Git LFS stores a bit more because of older versions). Worth keeping an eye on the GitHub LFS quota before adding many more big models.
+
+**Next**
+- Grass that looks like grass up close (the lawn is a flat texture; HDRP terrain details or scattered grass clumps), and something on the horizon (hills or distant trees).
+- Art for the empty picture frame (something personal, original).
+- More rooms: kitchen next.
+- Night lighting and a day and night cycle.
+- One old "missing script" warning from a URP leftover asset is still to be found.

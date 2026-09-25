@@ -34,7 +34,7 @@ A 3D remake of the Tiramisu App (the 2D isometric browser game, also called Cozy
 | --- | --- | --- |
 | 0 | Setup: Unity project, Blender and Unity MCP, repo, notes (done, v0.0.1) | Both tools connected, repo public, notes written |
 | 1 | Greybox house in Unity with the orbit camera and wall fading (done, v0.1.0) | You can spin around the whole house smoothly on PC |
-| 2 | Real house and a first furniture set modelled in Blender | House shell plus about 15 pieces exported and placed |
+| 2 | Real house and a first furniture set (in progress: textured shell, window frames, roof, 4 Blender pieces, 15 photoscanned props and plants, v0.4.0) | House shell plus about 15 pieces exported and placed, living room fully furnished |
 | 3 | Decorate and economy | Buy, place, rotate, sell, save and load all work |
 | 4 | People and pets | Characters and at least the cat and dog wander and use things |
 | 5 | Day, night, seasons, music | Lighting and music change through the day and year |
