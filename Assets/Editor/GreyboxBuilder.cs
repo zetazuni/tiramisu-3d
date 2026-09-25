@@ -227,8 +227,9 @@ namespace Tiramisu.EditorTools
                 float top = (i + 1) * rise;
                 float z1 = 6f - i * run, z0 = z1 - run;
                 Box($"Step {i + 1}", stairs, new Vector3(14.2f, top - 0.07f, z0), new Vector3(15.8f, top, z1), oak);
+                // slim steel support under each step, so the stairs float without a wall in the middle of the hall
+                Box($"Step support {i + 1}", stairs, new Vector3(14.92f, top - 0.32f, z0), new Vector3(15.08f, top - 0.07f, z1), steel);
             }
-            Box("Stair spine", stairs, new Vector3(14.9f, 0f, 2f), new Vector3(15.1f, UPY, 6f), steel);
         }
 
         static void BuildUpper(Transform g)

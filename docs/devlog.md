@@ -75,3 +75,10 @@
 - More rooms: kitchen next.
 - Night lighting and a day and night cycle.
 - One old "missing script" warning from a URP leftover asset is still to be found.
+
+## Session 6: stair hall fix (2026-09-26)
+
+- **Fixed the black partition in the stair hall.** It was the "Stair spine", a full height steel slab (0.2 m wide, floor to upper floor) running down the middle of the stairs. It is now a slim steel support under each step, so the stairs really float. Rebuilt the scene and checked from the bottom of the stairs.
+
+**Next**
+- Kitchen furniture and props, then the rest of the "Next" list from session 5.
