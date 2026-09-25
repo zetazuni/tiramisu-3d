@@ -24,8 +24,10 @@ Both are registered in Claude Code at **user scope**, so they work from any fold
 ## Units and axes
 
 - 1 Blender unit = 1 metre = 1 Unity unit. **1 floor tile = 1 m.** Ground floor wall height is 3 m.
-- Blender is Z up, Unity is Y up. Export with Forward `-Z`, Up `Y`, "Apply Transform" on, scale 1.0 with "FBX All" so objects come in at scale 1 with no rotation.
-- Model furniture with the pivot at the back-left bottom corner of its footprint, facing +Y in Blender (which becomes the front in Unity). That keeps grid placement and rotation simple.
+- Blender is Z up, Unity is Y up. Export settings (checked and working): Forward `-Z`, Up `Y`, Apply Unit Scale, Apply Scalings "FBX All", **Apply Transform (bake space transform) on**, apply modifiers, smoothing "Face", selected object only, no leaf bones, no animation.
+- **Origin:** the centre of the footprint, on the floor (z = 0 in Blender). Move the object to the world origin before exporting.
+- **Facing:** the front of a piece faces **-Y in Blender**, which arrives in Unity facing **+Z** (toward the garden) at rotation 0. Verified with the sofa in session 3.
+- Room floor plates are 2 cm thick, so furniture is placed at floor height + 0.02 m (`FLOOR_TOP` in the builder).
 
 ## Folders
 
@@ -46,12 +48,18 @@ docs/                    these notes
 
 ## Materials and colour options
 
-- Furniture uses a small shared set of palette materials (or a palette atlas) instead of one texture per piece. That keeps draw calls low on the iPad and makes the 13 colour options a simple material or tint swap.
-- Mark the recolourable part of each piece with its own material slot named `main`, so the colour picker knows what to tint.
+- Blender material slots use **shared names** (`Fabric_main`, `Walnut`, `Marble_main`, `BlackSteel`, `Rug_main`, `RugBorder` so far). On import, **Tiramisu > Import furniture** (`Assets/Editor/FurnitureImport.cs`) swaps each slot for the Unity material of the same name in `Assets/Art/Materials/Furniture/`, creating it if needed with the look listed in `FurnitureImport.Looks` (colour, smoothness, metallic). Tune the look there, not in Blender: Blender colours only matter for previewing.
+- A slot name ending in **`_main`** is the part the colour options will tint.
+- New material name? Add it to `Looks` or it arrives neutral grey on purpose, so it is easy to spot.
+- Fewer shared materials also keep draw calls low on the iPad.
 
 ## Workflow for one asset
 
-1. Model it in Blender (via MCP or by hand), check it with a viewport screenshot.
-2. Save the `.blend` in `Blender/`, export the FBX into `Assets/Art/Models/`.
-3. In Unity (via MCP), set import settings, make a prefab, add it to the item catalogue, place it in the scene and look at it from a few camera angles.
-4. Commit the `.blend`, the FBX and the prefab together.
+1. Model it in Blender (via MCP or by hand) at real size, origin and facing as above, check it with a viewport screenshot.
+2. Save the `.blend` in `Blender/` (one file per set, `furniture_living.blend` holds sofa, marbletable, geomrug), export `<id>.fbx` into `Assets/Art/Models/`.
+3. In Unity run **Tiramisu > Build greybox house**. It imports the models, links the materials and places everything listed in the builder's `Layout` table (`id, x, z, rotation, floor`).
+4. Check it in play mode from a few angles, then commit the `.blend`, the FBX and the code together.
+
+## Sky and other downloaded assets
+
+- `Assets/Art/Sky/kloofendal_partly_cloudy_2k.hdr` from Poly Haven (CC0). Credits in `Assets/Art/Sky/CREDITS.txt`. Only use CC0 or properly licensed assets, since the repo is public, and always add a credit file next to them.

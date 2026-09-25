@@ -27,3 +27,17 @@
 - Amir tries the camera in the editor (press Play) and says how it feels.
 - Start the Blender side: house shell and the first furniture set in the soft low poly style.
 - Decide the target platform (still assuming WebGL on Netlify).
+
+## Session 3: film look, first furniture, Unity guide (2026-09-26) · v0.2.0
+
+- **New rule 5:** lighting and reflections must look exclusive and movie like. Added to `docs/RULES.md` and the design doc. Two decisions came with it: models use realistic materials instead of blocky low poly, and the house shell stays generated in Unity while Blender makes everything inside it.
+- **Film look:** HDRI sky from Poly Haven (CC0) for sky, ambient light and reflections. Soft 4096 shadows with 4 cascades, ambient occlusion, Forward+ lighting, a warm light and a reflection probe in every room, filmic ACES tonemapping, bloom, warm grading with cool shadows, vignette, light film grain and depth of field that follows what you look at. Floors, glass and water got shinier so the reflections show. First attempt was badly overexposed. Tuned by eye in play mode (sun 1.3, ambient 0.55, exposure -0.3).
+- **First Blender furniture:** modern three-seat sofa with separate cushions and a walnut plinth, marble coffee table with a walnut shelf and black steel legs, and a two-tone rug. They're in `Blender/furniture_living.blend` and exported as FBX. Unity links their materials by name to proper furniture materials and places them in the living room from a small layout table. Found and fixed two things: the sofa faced the wall (Blender -Y arrives as Unity +Z, now documented), and the rug was hidden inside the 2 cm floor plate.
+- **`docs/UNITY_GUIDE.md`:** a beginner's guide to the Unity window, moving around the Scene view, testing in Play mode, the game controls, a test checklist, how the project is built and a troubleshooting table.
+- Tested in play mode through the MCP (overview, low cinematic angle, living room close up), no console errors or warnings.
+
+**Next**
+- Amir runs through the test checklist in `docs/UNITY_GUIDE.md` and says how the camera and the look feel.
+- Realistic textures for the architecture (oak planks, concrete, grass, tiles) from Poly Haven, since flat colours are now the weakest part of the picture.
+- More living room and kitchen furniture in Blender.
+- Night lighting (sun sets, room lights and LED strips glow) to really sell the film look.

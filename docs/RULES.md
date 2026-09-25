@@ -9,6 +9,8 @@ These are Amir's rules for Tiramisu 3D. Read them before doing anything, every s
 3. **S:\ drive first.** Every file, download, cache, tool and install goes on `S:\` unless it truly cannot (the Unity Editor itself already sits in `C:\Program Files\Unity\Hub\Editor`, leave it there). New tools go under `S:\Tools\`.
 4. **Write like a person.** Anything the player sees (buttons, toasts, menus, dialogue) and anything a person reads in the back end (commit messages, docs, log lines, code comments) should sound warm and human, never like a machine wrote it. **No em dashes at all.** Use a comma, a period, a colon, brackets or the " · " separator instead. This applies to these docs too.
 
+5. **Cinematic, premium graphics** (added 2026-09-26). Lighting and reflections should look exclusive and movie like: HDR with filmic tonemapping, soft realistic shadows, ambient occlusion, bloom on lights, real reflections on glass, water and polished floors (reflection probes), a proper sky, warm interior lights at night and careful colour grading. Every visual change is judged against "does this look like a film still?". Performance still matters on the iPad, so the full look lives in the Quality graphics mode and cheaper modes scale it down rather than the other way round.
+
 ## Rules carried over from the 2D Tiramisu App
 
 - **Cozy and gentle.** It is a personal game made by Amir Ariffin for Athirah. Keep it warm and pastel. No punishment, no fail states, no permadeath.

@@ -16,6 +16,7 @@ namespace Tiramisu.EditorTools
         const float WX = 30f, WD = 8f, H = 3f, SLAB = 0.3f, UPY = 3.3f;
         const float OUT = 0.28f, PART = 0.14f, GLASS = 0.08f, DOOR_H = 2.3f;
         const string MatDir = "Assets/Art/Materials/Greybox";
+        const float FLOOR_TOP = 0.02f; // room floor plates are 2 cm thick, furniture stands on top
 
         static Material oak, oakDark, wallWhite, cap, slab, tile, bathTile, garageFloor, gym, lawn, lawnDark,
             deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox;
@@ -37,11 +38,7 @@ namespace Tiramisu.EditorTools
                 asset = UniversalRenderPipelineAsset.Create(rd);
                 AssetDatabase.CreateAsset(asset, rpPath);
             }
-            asset.shadowDistance = 70f;
-            asset.shadowCascadeCount = 2;
-            asset.msaaSampleCount = 4;
-            asset.supportsHDR = true;
-            EditorUtility.SetDirty(asset);
+            CinematicSetup.ConfigurePipeline(asset);
 
             GraphicsSettings.defaultRenderPipeline = asset;
             int current = QualitySettings.GetQualityLevel();
@@ -53,7 +50,7 @@ namespace Tiramisu.EditorTools
             QualitySettings.SetQualityLevel(current, false);
             PlayerSettings.colorSpace = ColorSpace.Linear;
             AssetDatabase.SaveAssets();
-            Debug.Log("Tiramisu: URP is set up and the project now uses linear colour.");
+            Debug.Log("Tiramisu: URP is set up with the film look settings and linear colour.");
         }
 
         // ---------- materials ----------
@@ -90,23 +87,23 @@ namespace Tiramisu.EditorTools
 
         static void MakeMaterials()
         {
-            oak = Mat("Oak", new Color(0.83f, 0.69f, 0.51f), 0.25f);
-            oakDark = Mat("OakDark", new Color(0.62f, 0.45f, 0.30f), 0.25f);
+            oak = Mat("Oak", new Color(0.80f, 0.64f, 0.46f), 0.5f);
+            oakDark = Mat("OakDark", new Color(0.55f, 0.39f, 0.26f), 0.5f);
             wallWhite = Mat("WallWhite", new Color(0.96f, 0.94f, 0.91f), 0.05f);
             cap = Mat("DarkCap", new Color(0.17f, 0.17f, 0.19f), 0.2f);
             slab = Mat("Slab", new Color(0.78f, 0.77f, 0.76f), 0.1f);
-            tile = Mat("KitchenTile", new Color(0.88f, 0.87f, 0.85f), 0.45f);
-            bathTile = Mat("BathTile", new Color(0.74f, 0.88f, 0.87f), 0.5f);
-            garageFloor = Mat("GarageFloor", new Color(0.58f, 0.59f, 0.61f), 0.3f);
-            gym = Mat("GymFloor", new Color(0.36f, 0.38f, 0.42f), 0.15f);
+            tile = Mat("KitchenTile", new Color(0.86f, 0.85f, 0.83f), 0.78f);
+            bathTile = Mat("BathTile", new Color(0.74f, 0.86f, 0.86f), 0.82f);
+            garageFloor = Mat("GarageFloor", new Color(0.52f, 0.53f, 0.55f), 0.62f);
+            gym = Mat("GymFloor", new Color(0.30f, 0.31f, 0.34f), 0.3f);
             lawn = Mat("Lawn", new Color(0.56f, 0.76f, 0.47f), 0.05f);
             lawnDark = Mat("LawnEdge", new Color(0.47f, 0.66f, 0.40f), 0.05f);
             deck = Mat("Deck", new Color(0.66f, 0.49f, 0.35f), 0.2f);
-            water = Mat("PoolWater", new Color(0.36f, 0.74f, 0.90f, 0.75f), 0.9f, true);
+            water = Mat("PoolWater", new Color(0.22f, 0.62f, 0.78f, 0.7f), 0.97f, true);
             poolTile = Mat("PoolTile", new Color(0.55f, 0.82f, 0.90f), 0.4f);
             stone = Mat("Stone", new Color(0.84f, 0.82f, 0.78f), 0.1f);
-            glass = Mat("Glass", new Color(0.72f, 0.85f, 0.92f, 0.22f), 0.95f, true);
-            steel = Mat("BlackSteel", new Color(0.12f, 0.12f, 0.13f), 0.5f, false, 0.6f);
+            glass = Mat("Glass", new Color(0.62f, 0.74f, 0.80f, 0.16f), 0.98f, true);
+            steel = Mat("BlackSteel", new Color(0.10f, 0.10f, 0.11f), 0.65f, false, 0.8f);
             roof = Mat("Roof", new Color(0.33f, 0.35f, 0.39f), 0.3f);
             trunk = Mat("Trunk", new Color(0.45f, 0.33f, 0.24f), 0.1f);
             leaf = Mat("Leaves", new Color(0.49f, 0.72f, 0.46f), 0.05f);
@@ -182,6 +179,13 @@ namespace Tiramisu.EditorTools
             rm.floor = floor;
             rm.order = Mathf.RoundToInt(order);
             rm.size = new Vector2(x1 - x0, z1 - z0);
+
+            if (m) // real rooms get a warm ceiling light and a reflection probe
+            {
+                bool cool = name == "Garage" || name == "Gym";
+                var warm = cool ? new Color(1f, 0.93f, 0.84f) : new Color(1f, 0.78f, 0.56f);
+                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, warm, true);
+            }
         }
 
         // ---------- the house ----------
@@ -189,7 +193,8 @@ namespace Tiramisu.EditorTools
         [MenuItem("Tiramisu/Build greybox house")]
         public static void Build()
         {
-            if (GraphicsSettings.defaultRenderPipeline == null) SetupPipeline();
+            SetupPipeline();
+            FurnitureImport.ImportAll();
             MakeMaterials();
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -201,10 +206,13 @@ namespace Tiramisu.EditorTools
             var roofGroup = Group("Roof", house);
             BuildRoof(roofGroup);
             BuildGarden(Group("Garden", null));
+            Furnish(Group("Furniture", house), upper);
             var hv = BuildRig(upper.gameObject, roofGroup.gameObject);
 
             System.IO.Directory.CreateDirectory("Assets/Scenes");
             const string scenePath = "Assets/Scenes/Main.unity";
+            EditorSceneManager.SaveScene(scene, scenePath);
+            CinematicSetup.Bake();
             EditorSceneManager.SaveScene(scene, scenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(scenePath, true) };
             AssetDatabase.SaveAssets();
@@ -286,10 +294,10 @@ namespace Tiramisu.EditorTools
             // outer ground and lawn both leave a hole for the pool (x 18 to 26, z 12 to 16)
             float px0 = 18f, px1 = 26f, pz0 = 12f, pz1 = 16f;
             float gb = gy - 0.4f, gt = gy - 0.02f;
-            Box("Ground front", g, new Vector3(-14f, gb, -12f), new Vector3(44f, gt, pz0), lawnDark);
-            Box("Ground back", g, new Vector3(-14f, gb, pz1), new Vector3(44f, gt, 32f), lawnDark);
-            Box("Ground left", g, new Vector3(-14f, gb, pz0), new Vector3(px0, gt, pz1), lawnDark);
-            Box("Ground right", g, new Vector3(px1, gb, pz0), new Vector3(44f, gt, pz1), lawnDark);
+            Box("Ground front", g, new Vector3(-200f, gb, -200f), new Vector3(230f, gt, pz0), lawnDark);
+            Box("Ground back", g, new Vector3(-200f, gb, pz1), new Vector3(230f, gt, 230f), lawnDark);
+            Box("Ground left", g, new Vector3(-200f, gb, pz0), new Vector3(px0, gt, pz1), lawnDark);
+            Box("Ground right", g, new Vector3(px1, gb, pz0), new Vector3(230f, gt, pz1), lawnDark);
 
             Box("Lawn front", g, new Vector3(-2f, gy - 0.02f, 10.5f), new Vector3(34f, gy, pz0), lawn);
             Box("Lawn back", g, new Vector3(-2f, gy - 0.02f, pz1), new Vector3(34f, gy, 22f), lawn);
@@ -325,6 +333,7 @@ namespace Tiramisu.EditorTools
             Tree(g, new Vector3(-1.5f, gy, 13f), 1.2f);
 
             Room(g, "Garden & pool", 0, 5, 0, WX, 10.5f, 22f, gy, null);
+            CinematicSetup.GardenProbe(g, new Vector3(15f, 2f, 14f), new Vector3(70f, 24f, 40f));
         }
 
         static void Tree(Transform parent, Vector3 at, float size)
@@ -344,6 +353,32 @@ namespace Tiramisu.EditorTools
             crown.GetComponent<Renderer>().sharedMaterial = leaf;
         }
 
+        // ---------- furniture ----------
+
+        /// <summary>
+        /// Default furniture: model id (file name in Assets/Art/Models), centre x and z in metres,
+        /// rotation in degrees (0 = the front faces the garden, +Z; 180 = faces the back wall) and floor.
+        /// Blender models face -Y, which arrives in Unity facing +Z.
+        /// </summary>
+        static readonly (string id, float x, float z, float rot, int floor)[] Layout =
+        {
+            ("geomrug", 4f, 4.3f, 0f, 0),
+            ("sofa", 4f, 3.1f, 0f, 0),
+            ("marbletable", 4f, 4.6f, 0f, 0),
+        };
+
+        static void Furnish(Transform ground, Transform upper)
+        {
+            foreach (var f in Layout)
+            {
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{f.id}.fbx");
+                if (!model) { Debug.LogWarning($"Tiramisu: model {f.id} not found, skipped."); continue; }
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(model, f.floor == 0 ? ground : upper);
+                go.transform.position = new Vector3(f.x, (f.floor == 0 ? 0f : UPY) + FLOOR_TOP, f.z);
+                go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
+            }
+        }
+
         // ---------- camera, light and view controller ----------
 
         static HouseView BuildRig(GameObject upper, GameObject roofGo)
@@ -352,27 +387,30 @@ namespace Tiramisu.EditorTools
             var light = sun.AddComponent<Light>();
             light.type = LightType.Directional;
             light.color = new Color(1f, 0.95f, 0.86f);
-            light.intensity = 1.2f;
+            light.intensity = 1.3f;
             light.shadows = LightShadows.Soft;
             light.shadowStrength = 0.75f;
             sun.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
-            RenderSettings.sun = light;
-
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.78f, 0.82f, 0.92f);
-            RenderSettings.ambientEquatorColor = new Color(0.74f, 0.72f, 0.70f);
-            RenderSettings.ambientGroundColor = new Color(0.42f, 0.40f, 0.38f);
+            light.shadowStrength = 0.9f;
+            light.shadowBias = 0.03f;
+            light.shadowNormalBias = 0.3f;
+            CinematicSetup.Sky(light);
+            var volume = CinematicSetup.PostVolume();
 
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.80f, 0.87f, 0.95f);
+            cam.clearFlags = CameraClearFlags.Skybox;
+            cam.allowHDR = true;
             cam.fieldOfView = 40f;
             cam.nearClipPlane = 0.2f;
             cam.farClipPlane = 300f;
             camGo.AddComponent<AudioListener>();
-            camGo.AddComponent<UniversalAdditionalCameraData>();
+            var camData = camGo.AddComponent<UniversalAdditionalCameraData>();
+            camData.renderPostProcessing = true;
+            camData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            camData.antialiasingQuality = AntialiasingQuality.High;
+            camGo.AddComponent<CinematicFocus>().volume = volume;
             var orbit = camGo.AddComponent<OrbitCamera>();
             // put the camera where the orbit will start, so the editor view matches play mode
             var rot = Quaternion.Euler(orbit.pitch, orbit.yaw, 0f);

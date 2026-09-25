@@ -4,7 +4,7 @@ A cozy 3D house game made by Amir Ariffin (Zetazuni) for Athirah. It is a 3D rem
 
 If you are a new conversation or a new account, read these in order before doing anything:
 
-1. **`docs/RULES.md`**: Amir's rules. Always follow them. (Short version: keep these notes updated, public repo so no secrets, everything on S:\, human wording with no em dashes.)
+1. **`docs/RULES.md`**: Amir's rules. Always follow them. (Short version: keep these notes updated, public repo so no secrets, everything on S:\, human wording with no em dashes, cinematic movie-like lighting and reflections.)
 2. **`docs/GAME_DESIGN.md`**: what the game is, what comes over from the 2D version and the phase plan.
 3. **`docs/PIPELINE.md`**: how Blender and Unity connect through MCP, units, folders, naming and the asset workflow.
 4. **`docs/devlog.md`**: what happened in each session and what is next. The last entry tells you where things stand.
@@ -15,7 +15,8 @@ If you are a new conversation or a new account, read these in order before doing
 - Repo: https://github.com/zetazuni/tiramisu-3d (public, branch `main`, Git LFS for models, textures and audio).
 - Unity 6000.6.3f1, Blender 5.2.2 LTS, both driven by Claude through MCP.
 - The original 2D game is at `S:\Tiramisu App by Zetazuni`. Its `CLAUDE.md` is the detailed feature reference.
-- Current version: **0.1.0** (greybox house with the 360 degree camera and wall cutaway, phase 1).
+- Current version: **0.2.0** (greybox house, 360 degree camera, film look lighting, first Blender furniture).
+- New to Unity? `docs/UNITY_GUIDE.md` explains the panes, controls, testing and troubleshooting.
 - Main scene: `Assets/Scenes/Main.unity`. It is generated, see "Greybox builder" below.
 
 ## Keeping these notes alive
@@ -34,4 +35,7 @@ One short paragraph per system. Keep these accurate as the code changes. All run
 - **Camera** (`Scripts/CameraRig/OrbitCamera.cs`): orbit around `pivot` with `yaw` (free 360), `pitch` (12 to 85) and `distance` (3 to 70). Input writes to private targets (`tPivot/tYaw/tPitch/tDist`) and the real values ease toward them every frame. Left drag spins (after a 6 px threshold, otherwise it counts as a click in `ClickedThisFrame` for picking furniture later), right or middle drag pans, wheel zooms; touch has one finger spin, two finger pinch, pan and twist. `FocusOn`, `FitHouse`, `SetPivotHeight` are what other scripts call. `IsOverUi` is set by the HUD so drags on buttons do not move the camera.
 - **Floors and walls** (`Scripts/House/HouseView.cs`, `WallCutaway.cs`): `HouseView` has the view (Ground, Upper with the ground still visible below, Whole house with the roof) and the wall mode (Auto, Up, Down). Keys 1/2/3 switch floors, Tab cycles wall mode, F fits the house. Every straight wall line is a `WallCutaway` with its pieces as children; in Auto mode a wall cuts down to a 0.25 m stub when the camera and the focus point are on opposite sides of it. The focus is the camera pivot clamped inside the house footprint (`houseMin/houseMax`) so the front glass still cuts when you look from the garden. Whole house view keeps every wall up.
 - **Rooms** (`Scripts/House/RoomMarker.cs`): one per room with display name, floor, size and order; the HUD lists the rooms of the active floor and the camera jumps to them.
+- **Film look** (`Assets/Editor/CinematicSetup.cs`, rule 5): sets the URP asset through `SerializedObject` names (4096 soft shadows, 4 cascades, 80 m, HDR grading, box projected probe blending, Forward+ renderer) and adds the Screen Space Ambient Occlusion feature. `Sky()` turns the Poly Haven HDRI into a cubemap skybox that also gives ambient light and reflections, plus linear fog. `PostVolume()` rebuilds `Assets/Settings/Cinematic.asset` (ACES, bloom, colour adjustments, white balance, shadows/midtones/highlights, vignette, film grain, bokeh depth of field). Every real room gets a warm point light and a box projected baked reflection probe (`RoomLightAndProbe`), the garden gets one big probe, then `Bake()` bakes ambient and probes with no lightmaps (`Assets/Settings/Lighting.lighting`). Current tuned values: sun 1.3, ambient 0.55, reflections 0.8, exposure -0.3, room lights 0.6. `Scripts/Graphics/CinematicFocus.cs` keeps the depth of field focused at the orbit distance.
+- **Furniture** (`Assets/Editor/FurnitureImport.cs` + the builder's `Layout` table): see `docs/PIPELINE.md`. Pieces so far: `sofa`, `marbletable`, `geomrug` in the living room.
+- **Version** (`Scripts/GameInfo.cs`): `Version` and `BuildDate`, shown bottom right by the HUD.
 - **HUD** (`Scripts/UI/HouseHud.cs`): temporary IMGUI panel (floors, rooms, wall mode, fit, a hint line). Scales with screen height. Will be replaced by the real UI.

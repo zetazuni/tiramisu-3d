@@ -12,7 +12,7 @@ A 3D remake of the Tiramisu App (the 2D isometric browser game, also called Cozy
 - **Camera orbits 360 degrees.** Drag (or one-finger swipe) rotates around the house freely on the horizontal axis. Vertical tilt is clamped so you never go under the floor or perfectly top down (roughly 15 to 80 degrees). Scroll or pinch zooms, right-drag or two-finger drag pans. Keyboard: Q/E rotate, WASD pan, +/- zoom. Buttons for "fit whole house" and "jump to room", each easing smoothly like the 2D camera did.
 - **Walls fade on their own.** The 2D game always looked from one side, so the back walls were solid and only the front glass collapsed. With a free camera, any wall between the camera and the room you are looking at fades or cuts down automatically. The old wall mode button (full / half / down) stays as a manual override.
 - **Floors.** The same three views: ground floor only, upper floor active (ground veiled), whole house with the roof.
-- **Real lighting.** Day and night comes from an actual sun and moon plus lamps, LED strips and downlights. It should look soft and cozy, not realistic and harsh.
+- **Cinematic lighting (rule 5).** Day and night comes from an actual sun and moon plus lamps, LED strips and downlights, rendered to look like a film still: filmic tonemapping, bloom, ambient occlusion, reflection probes for glass, water and floors, an HDRI sky and warm colour grading. Cozy and warm, never harsh.
 
 ## Everything to bring over (in rough priority order)
 
@@ -45,4 +45,5 @@ A 3D remake of the Tiramisu App (the 2D isometric browser game, also called Cozy
 
 - **Target platform.** Assumed for now: WebGL build hosted on Netlify, so it still opens on the iPad and PC with no install, like the 2D game. Windows desktop build is the fallback.
 - **Carry over 2D saves?** Probably not worth it (different world), but furniture ids will match the old ones just in case.
-- **Art style detail.** Assumed: stylised low poly with soft pastel colours, flat or gently graded materials from a shared palette so the 13 colour options stay cheap.
+- **Art style detail.** Decided with rule 5: clean, lightly stylised models (not blocky low poly) with realistic materials (wood, marble, fabric, brushed steel, glass) lit cinematically. Pastel warmth comes from the lighting and grading rather than flat colours. Colour options tint the `main` material slot.
+- **House shell vs Blender.** Decided: the architecture (floors, walls, glass, stairs, roof) stays generated in Unity by the builder, because it has to cut away and change often. Blender makes everything that sits in the house: furniture, props, cars, plants, characters and pets.
