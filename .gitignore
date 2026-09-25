@@ -42,3 +42,7 @@ node_modules/
 # Windows
 desktop.ini
 Thumbs.db
+
+# Screenshots taken while testing
+/[Aa]ssets/[Ss]creenshots/
+/[Aa]ssets/[Ss]creenshots.meta
