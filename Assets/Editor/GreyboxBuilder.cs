@@ -347,6 +347,21 @@ namespace Tiramisu.EditorTools
             ("marbletable", 4f, 4.6f, 0f, 0),
             ("cushion", 3.35f, 3.05f, 12f, 0),
             ("cushion", 4.7f, 3.05f, -8f, 0),
+            // kitchen (x 8 to 14): counter run on the back wall, fridge beside it, island, stools, dining set
+            ("kitchenrun", 11.62f, 0.34f, 0f, 0),
+            ("fridge", 8.98f, 0.4f, 0f, 0),
+            ("kitchenisland", 11.6f, 3.7f, 0f, 0),
+            ("barstool", 10.6f, 4.55f, 20f, 0),
+            ("barstool", 11.6f, 4.55f, -10f, 0),
+            ("barstool", 12.6f, 4.55f, 5f, 0),
+            ("diningtable", 10.9f, 6.5f, 0f, 0),
+            ("diningchair", 10.3f, 5.75f, 0f, 0),
+            ("diningchair", 11.5f, 5.75f, 0f, 0),
+            ("diningchair", 10.3f, 7.25f, 180f, 0),
+            ("diningchair", 11.5f, 7.25f, 180f, 0),
+            ("pendant", 10.5f, 3.7f, 0f, 0),
+            ("pendant", 11.6f, 3.7f, 0f, 0),
+            ("pendant", 12.7f, 3.7f, 0f, 0),
         };
 
         static PropPlacer.Prop Pr(string id, string variant, float x, float y, float z, float rot, float scale,
@@ -404,6 +419,22 @@ namespace Tiramisu.EditorTools
                 go.transform.position = new Vector3(f.x, (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
+                if (f.id == "pendant") // a small warm light inside each shade
+                {
+                    var lg = new GameObject("Pendant light");
+                    lg.transform.SetParent(go.transform, false);
+                    lg.transform.position = go.transform.position + Vector3.up * 1.9f;
+                    var l = lg.AddComponent<Light>();
+                    l.type = LightType.Point;
+                    lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
+                    l.lightUnit = LightUnit.Lumen;
+                    l.intensity = 350f;
+                    l.useColorTemperature = true;
+                    l.colorTemperature = 2500f;
+                    l.color = Color.white;
+                    l.range = 4f;
+                    l.shadows = LightShadows.None;
+                }
             }
         }
 

@@ -76,9 +76,13 @@
 - Night lighting and a day and night cycle.
 - One old "missing script" warning from a URP leftover asset is still to be found.
 
-## Session 6: stair hall fix (2026-09-26)
+## Session 6: stair hall fix and the kitchen (2026-09-26)
 
 - **Fixed the black partition in the stair hall.** It was the "Stair spine", a full height steel slab (0.2 m wide, floor to upper floor) running down the middle of the stairs. It is now a slim steel support under each step, so the stairs really float. Rebuilt the scene and checked from the bottom of the stairs.
 
+- **Kitchen furnished** (v0.5.0). New script `tools/blender_kitchen.py` builds and exports seven pieces in one go (run it inside Blender): a 4.4 m counter run (charcoal cabinets, marble worktop and splashback, sink with tap, glass cooktop with hood, wall units, oven tower with two ovens, brass handles), a stainless fridge, a waterfall marble island with a walnut slat front, three bar stools, a walnut dining table, four dining chairs and three brass pendant lamps with glowing bulbs and a warm light each. Between them about 75k triangles. Placed by the builder's `Layout` table; fixed pieces (run, fridge, island, pendants) are static, stools, table and chairs are real rigid bodies.
+- Tested: rebuilt the scene, no errors, looked from the garden and from inside the kitchen. Not yet played by hand, so please try shoving a stool.
+
 **Next**
-- Kitchen furniture and props, then the rest of the "Next" list from session 5.
+- Kitchen props (fruit bowl, cups, cutting board on the island) and a rug or plant for the dining corner.
+- Bathroom next, then the rest of the "Next" list from session 5.

@@ -26,6 +26,13 @@ namespace Tiramisu.EditorTools
             { "sofa",        new FurnitureSpec { mass = 70f, dynamic = true } },
             { "marbletable", new FurnitureSpec { mass = 38f, dynamic = true } },
             { "geomrug",     new FurnitureSpec { mass = 6f,  dynamic = false } },
+            { "kitchenrun",  new FurnitureSpec { mass = 400f, dynamic = false } },
+            { "fridge",      new FurnitureSpec { mass = 90f,  dynamic = false } },
+            { "kitchenisland", new FurnitureSpec { mass = 300f, dynamic = false } },
+            { "barstool",    new FurnitureSpec { mass = 5f,   dynamic = true } },
+            { "diningtable", new FurnitureSpec { mass = 35f,  dynamic = true } },
+            { "diningchair", new FurnitureSpec { mass = 5.5f, dynamic = true } },
+            { "pendant",     new FurnitureSpec { mass = 1f,   dynamic = false } },
             { "cushion",     new FurnitureSpec { mass = 0.8f, dynamic = true, dropHeight = 0.9f } },
         };
 

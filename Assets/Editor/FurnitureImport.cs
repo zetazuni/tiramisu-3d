@@ -27,6 +27,11 @@ namespace Tiramisu.EditorTools
             { "BlackSteel",   (null, new Color(0.04f, 0.04f, 0.045f), new Vector2(0.78f, 0.78f), 1f, false) },
             { "Rug_main",     ("poly_wool_herringbone", new Color(0.90f, 0.85f, 0.76f), new Vector2(0f, 0.18f), 0f, true) },
             { "RugBorder",    ("rough_linen", new Color(0.50f, 0.40f, 0.31f), new Vector2(0f, 0.2f), 0f, true) },
+            { "Cabinet_main", ("white_plaster_02", new Color(0.16f, 0.165f, 0.175f), new Vector2(0.3f, 0.5f), 0f, true) },
+            { "Stainless",    (null, new Color(0.72f, 0.73f, 0.75f), new Vector2(0.86f, 0.86f), 1f, false) },
+            { "Brass",        (null, new Color(0.80f, 0.60f, 0.30f), new Vector2(0.8f, 0.8f), 1f, false) },
+            { "GlassDark",    (null, new Color(0.015f, 0.018f, 0.022f), new Vector2(0.95f, 0.95f), 0f, false) },
+            { "Bulb",         (null, new Color(1f, 0.9f, 0.7f), new Vector2(0.9f, 0.9f), 0f, false) },
             { "Cushion_main", ("rough_linen", new Color(0.60f, 0.68f, 0.54f), new Vector2(0f, 0.25f), 0f, true) },
         };
 
@@ -76,7 +81,16 @@ namespace Tiramisu.EditorTools
             if (!Looks.TryGetValue(name, out var l))
                 return MaterialLibrary.Plain(path, new Color(0.6f, 0.6f, 0.6f), 0.3f);
             if (l.tex == null)
-                return MaterialLibrary.Plain(path, l.tint, l.smooth.y, l.metal);
+            {
+                var pm = MaterialLibrary.Plain(path, l.tint, l.smooth.y, l.metal);
+                if (name == "Bulb") // the pendant bulbs glow
+                {
+                    pm.SetFloat("_UseEmissiveIntensity", 0f);
+                    pm.SetColor("_EmissiveColor", new Color(1f, 0.78f, 0.45f) * 6f);
+                    UnityEditor.EditorUtility.SetDirty(pm);
+                }
+                return pm;
+            }
             return MaterialLibrary.Textured(path, l.tex, MaterialLibrary.Mapping.UV0, l.tint, l.smooth, l.metal, 1f, 1f, l.neutral);
         }
     }
