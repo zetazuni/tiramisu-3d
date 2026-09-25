@@ -18,7 +18,8 @@ Both are registered in Claude Code at **user scope**, so they work from any fold
 
 - **Blender** (`blender`): `S:\Tools\uv\uvx.exe blender-mcp`. Add-on source is at `S:\Tools\blender-mcp`. To connect: open Blender, press N in the 3D viewport, open the BlenderMCP tab and start the server. Claude checks with `get_addon_status`.
 - **Unity** (`unity`): `S:\Tools\uv\uvx.exe --from mcpforunityserver mcp-for-unity --transport stdio` (Coplay's MCP for Unity). The bridge package `com.coplaydev.unity-mcp` is already in `Packages/manifest.json`. To connect: open this project in Unity, then go to Window > MCP for Unity and click Start Session. Claude Code has to be restarted once after the server is first registered so the tools load.
-- If a tool says it cannot connect, the fix is almost always to open the app and start its session, not to reinstall.
+- **Unity transport must be Stdio.** In the MCP for Unity window, set Transport to `Stdio`, then Start Session. Do not use the setup wizard's "Configure" button for Claude Code: it switches Unity to HTTP mode and adds a `UnityMCP` HTTP entry (http://127.0.0.1:8080/mcp) that needs a separate server nobody starts, so it fails with "[WebSocket] Connection failed". If that entry shows up again, remove it with `claude mcp remove UnityMCP -s local` from this folder.
+- If a tool says it cannot connect, the fix is almost always to open the app and start its session, not to reinstall. Unity's own log is `Logs/Editor.log` in this folder.
 
 ## Units and axes
 
