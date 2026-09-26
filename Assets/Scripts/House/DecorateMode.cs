@@ -67,7 +67,7 @@ namespace Tiramisu
         {
             if (Active) { Drop(false); DropWindow(false); }
             Active = !Active;
-            Say(Active ? "Decorate mode: drag furniture around, R turns it, Esc puts it back." : "Decorate mode is off.");
+            Say(Active ? "Decorate mode: drag furniture around, scroll the wheel while holding to turn it, Esc puts it back." : "Decorate mode is off.");
         }
 
         public void ResetLayout()
@@ -107,6 +107,13 @@ namespace Tiramisu
                 MoveRiders();
             }
             if (!Input.GetMouseButton(0)) { Drop(false); return; }
+            // hold the left button (dragging) and turn the wheel: one degree per notch (the camera zoom is blocked meanwhile)
+            float wheel = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(wheel) > 0.01f)
+            {
+                held.transform.Rotate(0f, Mathf.Sign(wheel) * Mathf.Max(1f, Mathf.Round(Mathf.Abs(wheel))), 0f, Space.World);
+                MoveRiders();
+            }
             Drag();
         }
 

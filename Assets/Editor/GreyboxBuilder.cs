@@ -638,14 +638,18 @@ namespace Tiramisu.EditorTools
             tubRipples.material = water;
             tubRipples.breeze = 9f;            // the jets keep it churning
             tubRipples.damping = 0.975f;
-            var bubbles = tub.gameObject.AddComponent<BubbleField>();
-            bubbles.min = new Vector2(jx0 + 0.1f, pz1);
-            bubbles.max = new Vector2(jx1 - 0.1f, jz1 - 0.5f);
-            bubbles.floorY = gy - 0.9f;
-            bubbles.surfaceY = gy - 0.12f;
-            bubbles.material = bubbleMat;
-            bubbles.surface = tubRipples;
-            bubbles.count = 110;
+            // two water jets from nozzles in the far wall shoot up and arc into the tub
+            for (int j = 0; j < 2; j++)
+            {
+                float nx = (jx0 + jx1) * 0.5f + (j == 0 ? -0.6f : 0.6f);
+                Box("Jet nozzle", tub, new Vector3(nx - 0.05f, gy - 0.16f, jz1 - 0.09f), new Vector3(nx + 0.05f, gy - 0.06f, jz1 - 0.05f), steel);
+                var jet = tub.gameObject.AddComponent<WaterJet>();
+                jet.start = new Vector3(nx, gy - 0.1f, jz1 - 0.12f);
+                jet.velocity = new Vector3(j == 0 ? 0.2f : -0.2f, 2.3f, -2.6f);
+                jet.material = dropMat;
+                jet.target = tubRipples;
+                jet.count = 46;
+            }
             // cyan glow from under the tub bench
             Strip2(pool, "Jacuzzi glow", new Vector3(jx0 + 0.05f, gy - 0.55f, jz1 - 0.06f), new Vector3(jx1 - 0.05f, gy - 0.5f, jz1 - 0.05f), ledCool, new Color(0.5f, 0.85f, 1f) * 14f);
             AddNightLight(tub.gameObject, new Vector3((jx0 + jx1) * 0.5f, gy - 0.3f, 17.2f), new Color(0.3f, 0.85f, 1f), 420f, 4f, 0f, new Vector2(1.4f, 0.6f), 90f);
@@ -693,6 +697,7 @@ namespace Tiramisu.EditorTools
             BuildFence(g, gy);
             Hedges(g, gy);
             LaneSlidingGate(g, gy);
+            HouseSidewalk(g, gy);
             BackPath(g, gy);
             LedStrips(g, gy, px0, px1, pz0, pz1);
 
@@ -919,6 +924,20 @@ namespace Tiramisu.EditorTools
         }
 
         /// <summary>Paving stones from the back gate to the house and along the back of it to the shed.</summary>
+        /// <summary>A paved sidewalk round the house with strips that run out to the front gate and the back gate.</summary>
+        static void HouseSidewalk(Transform g, float gy)
+        {
+            var w = Group("House sidewalk", g);
+            float t = gy + 0.05f;
+            Box("Sidewalk back", w, new Vector3(-1.5f, gy, -1.5f), new Vector3(31.3f, t, -OUT), stone);
+            Box("Sidewalk left", w, new Vector3(-1.5f, gy, -OUT), new Vector3(-OUT, t, 10.5f), stone);
+            Box("Sidewalk right a", w, new Vector3(WX + GLASS, gy, -OUT), new Vector3(31.3f, t, 1.6f), stone);
+            Box("Sidewalk right b", w, new Vector3(WX + GLASS, gy, 6.4f), new Vector3(31.3f, t, 10.5f), stone);
+            Box("Sidewalk to the back gate", w, new Vector3(25.2f, gy, -5f), new Vector3(27.0f, t, -1.5f), stone);
+            Box("Sidewalk to the front gate", w, new Vector3(3.2f, gy, 10.5f), new Vector3(4.8f, t, FZ1), stone);
+            Box("Front gate pad", w, new Vector3(2.7f, gy, 21.6f), new Vector3(5.3f, t, FZ1), stone);
+        }
+
         static void BackPath(Transform g, float gy)
         {
             var path = Group("Back path", g);
@@ -937,35 +956,34 @@ namespace Tiramisu.EditorTools
         {
             var root = Group("Hedges", g);
             var rnd = new System.Random(17);
-            var flowers = new[] { Pl("HedgeFlowerPink", new Color(0.95f, 0.5f, 0.65f), 0.35f), Pl("HedgeFlowerWhite", new Color(0.96f, 0.96f, 0.93f), 0.35f) };
             var leafMat = Tn("Hedge", "leafy_grass", MaterialLibrary.Mapping.Triplanar, new Color(0.18f, 0.36f, 0.14f), new Vector2(0f, 0.3f), 1f, 0f, 0.5f);
-            void Row(bool alongX, float fixedC, float a, float b, Vector2[] gaps)
+            var flowers = new[] { Pl("HedgeFlowerPink", new Color(0.95f, 0.5f, 0.65f), 0.35f), Pl("HedgeFlowerWhite", new Color(0.96f, 0.96f, 0.93f), 0.35f) };
+            // a clipped, rectangular hedge: one long box per run between the gaps, with a slightly narrower top layer
+            void Run(bool alongX, float fixedC, float a, float b)
             {
-                for (float u = a; u <= b; u += 0.8f)
-                {
-                    bool skip = false;
-                    foreach (var gp in gaps) if (u > gp.x && u < gp.y) skip = true;
-                    if (skip) continue;
-                    var bush = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    bush.name = "Bush";
-                    bush.transform.SetParent(root, false);
-                    float sc = 0.85f + (float)rnd.NextDouble() * 0.3f;
-                    float jitter = ((float)rnd.NextDouble() - 0.5f) * 0.15f;
-                    bush.transform.position = alongX ? new Vector3(u, gy + 0.4f * sc, fixedC + jitter) : new Vector3(fixedC + jitter, gy + 0.4f * sc, u);
-                    bush.transform.localScale = new Vector3(0.95f * sc, 0.85f * sc, 0.95f * sc);
-                    bush.GetComponent<Renderer>().sharedMaterial = leafMat;
-                    Object.DestroyImmediate(bush.GetComponent<Collider>());
-                    if (rnd.NextDouble() < 0.28)
+                const float w = 0.75f, h = 0.9f;
+                Vector3 P(float u, float y, float d) => alongX ? new Vector3(u, y, d) : new Vector3(d, y, u);
+                var main = Box("Hedge", root, P(a, gy, fixedC - w * 0.5f), P(b, gy + h, fixedC + w * 0.5f), leafMat);
+                Object.DestroyImmediate(main.GetComponent<Collider>());
+                var top = Box("Hedge top", root, P(a + 0.05f, gy + h, fixedC - w * 0.5f + 0.06f), P(b - 0.05f, gy + h + 0.06f, fixedC + w * 0.5f - 0.06f), leafMat);
+                Object.DestroyImmediate(top.GetComponent<Collider>());
+                for (float u = a + 0.6f; u < b - 0.4f; u += 1.4f)
+                    if (rnd.NextDouble() < 0.5)
                     {
                         var fl = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                        fl.name = "Bush flower";
+                        fl.name = "Hedge flower";
                         fl.transform.SetParent(root, false);
-                        fl.transform.position = bush.transform.position + new Vector3(((float)rnd.NextDouble() - 0.5f) * 0.4f, 0.32f * sc, ((float)rnd.NextDouble() - 0.5f) * 0.4f);
-                        fl.transform.localScale = Vector3.one * 0.13f;
+                        fl.transform.position = alongX ? new Vector3(u, gy + h + 0.08f, fixedC) : new Vector3(fixedC, gy + h + 0.08f, u);
+                        fl.transform.localScale = Vector3.one * 0.12f;
                         fl.GetComponent<Renderer>().sharedMaterial = flowers[rnd.Next(2)];
                         Object.DestroyImmediate(fl.GetComponent<Collider>());
                     }
-                }
+            }
+            void Row(bool alongX, float fixedC, float a, float b, Vector2[] gaps)
+            {
+                float cur = a;
+                foreach (var gp in gaps) { if (gp.x > cur) Run(alongX, fixedC, cur, gp.x); cur = gp.y; }
+                if (b > cur) Run(alongX, fixedC, cur, b);
             }
             Row(true, FZ1 + 0.55f, FX0 - 0.5f, FX1 + 0.6f, new[] { new Vector2(2.4f, 5.6f) });
             Row(true, FZ0 - 0.55f, FX0 - 0.5f, FX1 + 0.6f, new[] { new Vector2(24.5f, 27.7f) });

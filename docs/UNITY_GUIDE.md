@@ -72,7 +72,7 @@ Click inside the Scene view first, then:
 | Shove something (physics test) | **Click** a sofa, chair, book, vase or cushion without dragging | | Tap |
 | Move furniture (decorate mode) | "Move furniture" button | **M** | |
 | ...pick up, carry and put down | Press on a piece, drag, let go. It follows any surface under the mouse (a mug can go from the island to the floor). Things standing on it ride along | | |
-| ...turn it | | **R** (Shift+R the other way) | |
+| ...turn it | Hold the left button on it and turn the **mouse wheel**, one degree per notch (no zoom while doing this) | **R** turns 15 degrees (Shift+R the other way) | |
 | ...put it back where it was | Right click | **Esc** | |
 | ...free placement without the 5 cm grid | | Hold **Ctrl** | |
 | ...reset the whole house | "Reset layout" button (always there, puts furniture and windows back) | | |

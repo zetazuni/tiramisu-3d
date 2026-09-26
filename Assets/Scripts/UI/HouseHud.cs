@@ -79,14 +79,6 @@ namespace Tiramisu
                 GUILayout.Space(10);
                 GUILayout.Label("Furniture", label);
                 if (Button(DecorateMode.Active ? "Decorate mode: on (M)" : "Move furniture (M)", DecorateMode.Active)) dec.Toggle();
-                if (DecorateMode.Active && dec.Selected != null)
-                {
-                    GUILayout.Label(dec.Selected.Label, label);
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Turn left", btn)) dec.RotateSelected(-15f);
-                    if (GUILayout.Button("Turn right", btn)) dec.RotateSelected(15f);
-                    GUILayout.EndHorizontal();
-                }
                 if (Button("Reset layout", false)) dec.ResetLayout();
             }
 
@@ -113,7 +105,7 @@ namespace Tiramisu
             }
 
             GUI.Label(new Rect(0, h - 58, w, 30),
-                "Drag to spin around · Right drag to move · Scroll to zoom · Q/E spin · 1 2 3 floors · G graphics · M move furniture · Click things to nudge them", hint);
+                "Drag to spin around · Right drag to move · Scroll to zoom · Q/E spin · 1 2 3 floors · G graphics · M move furniture (hold click and scroll to turn) · Click things to nudge them", hint);
             GUI.Label(new Rect(w - 220, h - 26, 210, 22), $"Tiramisu 3D v{GameInfo.Version} · {GameInfo.BuildDate}", version);
         }
     }

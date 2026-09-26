@@ -133,7 +133,7 @@ namespace Tiramisu
             if (!Input.GetMouseButton(1) && !Input.GetMouseButton(2)) panning = false;
 
             float wheel = Input.mouseScrollDelta.y;
-            if (Mathf.Abs(wheel) > 0.01f && !OverUi(m)) tDist *= Mathf.Pow(0.88f, wheel);
+            if (Mathf.Abs(wheel) > 0.01f && !OverUi(m) && !Blocked) tDist *= Mathf.Pow(0.88f, wheel);
 
             lastMouse = m;
         }

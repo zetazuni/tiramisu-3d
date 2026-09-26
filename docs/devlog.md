@@ -180,6 +180,10 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - Placeable area, leaning cushions, shed roof and bulbs, string light fix, moon 50 percent dimmer, hedges, sidewalk and moved road, wall lights: see CLAUDE.md. Checked by day and night screenshots from the back, the road side and the sofa.
 - Lesson: after changing code, call the refresh and wait for it before the build menu, then look at the result, do not trust the last screenshot.
 
+## Session 15: rectangular hedges, house sidewalk, wheel turning, jacuzzi jets (2026-09-26) · v0.17.0
+
+- Hedges are rectangular. A sidewalk runs round the house with strips to both gates. Turn a piece with hold click plus the wheel (one degree per notch, zoom blocked), the HUD turn buttons are gone. The jacuzzi bubbles are replaced by two real water jets. Checked by looking (the two arcs show clearly in the tub) and from above (hedges, sidewalk and the gate strips). The wheel turning was not tested with a real mouse.
+
 **Next**
-- Amir walks the outside again and says what to change.
+- Amir walks the outside and says what to change.
 - People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.
