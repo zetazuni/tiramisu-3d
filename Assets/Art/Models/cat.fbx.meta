@@ -17,6 +17,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: FurCatBlack
+    second: {fileID: 2100000, guid: 0134e89405e938447ba56f77f33a73a6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: FurCatLight
     second: {fileID: 2100000, guid: b85c3c7e5e23d4646abf02ae3a5c4359, type: 2}
   - first:

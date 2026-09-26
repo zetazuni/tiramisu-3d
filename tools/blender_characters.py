@@ -16,7 +16,7 @@ COLORS.update({
     "Skin": (0.85, 0.65, 0.52), "Hair": (0.09, 0.06, 0.05), "Hijab_main": (0.93, 0.72, 0.76), "Abaya_main": (0.72, 0.65, 0.85),
     "Shirt_main": (0.35, 0.5, 0.65), "Pants": (0.16, 0.17, 0.2), "Shoe": (0.92, 0.92, 0.9), "Eye": (0.02, 0.02, 0.02),
     "Blush": (0.95, 0.55, 0.55), "FurCat": (0.9, 0.55, 0.25), "FurCatLight": (0.97, 0.9, 0.8), "FurDog": (0.82, 0.6, 0.32),
-    "FurDogLight": (0.95, 0.88, 0.75), "PetNose": (0.12, 0.08, 0.08), "PetPink": (0.95, 0.6, 0.65),
+    "FurDogLight": (0.95, 0.88, 0.75), "PetNose": (0.12, 0.08, 0.08), "PetPink": (0.95, 0.6, 0.65), "FurCatBlack": (0.06, 0.055, 0.06),
 })
 
 
@@ -119,23 +119,28 @@ def cat():
     rt = root("cat")
     CUR["root"] = rt
     body = J("body", rt, (0, 0, 0.2))
-    own([lathe("body mesh", None, [(0.0, -0.3), (0.09, -0.26), (0.13, -0.1), (0.135, 0.1), (0.12, 0.24), (0.0, 0.3)], "FurCat", seg=24, scale=(1, 1, 1), subsurf=1)], body)
+    own([lathe("body mesh", None, [(0.0, -0.3), (0.09, -0.26), (0.13, -0.1), (0.135, 0.1), (0.12, 0.24), (0.0, 0.3)], "FurCatLight", seg=24, scale=(1, 1, 1), subsurf=1)], body)
     body.data if False else None
     # the lathe stands on Z: lay it along Y by rotating the mesh data
     for o in rt.children:
         if o.name.startswith("body|body mesh"):
             o.data.transform(Matrix.Rotation(math.radians(90), 4, 'X'))
             o.data.transform(Matrix.Translation((0, 0, 0.2)))
+    patches = [sph("patch back", (0.03, 0.02, 0.325), 0.12, "FurCat", (0.9, 1.8, 0.45)), sph("patch side", (0.115, -0.05, 0.22), 0.07, "FurCatBlack", (0.4, 1.3, 1.0)),
+               sph("patch rump", (-0.07, 0.19, 0.29), 0.09, "FurCatBlack", (1.0, 1.1, 0.8)), sph("patch flank", (-0.12, 0.0, 0.2), 0.07, "FurCat", (0.4, 1.4, 1.0))]
+    own(patches, body)
     head = J("head", body, (0, -0.27, 0.3))
-    own([sph("head mesh", (0, -0.29, 0.31), 0.09, "FurCat", (1.05, 0.95, 0.9)),
+    own([sph("head mesh", (0, -0.29, 0.31), 0.09, "FurCatLight", (1.05, 0.95, 0.9)),
+         sph("head patch", (0.03, -0.3, 0.335), 0.085, "FurCat", (0.75, 0.9, 0.7)),
+         sph("head patch b", (-0.05, -0.27, 0.35), 0.05, "FurCatBlack", (0.7, 0.9, 0.6), seg=12, rings=8),
          sph("muzzle", (0, -0.36, 0.29), 0.04, "FurCatLight", (1, 0.8, 0.7), seg=12, rings=8),
          sph("nose", (0, -0.395, 0.3), 0.012, "PetNose", seg=8, rings=6),
          sph("eye L", (0.04, -0.365, 0.335), 0.014, "Eye", seg=8, rings=6), sph("eye R", (-0.04, -0.365, 0.335), 0.014, "Eye", seg=8, rings=6),
          lathe("ear L", None, [(0.0, 0.0), (0.035, 0.0), (0.0, 0.08)], "FurCat", seg=8, center=(0.055, -0.27, 0.37)),
-         lathe("ear R", None, [(0.0, 0.0), (0.035, 0.0), (0.0, 0.08)], "FurCat", seg=8, center=(-0.055, -0.27, 0.37))], head)
+         lathe("ear R", None, [(0.0, 0.0), (0.035, 0.0), (0.0, 0.08)], "FurCatBlack", seg=8, center=(-0.055, -0.27, 0.37))], head)
     tail = J("tail", body, (0, 0.3, 0.26))
     pts = [(0, 0.3, 0.26), (0, 0.42, 0.32), (0, 0.5, 0.42), (0, 0.5, 0.52)]
-    tp = [bar(None, f"tail {i}", pts[i], pts[i + 1], 0.028 - i * 0.003, "FurCat", 10) for i in range(3)]
+    tp = [bar(None, f"tail {i}", pts[i], pts[i + 1], 0.028 - i * 0.003, "FurCatBlack" if i else "FurCat", 10) for i in range(3)]
     tp.append(sph("tail tip", pts[3], 0.026, "FurCatLight", seg=10, rings=6))
     own(tp, tail)
     for nm, x, y in (("legFL", 0.07, -0.16), ("legFR", -0.07, -0.16), ("legBL", 0.08, 0.16), ("legBR", -0.08, 0.16)):

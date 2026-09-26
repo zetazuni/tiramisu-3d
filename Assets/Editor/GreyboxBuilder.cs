@@ -703,7 +703,7 @@ namespace Tiramisu.EditorTools
             BuildFence(g, gy);
             Hedges(g, gy);
             LaneSlidingGate(g, gy);
-            HouseSidewalk(g, gy);
+            OuterSidewalk(g, gy);
             BackPath(g, gy);
             LedStrips(g, gy, px0, px1, pz0, pz1);
 
@@ -942,6 +942,21 @@ namespace Tiramisu.EditorTools
             Box("Sidewalk to the back gate", w, new Vector3(25.2f, gy, -5f), new Vector3(27.0f, t, -1.5f), stone);
             Box("Sidewalk to the front gate", w, new Vector3(3.2f, gy, 10.5f), new Vector3(4.8f, t, FZ1), stone);
             Box("Front gate pad", w, new Vector3(2.7f, gy, 21.6f), new Vector3(5.3f, t, FZ1), stone);
+        }
+
+        /// <summary>A paved sidewalk right round the outside of the hedges, joined to the road's sidewalk, with strips through the hedge gaps to both gates.</summary>
+        static void OuterSidewalk(Transform g, float gy)
+        {
+            var w = Group("Outer sidewalk", g);
+            float t = gy + 0.06f, a = 1.05f, b = 2.35f;   // band from 1.05 to 2.35 m outside the fence
+            float xr = 35.5f;                              // where the road's own sidewalk starts
+            Box("Sidewalk front", w, new Vector3(FX0 - b, gy, FZ1 + a), new Vector3(xr, t, FZ1 + b), stone);
+            Box("Sidewalk back", w, new Vector3(FX0 - b, gy, FZ0 - b), new Vector3(xr, t, FZ0 - a), stone);
+            Box("Sidewalk west", w, new Vector3(FX0 - b, gy, FZ0 - a), new Vector3(FX0 - a, t, FZ1 + a), stone);
+            Box("Sidewalk east a", w, new Vector3(FX1 + a, gy, FZ0 - a), new Vector3(xr, t, 1.3f), stone);
+            Box("Sidewalk east b", w, new Vector3(FX1 + a, gy, 6.7f), new Vector3(xr, t, FZ1 + a), stone);
+            Box("Front gate strip", w, new Vector3(3.2f, gy, FZ1), new Vector3(4.8f, t, FZ1 + a), stone);
+            Box("Back gate strip", w, new Vector3(25.2f, gy, FZ0 - a), new Vector3(27.0f, t, FZ0), stone);
         }
 
         static void BackPath(Transform g, float gy)
@@ -1660,8 +1675,7 @@ namespace Tiramisu.EditorTools
         {
             Person(parent, "person_athirah", "Athirah", new Vector3(5.6f, 0.02f, 5.6f), 0.95f, 200f);
             Person(parent, "person_amir", "Amir", new Vector3(11.5f, 0.02f, 6.6f), 1.02f, 20f);
-            Pet(parent, "cat", "Miso", new Vector3(3.2f, 0.02f, 6.3f));
-            Pet(parent, "dog", "Biscuit", new Vector3(12.5f, -0.3f, 15f));
+            Pet(parent, "cat", "Bedah", new Vector3(3.2f, 0.02f, 6.3f));
         }
 
         static void Person(Transform parent, string model, string display, Vector3 at, float scale, float yaw)

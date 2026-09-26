@@ -13,7 +13,11 @@ namespace Tiramisu
             tag = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
             tag.normal.textColor = new Color(1f, 1f, 1f, 0.92f);
             bubble = new GUIStyle(GUI.skin.box) { fontSize = 13, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-            bubble.normal.textColor = new Color(0.2f, 0.12f, 0.14f);
+            bubble.normal.textColor = Color.white;
+            bubble.fontStyle = FontStyle.Bold;
+            var bg = new Texture2D(1, 1); bg.SetPixel(0, 0, new Color(0.08f, 0.06f, 0.09f, 0.82f)); bg.Apply();
+            bubble.normal.background = bg;
+            tag.normal.textColor = Color.white;
         }
 
         void OnGUI()
