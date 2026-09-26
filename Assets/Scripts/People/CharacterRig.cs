@@ -19,6 +19,7 @@ namespace Tiramisu
         [Tooltip("parts whose material name contains this are not drawn (Athirah's glasses)")]
         public string hideMaterial = "";
         public Pose pose = Pose.Stand;
+        [System.NonSerialized] public UseSpot seat;   // the piece being sat or lain on: the pose follows its shape
         public float walkSpeed = 1f;       // metres per second, drives the stride
 
         class Joint
@@ -193,17 +194,8 @@ namespace Tiramisu
                     Set("pelvis", 0f, -0.018f * amp + Mathf.Abs(Mathf.Cos(phase)) * 0.02f * amp, -4f * amp * sl);
                     break;
                 }
-                case Pose.Sit:
-                    Set("pelvis", 0f, -(RestHip - 0.45f));
-                    Set("leg.L", 90f); Set("leg.R", 90f);
-                    Set("shin.L", -90f); Set("shin.R", -90f);
-                    Set("arm.L", 18f); Set("arm.R", 18f); Set("forearm.L", 45f); Set("forearm.R", 45f);
-                    Set("spine", 2f + breathe);
-                    break;
-                case Pose.Lie:
-                    Set("arm.L", 4f); Set("arm.R", 4f); Set("forearm.L", 15f); Set("forearm.R", 15f);
-                    Set("spine", breathe * 1.5f);
-                    break;
+                case Pose.Sit: SitTargets(breathe); break;
+                case Pose.Lie: LieTargets(breathe); break;
                 case Pose.Wave:
                     Set("arm.R", 165f); Set("forearm.R", 30f + 25f * Mathf.Sin(clock * 9f));
                     Set("spine", breathe);
@@ -218,6 +210,42 @@ namespace Tiramisu
                     Set("arm.L", 2f); Set("arm.R", 2f);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Sitting follows the piece: the pelvis is on the seat, the torso leans back like the backrest, and the legs are
+        /// solved so the feet reach the floor (or the foot ring) whatever the seat height is: knees high on a beanbag,
+        /// thighs sloping down on a bar stool.
+        /// </summary>
+        void SitTargets(float breathe)
+        {
+            float rec = seat ? seat.recline : 6f;
+            float s0 = seat ? seat.shinAngle : -8f;
+            float footY = seat ? seat.footY : 0f;
+            float hip = seat ? (seat.transform.position.y - seat.FloorY) / Mathf.Max(transform.lossyScale.y, 0.01f) : 0.5f;
+            float L = Mathf.Max(0.3f, (RestHip - 0.06f) * 0.5f);
+            float drop = Mathf.Max(0.05f, hip - footY - 0.06f);
+            float cosA = Mathf.Clamp(drop / L - Mathf.Cos(s0 * Mathf.Deg2Rad), -1f, 1f);
+            float a = Mathf.Acos(cosA) * Mathf.Rad2Deg;                 // thigh, forward from straight down
+            Set("pelvis", 0f, -(RestHip - 0.45f));
+            Set("leg.L", a); Set("leg.R", a);
+            Set("shin.L", s0 - a); Set("shin.R", s0 - a);               // lower leg relative to the thigh
+            Set("spine", -rec + breathe);
+            Set("neck", rec * 0.6f);                                    // the head stays up
+            float lap = Mathf.Lerp(24f, 14f, Mathf.Clamp01(rec / 25f));
+            Set("arm.L", lap); Set("arm.R", lap); Set("forearm.L", 62f); Set("forearm.R", 62f);
+        }
+
+        /// <summary>Lying follows the piece: a flat bed, a lounger with its backrest raised, a hammock that curves up at both ends.</summary>
+        void LieTargets(float breathe)
+        {
+            float raise = seat ? seat.raise : 0f, legs = seat ? seat.legRaise : 0f, knee = seat ? seat.kneeBend : 6f;
+            Set("spine", -raise + breathe * 1.5f);
+            Set("neck", Mathf.Min(raise * 0.4f, 22f));
+            Set("leg.L", legs); Set("leg.R", legs + 1.5f);
+            Set("shin.L", -knee); Set("shin.R", -knee - 2f);
+            float rest = raise > 20f ? 30f : 10f;                       // hands lie on the belly when the body is propped up
+            Set("arm.L", 6f); Set("arm.R", 6f); Set("forearm.L", rest + 12f); Set("forearm.R", rest + 12f);
         }
 
         void PetTargets()

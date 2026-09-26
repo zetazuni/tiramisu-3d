@@ -1567,10 +1567,10 @@ namespace Tiramisu.EditorTools
             Pr("searsia_lucida", "_a_LOD0", 11f, -SLAB, 20.5f, 60f, 1.3f, PropPlacer.Body.Static, 0f, 1.5f),
             Pr("searsia_lucida", "_b_LOD0", 32.5f, -SLAB, 12f, 200f, 1.3f, PropPlacer.Body.Static, 0f, 1.5f),
             Pr("searsia_lucida", "_c_LOD0", -1.8f, -SLAB, 13f, 20f, 1.3f, PropPlacer.Body.Static, 0f, 1.2f),
-            Pr("shrub_02", "_b", 7.5f, -SLAB, 11.6f, 0f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
-            Pr("shrub_02", "_d", 13.5f, -SLAB, 11.5f, 90f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
-            Pr("shrub_02", "_a", 28.5f, -SLAB, 11.4f, 45f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
-            Pr("shrub_02", "_c", 17f, -SLAB, 19.5f, 0f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_b", 7.5f, -SLAB - 0.16f, 11.6f, 0f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_d", 13.5f, -SLAB - 0.16f, 11.5f, 90f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_a", 28.5f, -SLAB - 0.16f, 11.4f, 45f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
+            Pr("shrub_02", "_c", 17f, -SLAB - 0.16f, 19.5f, 0f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
         };
 
         static readonly System.Collections.Generic.Dictionary<string, int> keyCount = new System.Collections.Generic.Dictionary<string, int>();
@@ -1714,16 +1714,11 @@ namespace Tiramisu.EditorTools
             return go;
         }
 
-        /// <summary>The loose cushions of the sofa come out of the model a few centimetres above the seat: lower each until its lowest point rests on the seat.</summary>
-        static void SettleSofaCushions(GameObject sofa)
+        /// <summary>The two green loose cushions that came with the sofa model are taken off.</summary>
+        static void RemoveSofaCushions(GameObject sofa)
         {
-            float seatTop = float.MinValue;
-            foreach (var r in sofa.GetComponentsInChildren<Renderer>())
-                if (r.name.StartsWith("seat ") && !r.name.StartsWith("seat cushion")) seatTop = Mathf.Max(seatTop, r.bounds.max.y);
-            if (seatTop < -1e5f) return;
-            foreach (var r in sofa.GetComponentsInChildren<Renderer>())
-                if (r.name.StartsWith("seat cushion"))
-                    r.transform.position += Vector3.down * (r.bounds.min.y - (seatTop - 0.01f));
+            foreach (var t in sofa.GetComponentsInChildren<Transform>(true))
+                if (t && t.name.StartsWith("seat cushion")) Object.DestroyImmediate(t.gameObject);
         }
 
         static void PutOnGlasses(GameObject person)
@@ -1743,13 +1738,15 @@ namespace Tiramisu.EditorTools
         public static float GlassesUp = 0.1f, GlassesForward = 0.15f, GlassesScale = 1.2f;
 
         /// <summary>A seat or bed on a piece: where the pelvis goes (piece space), which way to face, and where to stand before getting on.</summary>
-        static void Spot(GameObject piece, string label, CharacterRig.Pose pose, Vector3 pelvis, float yaw, Vector3 approach)
+        static void Spot(GameObject piece, string label, CharacterRig.Pose pose, Vector3 pelvis, float yaw, Vector3 approach,
+            float recline = 6f, float shin = -8f, float footY = 0f, float raise = 0f, float legRaise = 0f, float knee = 6f)
         {
             var g = new GameObject("Use: " + label);
             g.transform.SetParent(piece.transform, false);
             g.transform.localPosition = pelvis;
             var sp = g.AddComponent<UseSpot>();
             sp.label = label; sp.pose = pose; sp.yaw = yaw; sp.approachLocal = approach;
+            sp.recline = recline; sp.shinAngle = shin; sp.footY = footY; sp.raise = raise; sp.legRaise = legRaise; sp.kneeBend = knee;
             sp.seconds = pose == CharacterRig.Pose.Lie ? new Vector2(40f, 90f) : new Vector2(20f, 60f);
         }
 
@@ -1759,30 +1756,30 @@ namespace Tiramisu.EditorTools
             switch (id)
             {
                 case "sofa":
-                    foreach (float x in new[] { -0.65f, 0f, 0.65f }) Spot(go, "sofa", sit, new Vector3(x, 0.62f, 0.02f), 0f, new Vector3(x, 0f, 1.1f));
+                    foreach (float x in new[] { -0.65f, 0f, 0.65f }) Spot(go, "sofa", sit, new Vector3(x, 0.62f, 0.02f), 0f, new Vector3(x, 0f, 1.1f), recline: 16f, shin: 12f);
                     break;
-                case "modern_arm_chair_01": Spot(go, "armchair", sit, new Vector3(0f, 0.52f, 0.05f), 0f, new Vector3(0f, 0f, 0.95f)); break;
-                case "diningchair": Spot(go, "dining chair", sit, new Vector3(0f, 0.52f, 0f), 0f, new Vector3(0.75f, 0f, 0f)); break;
-                case "barstool": Spot(go, "bar stool", sit, new Vector3(0f, 0.75f, 0f), 180f, new Vector3(0f, 0f, 0.8f)); break;
-                case "officechair": Spot(go, "office chair", sit, new Vector3(0f, 0.53f, 0.02f), 0f, new Vector3(0.8f, 0f, 0.1f)); break;
+                case "modern_arm_chair_01": Spot(go, "armchair", sit, new Vector3(0f, 0.52f, 0.05f), 0f, new Vector3(0f, 0f, 0.95f), recline: 22f, shin: 10f); break;
+                case "diningchair": Spot(go, "dining chair", sit, new Vector3(0f, 0.52f, 0f), 0f, new Vector3(0.75f, 0f, 0f), recline: 3f); break;
+                case "barstool": Spot(go, "bar stool", sit, new Vector3(0f, 0.75f, 0f), 180f, new Vector3(0f, 0f, 0.8f), recline: 0f, shin: -5f, footY: 0.27f); break;
+                case "officechair": Spot(go, "office chair", sit, new Vector3(0f, 0.53f, 0.02f), 0f, new Vector3(0.8f, 0f, 0.1f), recline: 8f); break;
                 case "platformbed":
-                case "platformbed_e": Spot(go, "bed", lie, new Vector3(0f, 0.7f, -0.25f), 0f, new Vector3(1.3f, 0f, 0f)); break;
-                case "beanbag": Spot(go, "beanbag", sit, new Vector3(0f, 0.33f, 0f), 0f, new Vector3(0f, 0f, 0.95f)); break;
-                case "lounger": Spot(go, "lounger", lie, new Vector3(0f, 0.5f, -0.05f), 0f, new Vector3(0.9f, 0f, 0f)); break;
+                case "platformbed_e": Spot(go, "bed", lie, new Vector3(0f, 0.7f, -0.25f), 0f, new Vector3(1.3f, 0f, 0f), knee: 5f); break;
+                case "beanbag": Spot(go, "beanbag", sit, new Vector3(0f, 0.33f, 0f), 0f, new Vector3(0f, 0f, 0.95f), recline: 38f, shin: 22f); break;
+                case "lounger": Spot(go, "lounger", lie, new Vector3(0f, 0.5f, -0.2f), 0f, new Vector3(0.9f, 0f, 0f), raise: 58f, knee: 4f); break;
                 case "outdoorsectional":
-                    foreach (float x in new[] { -0.8f, 0f, 0.8f }) Spot(go, "outdoor sofa", sit, new Vector3(x, 0.56f, 0.08f), 0f, new Vector3(x, 0f, 1.0f));
+                    foreach (float x in new[] { -0.8f, 0f, 0.8f }) Spot(go, "outdoor sofa", sit, new Vector3(x, 0.56f, 0.08f), 0f, new Vector3(x, 0f, 1.0f), recline: 12f, shin: 10f);
                     break;
                 case "gardenbench":
-                    foreach (float x in new[] { -0.4f, 0.4f }) Spot(go, "bench", sit, new Vector3(x, 0.53f, 0f), 0f, new Vector3(x, 0f, 0.8f));
+                    foreach (float x in new[] { -0.4f, 0.4f }) Spot(go, "bench", sit, new Vector3(x, 0.53f, 0f), 0f, new Vector3(x, 0f, 0.8f), recline: 10f);
                     break;
                 case "longdining":
                     foreach (float x in new[] { -0.8f, 0f, 0.8f })
                     {
-                        Spot(go, "long table", sit, new Vector3(x, 0.53f, 0.72f), 180f, new Vector3(x, 0f, 1.4f));
-                        Spot(go, "long table", sit, new Vector3(x, 0.53f, -0.72f), 0f, new Vector3(x, 0f, -1.4f));
+                        Spot(go, "long table", sit, new Vector3(x, 0.53f, 0.72f), 180f, new Vector3(x, 0f, 1.4f), recline: 0f);
+                        Spot(go, "long table", sit, new Vector3(x, 0.53f, -0.72f), 0f, new Vector3(x, 0f, -1.4f), recline: 0f);
                     }
                     break;
-                case "hammock": Spot(go, "hammock", lie, new Vector3(0f, 0.85f, 0.2f), 0f, new Vector3(1.3f, 0f, 0f)); break;
+                case "hammock": Spot(go, "hammock", lie, new Vector3(0f, 0.85f, 0.2f), 0f, new Vector3(1.3f, 0f, 0f), raise: 14f, legRaise: 12f, knee: -14f); break;
             }
         }
 
@@ -1815,8 +1812,8 @@ namespace Tiramisu.EditorTools
                 var spec = PhysicsSetup.Spec(f.id);
                 go.transform.position = new Vector3(f.x, f.y > -900f ? f.y + spec.dropHeight : (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
+                if (f.id == "sofa") RemoveSofaCushions(go);
                 PhysicsSetup.MakeSolid(go, spec);
-                if (f.id == "sofa") SettleSofaCushions(go);
                 MakeMovable(go, false);
                 AddSpots(go, f.id);
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall

@@ -209,3 +209,9 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 
 - The two loose sofa cushions were 3 cm in the air (the model puts them there): `SettleSofaCushions` lowers each until its lowest point rests on the seat. The living room armchair had its back to the room (the model's front is +Z, the sit spot was also turned round): now faces the sofa and the sit spot matches. One book of the coffee table set stood at the table's end and slipped down beside a leg: the set is moved to the middle of the table.
 - **Gotcha:** the layout saved in PlayerPrefs (`tiramisu.layout`) overrides the defaults for any piece that was moved, so a changed default only shows after "Reset layout".
+
+## Session 20: seats that fit, no green cushions, lower shrubs (2026-09-26) · v0.19.3
+
+- Sitting and lying now follow the piece (`UseSpot` fields, `CharacterRig.SitTargets` and `LieTargets`): the torso leans back like the backrest (sofa 16, armchair 22, beanbag 38 degrees), the legs are solved from the seat height so the feet reach the floor or the bar stool foot ring (knees high on the beanbag, thighs sloping on the stool), the lounger raises the torso 58 degrees like its backrest, the hammock curves the body up at both ends. Checked in Play mode on the sofa, lounger and hammock; the bar stool, beanbag and beds were not seen in the final pose (Unity was in the background, time stood still).
+- The green sofa cushions are removed. The `shrub_02` plants sit 16 cm lower so they touch the lawn.
+- **Lesson:** my test scripts turned off the orbit camera and depth of field in Play mode and the scene got saved that way, so the mouse did nothing. Always check `git status` and the scene diff for `m_Enabled: 0` after testing.

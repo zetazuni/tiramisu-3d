@@ -216,6 +216,7 @@ namespace Tiramisu
             agent.enabled = false;
             fromPos = transform.position; fromRot = transform.rotation;
             blend = 0f; mode = Mode.Sitting;
+            rig.seat = spot;
             rig.pose = spot.pose == CharacterRig.Pose.Lie ? CharacterRig.Pose.Lie : CharacterRig.Pose.Sit;
             rig.walkSpeed = 0f;
         }
@@ -224,6 +225,7 @@ namespace Tiramisu
         {
             // sitting: the pelvis is lowered by the pose, so the root goes where the pelvis target minus the hip height is
             rig.pose = spot.pose;
+            rig.seat = spot;
             spot.RootFor(rig, scale, out pos, out rot);
         }
 

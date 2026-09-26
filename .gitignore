@@ -46,3 +46,6 @@ Thumbs.db
 # Screenshots taken while testing
 /[Aa]ssets/[Ss]creenshots/
 /[Aa]ssets/[Ss]creenshots.meta
+
+# secrets
+sketchfab_api_key.txt

@@ -17,7 +17,17 @@ namespace Tiramisu
         public float yaw;
         public Vector3 approachLocal;
         public Vector2 seconds = new Vector2(20f, 60f);
+        [Header("How the body follows this piece")]
+        [Tooltip("Sitting: torso lean back from upright, in degrees (the slant of the backrest)")] public float recline = 6f;
+        [Tooltip("Sitting: lower leg angle from vertical, positive = feet forward of the knees")] public float shinAngle = -8f;
+        [Tooltip("Sitting: height of what the feet rest on above the floor (a bar stool foot ring)")] public float footY;
+        [Tooltip("Lying: how far the torso is raised from flat, in degrees (a lounger backrest)")] public float raise;
+        [Tooltip("Lying: thighs raised from flat, in degrees (the ends of a hammock curve up)")] public float legRaise;
+        [Tooltip("Lying: knee bend, negative = the lower legs rise further")] public float kneeBend = 6f;
         [System.NonSerialized] public Character occupant;
+
+        /// <summary>The floor under the piece.</summary>
+        public float FloorY => transform.parent ? transform.parent.position.y : 0f;
 
         void OnEnable() { if (!All.Contains(this)) All.Add(this); }
         void OnDisable() => All.Remove(this);
