@@ -279,3 +279,9 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 ## Session 29: winter trees (2026-09-27) · v0.25.1
 
 - **Bug:** the yard trees vanished in winter. The trunk and branches share one renderer with the leaf cards, and winter switched that renderer off. Now the leaf cards are cut out (alpha 0 on their material copy) and the renderer stays on, so bare branches with snow show. Checked by looking at the yard in winter.
+
+## Session 30: seasons on the roof (2026-09-27) · v0.26.0
+
+- The house roof now takes part in the seasons (`SeasonCycle.MakeRoofLayers`, one set per roof piece, 38 in all): **snow** grows into a slab over the winter and melts away after it; **fallen leaves** in autumn and **fallen petals** in spring are cut out sprites laid over the roof that appear a few at a time (each sprite has its own threshold in the alpha, the material's alpha cutoff sweeps from 1 to 0.45 as the season builds) and thin out again when it ends. The city roofs and roof slabs go white in winter (tinted copies of `CityRoof` and `CitySlab`).
+- Checked in the whole house view in winter, autumn and spring. I saw one turquoise flash on the roof right after switching to autumn that I could not reproduce, keep an eye out for it.
+- Only the house has leaves and petals on its roof, the city roofs only get snow.

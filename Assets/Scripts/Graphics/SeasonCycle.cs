@@ -22,6 +22,7 @@ namespace Tiramisu
         public int daysPerSeason = 3;
         [Tooltip("soft round texture for the falling things")] public Texture2D soft;
         public Material petalMaterial, snowMaterial, fireflyMaterial;
+        [Tooltip("laid over the roof: snow, fallen leaves, fallen petals")] public Material snowCover, leafLitter, petalLitter;
         [Tooltip("Hidden/Tiramisu/Recolor, recolours the leaf cards of the trees")] public Shader recolor;
         [Tooltip("three colours of falling leaf (each a leaf shaped sprite, HDRP unlit has no vertex colours)")] public Material[] leafMaterials;
         [Tooltip("two shades of blossom petal")] public Material[] petalMaterials;
@@ -69,6 +70,11 @@ namespace Tiramisu
         ParticleSystem snow, fireflies;
         readonly List<ParticleSystem> petalSystems = new List<ParticleSystem>(), leafSystems = new List<ParticleSystem>();
         readonly List<Material> cityLeaf = new List<Material>();
+        // ---- the roof
+        class RoofLayer { public Transform snow; public Renderer leaf, petal; public Vector3 size; }
+        readonly List<RoofLayer> roofLayers = new List<RoofLayer>();
+        Material snowM, leafLitterM, petalLitterM;
+        readonly List<Material> cityRoofMats = new List<Material>(), citySlabMats = new List<Material>();
         static ParticleSystem.Particle[] buffer = new ParticleSystem.Particle[16000];
         static Mesh quad;
         float snowStrength, leafStrength, petalStrength, fireflyStrength;
@@ -119,7 +125,8 @@ namespace Tiramisu
                     var m = shared[i];
                     if (!m) continue;
                     string n = m.name;
-                    if (n == "Lawn" || n == "LawnEdge" || n == "Hedge" || n == "CityLeaf") { shared[i] = Copy(m); changed = true; }
+                    if (n == "Lawn" || n == "LawnEdge" || n == "Hedge" || n == "CityLeaf" || n == "CityRoof" || n == "CitySlab") { shared[i] = Copy(m); changed = true; }
+                    else if (n == "Roof" && r.GetComponent<MeshFilter>()) MakeRoofLayers(r);
                     else if (n.StartsWith("HedgeFlower")) { shared[i] = Copy(m); changed = true; if (!flowers.Contains(r)) flowers.Add(r); }
                     else if (IsOutdoorLeaf(r, n))
                     {
@@ -137,6 +144,8 @@ namespace Tiramisu
                 else if (n == "LawnEdge") lawnEdgeM = kv.Value;
                 else if (n == "Hedge") hedgeM = kv.Value;
                 else if (n == "CityLeaf") cityLeaf.Add(kv.Value);
+                else if (n == "CityRoof") cityRoofMats.Add(kv.Value);
+                else if (n == "CitySlab") citySlabMats.Add(kv.Value);
                 else if (n.StartsWith("HedgeFlower")) flowerMats.Add(kv.Value);
                 else if (kv.Key.name == "shrub_02") shrubMats.Add(kv.Value);
                 else if (kv.Key.name.EndsWith("_branches") || kv.Key.name.EndsWith("_twigs") || kv.Key.name.EndsWith("_bark")) woodMats.Add(kv.Value);
@@ -145,6 +154,77 @@ namespace Tiramisu
         }
 
         /// <summary>Trees and shrubs in the garden (indoor plants stay green all year).</summary>
+        // ------------------------------------------------------------ the roof of the house
+
+        static Mesh FlatMesh(float sx, float sz, float tile)
+        {
+            var m = new Mesh { name = "Roof layer" };
+            m.vertices = new[] { new Vector3(-sx / 2, 0, -sz / 2), new Vector3(-sx / 2, 0, sz / 2), new Vector3(sx / 2, 0, sz / 2), new Vector3(sx / 2, 0, -sz / 2) };
+            m.uv = new[] { new Vector2(0, 0), new Vector2(0, sz / tile), new Vector2(sx / tile, sz / tile), new Vector2(sx / tile, 0) };
+            m.triangles = new[] { 0, 1, 2, 0, 2, 3 };
+            m.RecalculateNormals(); m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>Snow (a slab that grows), fallen leaves and fallen petals (cut out sprites that appear a few at a time) on top of one piece of the roof.</summary>
+        void MakeRoofLayers(Renderer roofPiece)
+        {
+            var b = roofPiece.bounds;
+            if (b.size.x < 0.3f || b.size.z < 0.3f) return;
+            if (!snowM && snowCover) { snowM = new Material(snowCover); leafLitterM = new Material(leafLitter); petalLitterM = new Material(petalLitter); }
+            if (!snowM) return;
+            var layer = new RoofLayer { size = new Vector3(b.size.x, 0f, b.size.z) };
+            var parent = new GameObject("Roof season layers").transform;
+            parent.SetParent(roofPiece.transform, true);
+            parent.position = new Vector3(b.center.x, b.max.y, b.center.z);
+            parent.rotation = Quaternion.identity;
+            var snow = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            Destroy(snow.GetComponent<Collider>());
+            snow.name = "Snow";
+            snow.transform.SetParent(parent, true);
+            snow.transform.position = parent.position;
+            snow.transform.rotation = Quaternion.identity;
+            snow.transform.localScale = new Vector3(b.size.x, 0.001f, b.size.z);
+            snow.GetComponent<Renderer>().sharedMaterial = snowM;
+            snow.GetComponent<Renderer>().rayTracingMode = UnityEngine.Experimental.Rendering.RayTracingMode.Off;
+            snow.SetActive(false);
+            layer.snow = snow.transform;
+            Renderer Litter(string name, Material m, float lift)
+            {
+                var go = new GameObject(name);
+                go.transform.SetParent(parent, true);
+                go.transform.position = parent.position + Vector3.up * lift;
+                go.transform.rotation = Quaternion.identity;
+                go.AddComponent<MeshFilter>().sharedMesh = FlatMesh(b.size.x, b.size.z, 3.2f);
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = m;
+                r.shadowCastingMode = ShadowCastingMode.Off;
+                r.rayTracingMode = UnityEngine.Experimental.Rendering.RayTracingMode.Off;
+                go.SetActive(false);
+                return r;
+            }
+            layer.leaf = Litter("Fallen leaves", leafLitterM, 0.012f);
+            layer.petal = Litter("Fallen petals", petalLitterM, 0.014f);
+            roofLayers.Add(layer);
+        }
+
+        void UpdateRoof()
+        {
+            float snow = now.snow;
+            foreach (var l in roofLayers)
+            {
+                bool on = snow > 0.03f;
+                if (l.snow.gameObject.activeSelf != on) l.snow.gameObject.SetActive(on);
+                if (on) { var sc = l.snow.localScale; sc.y = 0.02f + 0.11f * snow; l.snow.localScale = sc; l.snow.localPosition = new Vector3(0f, sc.y * 0.5f, 0f); }
+                bool leafOn = leafStrength > 0.03f, petalOn = petalStrength > 0.03f;
+                if (l.leaf.gameObject.activeSelf != leafOn) l.leaf.gameObject.SetActive(leafOn);
+                if (l.petal.gameObject.activeSelf != petalOn) l.petal.gameObject.SetActive(petalOn);
+            }
+            // the more leaves have fallen, the more of the sprites show (each sprite has its own threshold in its alpha)
+            if (leafLitterM) leafLitterM.SetFloat("_AlphaCutoff", Mathf.Lerp(1.01f, 0.45f, leafStrength));
+            if (petalLitterM) petalLitterM.SetFloat("_AlphaCutoff", Mathf.Lerp(1.01f, 0.45f, petalStrength));
+        }
+
         static bool IsOutdoorWood(Renderer r, string material)
         {
             if (!(material.EndsWith("_branches") || material.EndsWith("_twigs") || material.EndsWith("_bark"))) return false;
@@ -190,6 +270,7 @@ namespace Tiramisu
             now = Mix(now, target, k);
             ApplyLook(now, false);
             UpdateWeather(target);
+            UpdateRoof();
         }
 
         // ------------------------------------------------------------ recoloured leaf cards (cherry blossom in spring, gold and rust in autumn)
@@ -272,6 +353,8 @@ namespace Tiramisu
             Tint(lawnM, l.lawn);
             Tint(lawnEdgeM, Color.Lerp(l.lawn, Color.black, 0.15f));
             Tint(hedgeM, l.hedge);
+            foreach (var m in cityRoofMats) Tint(m, Color.Lerp(Color.white, new Color(4.2f, 4.2f, 4.3f), l.snow));
+            foreach (var m in citySlabMats) Tint(m, Color.Lerp(Color.white, new Color(1.18f, 1.18f, 1.22f), l.snow));
             foreach (var m in cityLeaf) Tint(m, Color.Lerp(l.hedge, l.leaf * 0.45f, 0.5f));
             // bare in winter: the leaf cards are cut out completely (the trunk and branches share a renderer with them, so it cannot just be switched off)
             var leafColour = l.leaf; leafColour.a = l.leafOn > 0.35f ? 1f : 0f;

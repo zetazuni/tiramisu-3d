@@ -1838,6 +1838,64 @@ namespace Tiramisu.EditorTools
                 return m;
             }
             sc.soft = soft;
+            // fallen leaves and petals for the roof: cut out sprites, each with its own threshold in the alpha so they appear a few at a time
+            Texture2D Litter(string file, bool leaves)
+            {
+                string tp2 = $"Assets/Art/Textures/{file}.png";
+                if (!System.IO.File.Exists(tp2))
+                {
+                    const int N = 1024;
+                    var px = new Color[N * N];
+                    var rnd = new System.Random(leaves ? 5 : 9);
+                    int count = leaves ? 520 : 1400;
+                    Color[] pal = leaves ? new[] { new Color(0.72f, 0.28f, 0.08f), new Color(0.92f, 0.66f, 0.12f), new Color(0.5f, 0.3f, 0.12f), new Color(0.8f, 0.4f, 0.1f) }
+                                          : new[] { new Color(1f, 0.78f, 0.86f), new Color(1f, 0.92f, 0.95f), new Color(0.98f, 0.68f, 0.8f) };
+                    for (int k = 0; k < count; k++)
+                    {
+                        float cx = (float)rnd.NextDouble() * N, cy = (float)rnd.NextDouble() * N, ang = (float)rnd.NextDouble() * Mathf.PI;
+                        float len = leaves ? 22f + (float)rnd.NextDouble() * 16f : 7f + (float)rnd.NextDouble() * 5f, wid = leaves ? len * 0.42f : len * 0.6f;
+                        var col = pal[rnd.Next(pal.Length)] * (0.85f + 0.3f * (float)rnd.NextDouble());
+                        float a = 0.5f + 0.5f * (float)rnd.NextDouble();                    // the threshold: 0.5 shows first, 1.0 last
+                        float ca = Mathf.Cos(ang), sa = Mathf.Sin(ang);
+                        for (int dy = -(int)len; dy <= (int)len; dy++)
+                            for (int dx = -(int)len; dx <= (int)len; dx++)
+                            {
+                                float u = dx * ca + dy * sa, v = -dx * sa + dy * ca;
+                                float w = wid * Mathf.Sqrt(Mathf.Max(0f, 1f - (u / len) * (u / len)));
+                                if (Mathf.Abs(v) > w) continue;
+                                int x = ((int)cx + dx + N) % N, y = ((int)cy + dy + N) % N;
+                                var c2 = col; if (leaves && Mathf.Abs(v) < 0.8f) c2 *= 0.75f;
+                                px[y * N + x] = new Color(c2.r, c2.g, c2.b, a);
+                            }
+                    }
+                    var t2 = new Texture2D(N, N, TextureFormat.RGBA32, true);
+                    t2.SetPixels(px); t2.Apply();
+                    System.IO.File.WriteAllBytes(tp2, t2.EncodeToPNG());
+                    AssetDatabase.ImportAsset(tp2);
+                    var ti = (TextureImporter)AssetImporter.GetAtPath(tp2);
+                    ti.alphaIsTransparency = false; ti.mipmapEnabled = true; ti.wrapMode = TextureWrapMode.Repeat; ti.anisoLevel = 4;
+                    ti.SaveAndReimport();
+                }
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(tp2);
+            }
+            Material Cover(string name, Texture2D tex, Color col, float smooth)
+            {
+                string path = $"Assets/Art/Materials/{name}.mat";
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (!m) { m = new Material(Shader.Find("HDRP/Lit")); AssetDatabase.CreateAsset(m, path); }
+                m.SetColor("_BaseColor", col); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", 0f);
+                m.SetTexture("_BaseColorMap", tex);
+                if (tex)
+                {
+                    m.SetFloat("_AlphaCutoffEnable", 1f); m.SetFloat("_AlphaCutoff", 1.01f); m.SetFloat("_DoubleSidedEnable", 1f);
+                }
+                UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
+                EditorUtility.SetDirty(m);
+                return m;
+            }
+            sc.snowCover = Cover("RoofSnow", null, new Color(0.96f, 0.97f, 1f), 0.25f);
+            sc.leafLitter = Cover("RoofLeaves", Litter("RoofLeavesLitter", true), Color.white, 0.2f);
+            sc.petalLitter = Cover("RoofPetals", Litter("RoofPetalsLitter", false), Color.white, 0.2f);
             sc.recolor = Shader.Find("Hidden/Tiramisu/Recolor");
             sc.petalMaterials = new[] { Dot("SeasonPetal", new Color(1f, 0.8f, 0.88f, 1f), 0.6f), Dot("SeasonPetalWhite", new Color(1f, 0.96f, 0.96f, 1f), 0.6f) };
             sc.petalMaterial = sc.petalMaterials[0];
