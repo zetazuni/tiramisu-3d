@@ -1534,10 +1534,10 @@ namespace Tiramisu.EditorTools
         /// <summary>Photoscanned props from Poly Haven (tools/fetch_models.py) in the living room.</summary>
         static readonly PropPlacer.Prop[] LivingProps =
         {
-            Pr("modern_arm_chair_01", null, 6.5f, FLOOR_TOP, 4.5f, 70f, 1f, PropPlacer.Body.Dynamic, 18f),
+            Pr("modern_arm_chair_01", null, 6.5f, FLOOR_TOP, 4.5f, 250f, 1f, PropPlacer.Body.Dynamic, 18f),
             Pr("side_table_01", null, 5.55f, FLOOR_TOP, 2.95f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
             Pr("desk_lamp_arm_01", null, 5.6f, SideTop + 0.002f, 2.9f, 200f, 1f, PropPlacer.Body.Dynamic, 2.5f),
-            Pr("book_encyclopedia_set_01", null, 3.7f, TableTop + 0.004f, 4.6f, 0f, 1f, PropPlacer.Body.DynamicParts, 0.7f),
+            Pr("book_encyclopedia_set_01", null, 3.95f, TableTop + 0.004f, 4.6f, 0f, 1f, PropPlacer.Body.DynamicParts, 0.7f),
             Pr("ceramic_vase_03", null, 4.45f, TableTop + 0.002f, 4.62f, 0f, 1f, PropPlacer.Body.Dynamic, 1.2f),
             Pr("potted_plant_01", null, 7.3f, FLOOR_TOP, 0.75f, 30f, 1.35f, PropPlacer.Body.Static, 0f, 0.55f),
             Pr("pachira_aquatica_01", "_d", 0.75f, FLOOR_TOP + 0.38f, 0.8f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
@@ -1714,6 +1714,18 @@ namespace Tiramisu.EditorTools
             return go;
         }
 
+        /// <summary>The loose cushions of the sofa come out of the model a few centimetres above the seat: lower each until its lowest point rests on the seat.</summary>
+        static void SettleSofaCushions(GameObject sofa)
+        {
+            float seatTop = float.MinValue;
+            foreach (var r in sofa.GetComponentsInChildren<Renderer>())
+                if (r.name.StartsWith("seat ") && !r.name.StartsWith("seat cushion")) seatTop = Mathf.Max(seatTop, r.bounds.max.y);
+            if (seatTop < -1e5f) return;
+            foreach (var r in sofa.GetComponentsInChildren<Renderer>())
+                if (r.name.StartsWith("seat cushion"))
+                    r.transform.position += Vector3.down * (r.bounds.min.y - (seatTop - 0.01f));
+        }
+
         static void PutOnGlasses(GameObject person)
         {
             var glasses = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/Characters/glasses.fbx");
@@ -1749,7 +1761,7 @@ namespace Tiramisu.EditorTools
                 case "sofa":
                     foreach (float x in new[] { -0.65f, 0f, 0.65f }) Spot(go, "sofa", sit, new Vector3(x, 0.62f, 0.02f), 0f, new Vector3(x, 0f, 1.1f));
                     break;
-                case "modern_arm_chair_01": Spot(go, "armchair", sit, new Vector3(0f, 0.52f, 0.05f), 180f, new Vector3(0f, 0f, -0.95f)); break;
+                case "modern_arm_chair_01": Spot(go, "armchair", sit, new Vector3(0f, 0.52f, 0.05f), 0f, new Vector3(0f, 0f, 0.95f)); break;
                 case "diningchair": Spot(go, "dining chair", sit, new Vector3(0f, 0.52f, 0f), 0f, new Vector3(0.75f, 0f, 0f)); break;
                 case "barstool": Spot(go, "bar stool", sit, new Vector3(0f, 0.75f, 0f), 180f, new Vector3(0f, 0f, 0.8f)); break;
                 case "officechair": Spot(go, "office chair", sit, new Vector3(0f, 0.53f, 0.02f), 0f, new Vector3(0.8f, 0f, 0.1f)); break;
@@ -1804,6 +1816,7 @@ namespace Tiramisu.EditorTools
                 go.transform.position = new Vector3(f.x, f.y > -900f ? f.y + spec.dropHeight : (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
+                if (f.id == "sofa") SettleSofaCushions(go);
                 MakeMovable(go, false);
                 AddSpots(go, f.id);
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall

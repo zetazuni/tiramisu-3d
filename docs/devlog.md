@@ -204,3 +204,8 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - Athirah: fairer skin, glasses hidden (`CharacterRig.hideMaterial`). Amir: black hair, glasses (`glasses.fbx`, parented to his head bone by `GreyboxBuilder.PutOnGlasses`, fitted by looking at a close-up).
 - Walking: the stride phase follows the distance actually travelled (no more feet sliding), with knee lift, arm swing, hip bob and a small torso twist; pets too. Not checked frame by frame, only that the code runs.
 - Night sky: atmosphere multiplier and clouds fade out at night, 2200 stars per cubemap face, a moon disk with a generated texture (HDRP celestial body), less bloom. **Found:** the depth of field blurred the sky (infinitely far) into fuzzy blobs, so the far blur is off at night (`CinematicFocus`). The moon still glows a lot, the disk detail is not visible.
+
+## Session 19: living room fixes (2026-09-26) · v0.19.2
+
+- The two loose sofa cushions were 3 cm in the air (the model puts them there): `SettleSofaCushions` lowers each until its lowest point rests on the seat. The living room armchair had its back to the room (the model's front is +Z, the sit spot was also turned round): now faces the sofa and the sit spot matches. One book of the coffee table set stood at the table's end and slipped down beside a leg: the set is moved to the middle of the table.
+- **Gotcha:** the layout saved in PlayerPrefs (`tiramisu.layout`) overrides the defaults for any piece that was moved, so a changed default only shows after "Reset layout".
