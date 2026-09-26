@@ -105,7 +105,7 @@ namespace Tiramisu
             }
 
             GUI.Label(new Rect(0, h - 58, w, 30),
-                "Drag to spin around · Right drag to move · Scroll to zoom · Q/E spin · 1 2 3 floors · G graphics · M move furniture (hold click and scroll to turn) · Click things to nudge them", hint);
+                "Click a person to pick them · Click the floor to walk · Click furniture for its menu · WASD move · Q/E or middle drag turn · Scroll zoom · Space pause · 1 2 3 speed · Page Up/Down floors · M move furniture", hint);
             GUI.Label(new Rect(w - 220, h - 26, 210, 22), $"Tiramisu 3D v{GameInfo.Version} · {GameInfo.BuildDate}", version);
         }
     }

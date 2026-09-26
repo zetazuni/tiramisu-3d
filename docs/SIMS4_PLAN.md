@@ -8,6 +8,12 @@ Rule 7 in `docs/RULES.md` asks for gameplay that imitates The Sims 4 (original a
 - Decorate mode (M): pick furniture up and put it anywhere, turn it with the wheel, layouts are saved. People and pets freeze into see-through silhouettes while decorating.
 - Two people and a pet that walk, sit, lie, chat and use doors. Sitting and lying follow the shape of the furniture.
 
+## Done in v0.21.0: live mode and the pie menu (milestones 1 and 2, first version)
+- Click a person (or pick them in the panel at the bottom) and a green diamond floats over their head. Click the floor and they walk there (a pink ring shows where). Click a piece of furniture you can sit or lie on and a round menu offers "Sit down" or "Lie down" plus "Go here". Click another person: "Talk to", "Play as", "Go there". Click a pet: "Pet", "Go there".
+- Orders queue, a person finishes them before going back to their own plans (about 12 seconds later), and the "Stop" button next to the panel cancels them.
+- Space pauses, 1 2 3 change the speed (1x, 2.5x, 5x), Pause and speed buttons bottom right. WASD and Q/E turn as before, middle mouse drag turns the camera (like the game), floors moved to Page Up, Page Down and Home.
+- Not there yet: more actions in the pie menu (eat, cook, watch, swim, shower), menus for doors and windows, a "Move" entry that starts decorating, queue view with icons, right click on the ground.
+
 ## Milestones (in order, each one playable on its own)
 1. **Live mode controls.** Click a person to select them (plumbob style marker over the head), a portrait panel at the bottom left, click on the world to send the selected person there, pause and speed buttons (space, 1, 2, 3), WASD panning like the game.
 2. **Pie menu.** Click an object: a round menu with the actions it offers (sit, lie, look, use, move). Actions queue and people walk over and do them with the right pose. Objects get an action list (data driven, `UseSpot` grows into an `Interaction`).

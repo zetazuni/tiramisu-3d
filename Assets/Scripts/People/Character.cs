@@ -63,6 +63,103 @@ namespace Tiramisu
         public bool isPet;
         public float scale = 1f;
 
+        /// <summary>Something the player told a person to do (live mode). They are done one after the other before the person goes back to their own plans.</summary>
+        public class Order
+        {
+            public enum Kind { Go, Use, Talk, Pet }
+            public Kind kind;
+            public Vector3 point;
+            public UseSpot spot;
+            public Character target;
+            public string label;
+        }
+
+        readonly Queue<Order> orders = new Queue<Order>();
+        bool onOrder, holdSeat;
+        float autoResume;
+        string doing = "";
+
+        public int Queued => orders.Count;
+        public bool OnOrder => onOrder;
+        public bool CanChat => mode == Mode.Idle || mode == Mode.Walk || mode == Mode.ChatWalk || mode == Mode.PetWalk;
+
+        public string Activity
+        {
+            get
+            {
+                switch (mode)
+                {
+                    case Mode.Waiting: return "Just arrived";
+                    case Mode.Walk: case Mode.ToSpot: return onOrder && !string.IsNullOrEmpty(doing) ? doing : "Walking";
+                    case Mode.Sitting: case Mode.Using: return spot != null && spot.pose == CharacterRig.Pose.Lie ? "Lying down" : "Sitting";
+                    case Mode.Rising: return "Getting up";
+                    case Mode.ChatWalk: return "Going to chat";
+                    case Mode.Chatting: return "Chatting";
+                    case Mode.PetWalk: return "Going to pet";
+                    case Mode.Petting: return "Petting";
+                    case Mode.BeingPetted: return "Being petted";
+                    default: return "Relaxing";
+                }
+            }
+        }
+
+        public void GiveOrder(Order o)
+        {
+            orders.Enqueue(o);
+            switch (mode)
+            {
+                case Mode.Using: case Mode.Sitting: timer = 0f; break;          // stands up first, then does the new thing
+                case Mode.Walk: case Mode.ChatWalk: case Mode.PetWalk:
+                    if (!onOrder) { partner = null; SetIdle(0f); }
+                    break;
+                case Mode.ToSpot:
+                    if (!onOrder) { if (spot) spot.occupant = null; spot = null; SetIdle(0f); }
+                    break;
+                case Mode.Chatting: partner = null; SetIdle(0f); break;
+                case Mode.Petting: if (partner) partner.EndPetted(); partner = null; SetIdle(0f); break;
+                case Mode.Idle: timer = 0f; break;
+            }
+        }
+
+        public void CancelOrders()
+        {
+            orders.Clear();
+            if (mode == Mode.Walk || mode == Mode.ChatWalk || mode == Mode.PetWalk) { partner = null; SetIdle(0.5f); }
+            else if (mode == Mode.ToSpot) { if (spot) spot.occupant = null; spot = null; SetIdle(0.5f); }
+            else if (mode == Mode.Using) timer = 0f;
+            onOrder = false;
+        }
+
+        void Say(string line, float seconds = 2.6f) { Bubble = line; bubbleUntil = Time.time + seconds; }
+
+        void StartOrder()
+        {
+            var o = orders.Dequeue();
+            onOrder = true;
+            doing = o.label ?? "";
+            bool ok = false;
+            switch (o.kind)
+            {
+                case Order.Kind.Go:
+                    ok = GoTo(o.point, 2.2f);
+                    if (ok) mode = Mode.Walk;
+                    break;
+                case Order.Kind.Use:
+                    if (o.spot != null && (o.spot.occupant == null) && GoTo(o.spot.ApproachWorld, 1.4f))
+                    {
+                        spot = o.spot; spot.occupant = this; mode = Mode.ToSpot; holdSeat = true; ok = true;
+                    }
+                    break;
+                case Order.Kind.Talk:
+                    if (o.target != null && o.target.CanChat && GoTo(o.target.transform.position, 1.8f)) { partner = o.target; mode = Mode.ChatWalk; ok = true; }
+                    break;
+                case Order.Kind.Pet:
+                    if (o.target != null && GoTo(o.target.transform.position, 1.4f)) { partner = o.target; mode = Mode.PetWalk; ok = true; }
+                    break;
+            }
+            if (!ok) { Say("Hmm, I can't get there."); SetIdle(0.05f); }
+        }
+
         enum Mode { Waiting, Idle, Walk, ToSpot, Sitting, Using, Rising, ChatWalk, Chatting, PetWalk, Petting, BeingPetted }
 
         NavMeshAgent agent;
@@ -172,6 +269,9 @@ namespace Tiramisu
 
         void TickIdle()
         {
+            if (orders.Count > 0) { StartOrder(); return; }
+            if (onOrder) { onOrder = false; autoResume = Time.time + 12f; }   // told what to do: no wandering off for a while
+            if (Time.time < autoResume) return;
             timer -= Time.deltaTime;
             if (timer <= 0f) Decide();
         }
@@ -283,7 +383,7 @@ namespace Tiramisu
             SeatPose(out var pos, out var rot);
             float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(blend));
             transform.SetPositionAndRotation(Vector3.Lerp(fromPos, pos, e), Quaternion.Slerp(fromRot, rot, e));
-            if (blend >= 1f) { mode = Mode.Using; timer = Random.Range(spot.seconds.x, spot.seconds.y); }
+            if (blend >= 1f) { mode = Mode.Using; timer = holdSeat ? 150f : Random.Range(spot.seconds.x, spot.seconds.y); holdSeat = false; }
         }
 
         void TickUsing()
@@ -291,6 +391,7 @@ namespace Tiramisu
             SeatPose(out var pos, out var rot);
             transform.SetPositionAndRotation(pos, rot);   // follows the piece if it is moved
             timer -= Time.deltaTime;
+            if (orders.Count > 0) timer = 0f;   // told to do something else
             if (timer <= 0f)
             {
                 fromPos = transform.position; fromRot = transform.rotation;

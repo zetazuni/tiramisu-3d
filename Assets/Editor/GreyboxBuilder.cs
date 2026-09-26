@@ -1745,6 +1745,24 @@ namespace Tiramisu.EditorTools
             return m;
         }
 
+        /// <summary>The green diamond over the person you are playing.</summary>
+        static Material PlumbobMaterial()
+        {
+            const string path = "Assets/Art/Materials/Plumbob.mat";
+            System.IO.Directory.CreateDirectory("Assets/Art/Materials");
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!m)
+            {
+                m = new Material(Shader.Find("HDRP/Unlit"));
+                AssetDatabase.CreateAsset(m, path);
+            }
+            m.SetColor("_UnlitColor", new Color(0.25f, 0.95f, 0.4f, 1f));
+            m.SetColor("_EmissiveColor", new Color(0.25f, 0.95f, 0.4f, 1f) * 2f);
+            UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
         [System.Serializable] class DefEntry { public string key; public Vector3 pos; public float yaw; public string host; }
         [System.Serializable] class DefLayout { public System.Collections.Generic.List<DefEntry> items = new System.Collections.Generic.List<DefEntry>(); }
 
@@ -1978,6 +1996,7 @@ namespace Tiramisu.EditorTools
             hv.upperFloorY = UPY;
             game.AddComponent<HouseHud>();
             game.AddComponent<DecorateMode>().ghostMaterial = GhostMaterial();
+            game.AddComponent<LiveMode>().plumbobMaterial = PlumbobMaterial();
             game.AddComponent<TiramisuNav>();
             game.AddComponent<CharacterHud>();
             var dn = game.AddComponent<DayNightCycle>();

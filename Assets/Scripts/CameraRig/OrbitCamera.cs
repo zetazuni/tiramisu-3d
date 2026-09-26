@@ -42,7 +42,7 @@ namespace Tiramisu
 
         // mouse state
         Vector3 lastMouse, downMouse;
-        bool spinning, panning;
+        bool spinning, panning, midSpin;
 
         // touch state
         float lastPinch, lastTwist;
@@ -111,7 +111,10 @@ namespace Tiramisu
             Vector3 m = Input.mousePosition;
 
             if (Input.GetMouseButtonDown(0) && !OverUi(m) && !Blocked) { downMouse = m; lastMouse = m; spinning = true; }
-            if ((Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2)) && !OverUi(m)) { lastMouse = m; panning = true; }
+            if (Input.GetMouseButtonDown(1) && !OverUi(m)) { lastMouse = m; panning = true; }
+            if (Input.GetMouseButtonDown(2) && !OverUi(m)) { lastMouse = m; midSpin = true; }
+            if (midSpin && Input.GetMouseButton(2)) { Vector3 md = m - lastMouse; tYaw += md.x * spinSpeed; tPitch -= md.y * tiltSpeed; }
+            if (!Input.GetMouseButton(2)) midSpin = false;
 
             if (spinning && Input.GetMouseButton(0))
             {
@@ -122,7 +125,7 @@ namespace Tiramisu
                     tPitch -= d.y * tiltSpeed;
                 }
             }
-            if (panning && (Input.GetMouseButton(1) || Input.GetMouseButton(2)))
+            if (panning && Input.GetMouseButton(1))
                 Pan(m - lastMouse);
 
             if (Input.GetMouseButtonUp(0))
@@ -130,7 +133,7 @@ namespace Tiramisu
                 if (spinning && (m - downMouse).magnitude <= dragThreshold) ClickedThisFrame = true;
                 spinning = false;
             }
-            if (!Input.GetMouseButton(1) && !Input.GetMouseButton(2)) panning = false;
+            if (!Input.GetMouseButton(1)) panning = false;
 
             float wheel = Input.mouseScrollDelta.y;
             if (Mathf.Abs(wheel) > 0.01f && !OverUi(m) && !Blocked) tDist *= Mathf.Pow(0.88f, wheel);

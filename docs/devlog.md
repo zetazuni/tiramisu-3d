@@ -224,3 +224,9 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Lounger:** checked with a real pose: the body lies along the backrest with the head up (it was upside down before the v0.19.3 sign fix).
 - **New rule 7:** play like The Sims 4 (controls, build and buy mode, money, needs, pie menu). Plan in `docs/SIMS4_PLAN.md`. None of it is built yet except what was already there.
 - **Test tip:** Unity does not tick game frames while in the background from the MCP, so pause and call `EditorApplication.Step()` in a loop from `execute_code`.
+
+## Session 22: live mode and the pie menu (2026-09-27) · v0.21.0
+
+- First Sims 4 milestone (see `docs/SIMS4_PLAN.md`): `LiveMode` (pick a person, plumbob, click to walk, round menu on furniture and people, speed controls) and an order queue in `Character` (`GiveOrder`, `Order`, `StartOrder`, `CancelOrders`). People and pets are picked by screen distance, not colliders.
+- Checked in Play mode by stepping frames: an order to walk took Amir across the house to the spot, a "Sit down" order from the pie menu made him walk to the sofa and sit, the menu and the green diamond draw correctly. **Not tested with a real mouse**, so clicking, hover colours and the right click to close the menu need a try.
+- Key changes: 1, 2, 3 are speeds now (floors moved to Page Up, Page Down, Home), the middle mouse turns the camera and the right mouse only moves it.

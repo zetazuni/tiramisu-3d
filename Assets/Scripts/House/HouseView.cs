@@ -49,9 +49,9 @@ namespace Tiramisu
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1)) SetView(View.Ground);
-            if (Input.GetKeyDown(KeyCode.Alpha2)) SetView(View.Upper);
-            if (Input.GetKeyDown(KeyCode.Alpha3)) SetView(View.Whole);
+            if (Input.GetKeyDown(KeyCode.PageDown)) SetView(View.Ground);
+            if (Input.GetKeyDown(KeyCode.PageUp)) SetView(View.Upper);
+            if (Input.GetKeyDown(KeyCode.Home)) SetView(View.Whole);
             if (Input.GetKeyDown(KeyCode.Tab)) CycleWallMode();
             if (Input.GetKeyDown(KeyCode.F) && OrbitCamera.Instance) OrbitCamera.Instance.FitHouse(ActiveFloorY);
 
