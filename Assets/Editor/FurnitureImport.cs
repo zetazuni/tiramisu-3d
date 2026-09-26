@@ -74,6 +74,21 @@ namespace Tiramisu.EditorTools
             { "BlueWater",    (null, new Color(0.3f, 0.6f, 0.9f), new Vector2(0.9f, 0.9f), 0f, false) },
             { "Mat_main",     (null, new Color(0.22f, 0.5f, 0.5f), new Vector2(0.3f, 0.3f), 0f, false) },
             { "Planter_main", ("white_plaster_02", new Color(0.86f, 0.84f, 0.8f), new Vector2(0.15f, 0.4f), 0f, true) },
+            { "Teak",         ("wood_floor_deck", new Color(0.62f, 0.44f, 0.28f), new Vector2(0.15f, 0.42f), 0f, true) },
+            { "Umbrella",     ("rough_linen", new Color(0.93f, 0.55f, 0.42f), new Vector2(0f, 0.25f), 0f, true) },
+            { "StoneGrey",    ("precast_stone_paving", new Color(0.72f, 0.72f, 0.7f), new Vector2(0.1f, 0.45f), 0f, true) },
+            { "OutdoorFabric_main", ("rough_linen", new Color(0.9f, 0.87f, 0.8f), new Vector2(0f, 0.2f), 0f, true) },
+            { "FlowerPink",   (null, new Color(0.95f, 0.45f, 0.62f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "FlowerYellow", (null, new Color(0.98f, 0.82f, 0.2f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "FlowerWhite",  (null, new Color(0.96f, 0.96f, 0.93f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "Flamingo",     (null, new Color(0.96f, 0.45f, 0.55f), new Vector2(0.4f, 0.4f), 0f, false) },
+            { "GnomeSkin",    (null, new Color(0.88f, 0.68f, 0.58f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "CoolerBlue",   (null, new Color(0.15f, 0.42f, 0.75f), new Vector2(0.5f, 0.5f), 0f, false) },
+            { "FireGlow",     (null, new Color(1f, 0.45f, 0.08f), new Vector2(0.4f, 0.4f), 0f, false) },
+            { "BallRed",      (null, new Color(0.85f, 0.1f, 0.1f), new Vector2(0.6f, 0.6f), 0f, false) },
+            { "BallWhite",    (null, new Color(0.95f, 0.95f, 0.95f), new Vector2(0.6f, 0.6f), 0f, false) },
+            { "BallBlue",     (null, new Color(0.15f, 0.35f, 0.8f), new Vector2(0.6f, 0.6f), 0f, false) },
+            { "BallYellow",   (null, new Color(0.95f, 0.8f, 0.1f), new Vector2(0.6f, 0.6f), 0f, false) },
             { "Cushion_main", ("rough_linen", new Color(0.60f, 0.68f, 0.54f), new Vector2(0f, 0.25f), 0f, true) },
         };
 
@@ -129,6 +144,7 @@ namespace Tiramisu.EditorTools
                 Color? glow = name == "Bulb" ? new Color(1f, 0.78f, 0.45f) * 2.6f
                     : name == "Headlight" ? new Color(0.9f, 0.95f, 1f) * 1.5f
                     : name == "Screen" ? new Color(0.3f, 0.55f, 0.95f) * 0.8f
+                    : name == "FireGlow" ? new Color(1f, 0.4f, 0.08f) * 3f
                     : name == "Flame" ? new Color(1f, 0.6f, 0.15f) * 8f
                     : name == "Taillight" ? new Color(1f, 0.04f, 0.02f) * 12f : (Color?)null;
                 if (glow.HasValue) // bulbs and car lights glow

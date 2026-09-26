@@ -24,6 +24,9 @@ namespace Tiramisu
         static readonly Collider[] buffer = new Collider[24];
 
         void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+
+        /// <summary>Puts the door in its closed pose (used by the builder).</summary>
+        public void Refresh() => Apply(0f);
         void OnDisable() => All.Remove(this);
 
         /// <summary>Opens the door and keeps it open for a moment (call again to keep it open).</summary>

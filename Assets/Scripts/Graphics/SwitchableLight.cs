@@ -13,6 +13,7 @@ namespace Tiramisu
         public float day = 300f;
         public float night = 1200f;
         Light l;
+        public float Current { get; private set; }
 
         void OnEnable() { l = GetComponent<Light>(); if (!All.Contains(this)) All.Add(this); }
         void OnDisable() => All.Remove(this);
@@ -21,6 +22,7 @@ namespace Tiramisu
         {
             if (!l) return;
             float v = Mathf.Lerp(day, night, night01);
+            Current = v;
             l.intensity = v;
             l.enabled = v > 0.5f;
         }

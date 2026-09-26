@@ -133,6 +133,7 @@ namespace Tiramisu
                     foreach (var p in probes) if (p) p.multiplier = m;
                 }
             foreach (var l in SwitchableLight.All) l.Apply(nightAmount);
+            foreach (var g in NightGlow.All) g.Apply(nightAmount);
         }
 
         // ---------- stars ----------

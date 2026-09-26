@@ -250,7 +250,7 @@ namespace Tiramisu
         {
             if (!curtainMat) return;
             float inner = interiorSide > 0 ? at + thick : at;
-            float depth = inner + interiorSide * 0.13f;
+            float depth = inner + interiorSide * 0.17f;
             float a = w.center - w.width * 0.5f, b = w.center + w.width * 0.5f;
             float top = w.top + 0.16f, bottom = Mathf.Max(0.04f, w.sill - 0.18f);
 
@@ -274,29 +274,44 @@ namespace Tiramisu
             if (cutW) cutW.attachments.Add(root);
         }
 
+        /// <summary>A gathered curtain panel: many round, overlapping folds that alternate in depth, wider at the bottom, so it looks soft and full.</summary>
         Transform MakePanel(Transform parent, string nm, Vector3 pivot, Quaternion rot, float dir, float length, float bottom, float top, float dsign)
         {
             var p = new GameObject($"Panel {nm}");
             p.transform.SetParent(parent, false);
             p.transform.SetPositionAndRotation(pivot, rot);
-            int n = Mathf.Max(4, Mathf.CeilToInt(length / 0.09f));
+            int n = Mathf.Max(7, Mathf.CeilToInt(length / 0.055f));
             float sw = length / n;
+            float h = top - bottom, cy = floorY + (bottom + top) * 0.5f - pivot.y;
+            var rnd = new System.Random(idxSeed++);
             for (int i = 0; i < n; i++)
             {
-                var g = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var g = GameObject.CreatePrimitive(PrimitiveType.Capsule);
                 g.name = $"Fold {i}";
                 g.transform.SetParent(p.transform, false);
-                float pleat = (i % 2 == 0 ? 1f : -1f) * 0.014f * dsign;
-                g.transform.localPosition = new Vector3(dir * (i + 0.5f) * sw, floorY + (bottom + top) * 0.5f - pivot.y, pleat);
-                g.transform.localScale = new Vector3(sw * 1.08f, top - bottom, 0.03f);
+                float wave = Mathf.Sin(i * 2.1f) * 0.5f + (i % 2 == 0 ? 0.5f : -0.5f);
+                float thick = 0.11f + 0.04f * (float)rnd.NextDouble();
+                g.transform.localPosition = new Vector3(dir * (i + 0.5f) * sw, cy, wave * 0.085f * dsign);
+                // a capsule is 2 m tall and 1 m wide: scale to the curtain height, keep the folds thick and round
+                g.transform.localScale = new Vector3(sw * 1.9f, h * 0.5f, thick * 2.2f);
                 g.GetComponent<Renderer>().sharedMaterial = curtainMat;
                 if (Application.isPlaying) Destroy(g.GetComponent<Collider>()); else DestroyImmediate(g.GetComponent<Collider>());
             }
+            // a soft hem at the bottom and a gathered heading at the top
+            var hem = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            hem.name = "Heading";
+            hem.transform.SetParent(p.transform, false);
+            hem.transform.localPosition = new Vector3(dir * length * 0.5f, floorY + top - 0.05f - pivot.y, 0f);
+            hem.transform.localScale = new Vector3(length, 0.1f, 0.1f);
+            hem.GetComponent<Renderer>().sharedMaterial = curtainMat;
+            if (Application.isPlaying) Destroy(hem.GetComponent<Collider>()); else DestroyImmediate(hem.GetComponent<Collider>());
             var box = p.AddComponent<BoxCollider>();
-            box.center = new Vector3(dir * length * 0.5f, floorY + (bottom + top) * 0.5f - pivot.y, 0f);
-            box.size = new Vector3(length, top - bottom, 0.08f);
+            box.center = new Vector3(dir * length * 0.5f, cy, 0f);
+            box.size = new Vector3(length, h, 0.14f);
             return p.transform;
         }
+
+        static int idxSeed = 3;
 
         // ---------- saving ----------
 

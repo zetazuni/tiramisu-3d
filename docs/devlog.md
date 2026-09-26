@@ -137,7 +137,16 @@ Amir's notes on the first night: too glowy and reflective, lights too strong and
 - **Room paints:** every room has its own colour, both faces of the interior walls, both the plaster on the outer walls. Looks right from the upper floor view (coral gym, slate engineer, blue office, blush teacher).
 - Not tested with a real mouse: clicking curtains, hovering the new doors. Please try.
 
+## Session 10: front yard, LED strips, marble kitchen (2026-09-26) · v0.12.0
+
+- **Floating cushions fixed.** Found by simulating them in Play mode: they settle with their bottom at 0.578 m on a seat that tops out at 0.58 m, but the layout placed them at 0.71 and 0.75 m. Placed at 0.612 (their origin) now.
+- **Kitchen floor:** large format polished marble (Poly Haven `marble_01`). I looked at the Grey Cartago sets first but they are rusty brown and grey, not something for a kitchen, so those downloads were removed again.
+- **Garage front:** a zig-zag glass door that folds to both sides. Cars parked in a row nose to the shutter. Tested through the API: the panels fold, the doorway clears.
+- **Front yard populated** like the 2D game's yard (20 new models, about 110k triangles): see CLAUDE.md. The beach ball floats in the pool and rings spread around it.
+- **Light strips and string lights**, both only glow at night (146 glowing surfaces, 71 lights). The LED strips on the roof were first left floating in the sky in the ground floor view, they now belong to the roof.
+- **Curtains fluffier,** two rounds of thickness and depth tuning. Please judge them by eye and tell me if you want them even fuller.
+- Not tested with a real mouse: hovering the garage folding door, dragging the new yard furniture.
+
 **Next**
-- Amir tries curtains, front doors, the shutter and the colours and says what feels off (colour choices, shutter look).
-- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, buying or unlocking furniture.
-- A car that can drive out of the shutter door to the road, streetlights, grass and hills, weather.
+- Amir walks the yard at night and says what feels off (fewer or more lights, colours).
+- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.

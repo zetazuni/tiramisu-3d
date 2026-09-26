@@ -18,7 +18,7 @@ namespace Tiramisu.EditorTools
         const float FLOOR_TOP = 0.02f; // room floor plates are 2 cm thick, furniture stands on top
 
         static Material oak, oakDark, wallWhite, cap, slab, tile, bathTile, garageFloor, gym, lawn, lawnDark,
-            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, doorWood, asphalt, apron, shutter, shutterDark, lineWhite, lineYellow, curtainFabric,
+            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, ledWarm, ledCool, bulbGlow, doorWood, asphalt, apron, shutter, shutterDark, lineWhite, lineYellow, curtainFabric,
             pLiving, pKitchen, pHall, pBath, pGarage, pTeacher, pOffice, pLanding, pEngineer, pGym;
         static Material sideMinus, sidePlus;   // room paints for the two faces of an interior wall, set just before building it
 
@@ -64,7 +64,7 @@ namespace Tiramisu.EditorTools
             wallWhite = Tn("WallWhite", "white_plaster_02", T, new Color(0.95f, 0.94f, 0.92f), new Vector2(0.02f, 0.22f), 0.3f);
             cap = Pl("DarkCap", new Color(0.05f, 0.05f, 0.055f), 0.5f);
             slab = Tn("Slab", "brushed_concrete", T, new Color(0.72f, 0.71f, 0.69f), new Vector2(0.1f, 0.4f));
-            tile = Tx("KitchenTile", "marble_tiles", P, new Vector2(0.35f, 0.65f));
+            tile = Tn("KitchenTile", "marble_01", P, new Color(0.96f, 0.95f, 0.93f), new Vector2(0.55f, 0.85f), 0.6f);   // large format polished marble, soft warm white
             bathTile = Tx("BathTile", "large_grey_tiles", P, new Vector2(0.3f, 0.6f));
             garageFloor = Tn("GarageFloor", "concrete_floor", P, new Color(0.62f, 0.62f, 0.63f), new Vector2(0.2f, 0.5f));
             gym = Tn("GymFloor", "rubber_tiles", P, new Color(0.85f, 0.87f, 0.92f), new Vector2(0.05f, 0.32f));
@@ -86,7 +86,7 @@ namespace Tiramisu.EditorTools
             shutterDark = Pl("GarageShutterDark", new Color(0.04f, 0.045f, 0.05f), 0.5f, 0.3f);
             lineWhite = Pl("RoadWhite", new Color(0.9f, 0.9f, 0.88f), 0.3f);
             lineYellow = Pl("RoadYellow", new Color(0.9f, 0.72f, 0.15f), 0.3f);
-            curtainFabric = Tn("CurtainFabric", "rough_linen", T, new Color(0.88f, 0.85f, 0.78f), new Vector2(0f, 0.2f));
+            curtainFabric = Tn("CurtainFabric", "rough_linen", T, new Color(0.97f, 0.94f, 0.88f), new Vector2(0f, 0.2f));
             pLiving = Paint("PaintLiving", new Color(0.90f, 0.83f, 0.72f));      // warm sand
             pKitchen = Paint("PaintKitchen", new Color(0.70f, 0.80f, 0.72f));    // sage green
             pHall = Paint("PaintHall", new Color(0.94f, 0.93f, 0.90f));          // soft white
@@ -99,6 +99,9 @@ namespace Tiramisu.EditorTools
             pGym = Paint("PaintGym", new Color(0.90f, 0.64f, 0.53f));            // coral
             doorWood = Tn("DoorWood", "american_walnut_veneer", T, new Color(0.62f, 0.42f, 0.27f), new Vector2(0.3f, 0.5f), 1f);
             lampGlow = Glowing("LampGlow", new Color(1f, 0.82f, 0.55f), new Color(1f, 0.7f, 0.35f) * 2.2f);
+            ledWarm = Glowing("LedWarm", new Color(1f, 0.8f, 0.55f), new Color(1f, 0.72f, 0.4f) * 5f);
+            ledCool = Glowing("LedCool", new Color(0.7f, 0.9f, 1f), new Color(0.55f, 0.82f, 1f) * 5f);
+            bulbGlow = Glowing("StringBulb", new Color(1f, 0.9f, 0.7f), new Color(1f, 0.75f, 0.4f) * 6f);
             poolGlow = Glowing("PoolGlow", new Color(0.5f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 2.5f);
         }
 
@@ -349,6 +352,7 @@ namespace Tiramisu.EditorTools
             HingedDoubleDoor(g0, gw + "Front glass", "kitchen to the garden", 10f, 12f);
             HingedDoubleDoor(g0, gw + "Front glass", "bathroom to the garden", 18f, 20f);
             GarageShutter(g0, gw + "Garage end glass", 2f, 6f);
+            GarageFoldingDoor(g0, gw + "Front glass", 24f, 28f);
             SlidingDoorAt(g0, gw + "Living and kitchen glass", "living room and kitchen", WallCutaway.Axis.X, 8f - PART / 2, PART, 3f, 5f, 0f, true, 1, -1);
             SlidingDoorAt(g0, gw + "Kitchen and hall wall", "kitchen and stair hall", WallCutaway.Axis.X, 14f - PART / 2, PART, 6.2f, 7.8f, 0f, false, -1, -1);
             SlidingDoorAt(g0, gw + "Hall and bathroom wall", "stair hall and bathroom", WallCutaway.Axis.X, 16f - PART / 2, PART, 6.2f, 7.8f, 0f, false, 1, -1);
@@ -432,6 +436,7 @@ namespace Tiramisu.EditorTools
             BuildUpper(upper);
             var roofGroup = Group("Roof", house);
             BuildRoof(roofGroup);
+            roofRoot = roofGroup; upperRoot = upper;
             BuildGarden(Group("Garden", null));
             BuildDoors(house, upper);
             Furnish(Group("Furniture", house), upper);
@@ -577,10 +582,11 @@ namespace Tiramisu.EditorTools
                 float z = 11f + i * 1.2f;
                 Box($"Stone {i + 1}", path, new Vector3(3.5f, gy, z), new Vector3(4.5f, gy + 0.04f, z + 0.7f), stone);
             }
-            Box("Mailbox (placeholder)", g, new Vector3(5.2f, gy, 17f), new Vector3(5.8f, gy + 1.2f, 17.5f), mailbox);
 
             foreach (var p in GardenProps) PropPlacer.Place(p, g);
             NightLights(g, gy, px0, px1, pz0, pz1);
+            StringLights(g, gy);
+            LedStrips(g, gy, px0, px1, pz0, pz1);
 
             Room(g, "Garden & pool", 0, 5, 0, WX, 10.5f, 22f, gy, null);
         }
@@ -640,6 +646,7 @@ namespace Tiramisu.EditorTools
                 cap.transform.localScale = new Vector3(0.9f, 0.08f, 0.9f);
                 cap.GetComponent<Renderer>().sharedMaterial = lampGlow;
                 Object.DestroyImmediate(cap.GetComponent<Collider>());
+                Glow(cap, new Color(1f, 0.7f, 0.35f) * 2.2f);
                 AddNightLight(post, new Vector3(b.x, gy + 0.72f, b.y), warm, 140f, 4f, 0f, new Vector2(0.3f, 0.3f), 90f);
             }
 
@@ -655,6 +662,7 @@ namespace Tiramisu.EditorTools
                 disc.transform.localScale = new Vector3(0.22f, 0.005f, 0.22f);
                 disc.GetComponent<Renderer>().sharedMaterial = lampGlow;
                 Object.DestroyImmediate(disc.GetComponent<Collider>());
+                Glow(disc, new Color(1f, 0.7f, 0.35f) * 2.2f);
                 AddNightLight(disc, new Vector3(x, ry - 0.05f, WD + 1.1f), warm, 380f, 6f, 0f, new Vector2(0.7f, 0.7f), 90f);
             }
 
@@ -672,9 +680,171 @@ namespace Tiramisu.EditorTools
                     lamp.transform.localScale = new Vector3(0.32f, 0.12f, 0.03f);
                     lamp.GetComponent<Renderer>().sharedMaterial = poolGlow;
                     Object.DestroyImmediate(lamp.GetComponent<Collider>());
+                    Glow(lamp, new Color(0.3f, 0.85f, 1f) * 2.5f);
                     AddNightLight(lamp, new Vector3(x, gy - 0.85f, z + (near ? 0.12f : -0.12f)), new Color(0.3f, 0.85f, 1f), 260f, 6f, 0f, new Vector2(0.9f, 0.5f), 0f, near ? 0f : 180f);
                 }
             }
+        }
+
+        static Transform roofRoot, upperRoot;   // things that belong to the roof or the upper floor hide with them
+
+        static void Glow(GameObject g, Color emission)
+        {
+            var ng = g.AddComponent<NightGlow>();
+            ng.emission = emission;
+        }
+
+        /// <summary>Festoon string lights over the BBQ and dining corner: posts, sagging cables, warm bulbs, a few real lights.</summary>
+        static void StringLights(Transform g, float gy)
+        {
+            var root = Group("String lights", g);
+            float ph = 2.7f;
+            var posts = new[] { new Vector3(27.2f, 0f, 12.6f), new Vector3(33.4f, 0f, 12.6f), new Vector3(33.4f, 0f, 21.2f), new Vector3(27.2f, 0f, 21.2f), new Vector3(27.2f, 0f, 17f), new Vector3(33.4f, 0f, 17f) };
+            foreach (var p in posts)
+            {
+                var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                post.name = "String light post";
+                post.transform.SetParent(root, false);
+                post.transform.position = new Vector3(p.x, gy + ph * 0.5f, p.z);
+                post.transform.localScale = new Vector3(0.09f, ph * 0.5f, 0.09f);
+                post.GetComponent<Renderer>().sharedMaterial = steel;
+                var cap = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                cap.name = "Post cap";
+                cap.transform.SetParent(root, false);
+                cap.transform.position = new Vector3(p.x, gy + ph + 0.02f, p.z);
+                cap.transform.localScale = Vector3.one * 0.11f;
+                cap.GetComponent<Renderer>().sharedMaterial = steel;
+                Object.DestroyImmediate(cap.GetComponent<Collider>());
+            }
+            int lit = 0;
+            void Cable(Vector3 a, Vector3 b, float sag)
+            {
+                int n = Mathf.Max(6, Mathf.RoundToInt(Vector3.Distance(a, b) / 0.42f));
+                Vector3 prev = a;
+                for (int i = 1; i <= n; i++)
+                {
+                    float t = i / (float)n;
+                    var pt = Vector3.Lerp(a, b, t);
+                    pt.y -= sag * 4f * t * (1f - t);
+                    var seg = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    seg.name = "Wire";
+                    seg.transform.SetParent(root, false);
+                    seg.transform.position = (prev + pt) * 0.5f;
+                    seg.transform.up = (pt - prev).normalized;
+                    seg.transform.localScale = new Vector3(0.012f, (pt - prev).magnitude * 0.5f, 0.012f);
+                    seg.GetComponent<Renderer>().sharedMaterial = steel;
+                    Object.DestroyImmediate(seg.GetComponent<Collider>());
+                    if (i < n)
+                    {
+                        var bulb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        bulb.name = "Bulb";
+                        bulb.transform.SetParent(root, false);
+                        bulb.transform.position = pt + Vector3.down * 0.06f;
+                        bulb.transform.localScale = Vector3.one * 0.075f;
+                        bulb.GetComponent<Renderer>().sharedMaterial = bulbGlow;
+                        Object.DestroyImmediate(bulb.GetComponent<Collider>());
+                        Glow(bulb, new Color(1f, 0.75f, 0.4f) * 6f);
+                        if (++lit % 5 == 0) AddNightLight(bulb, bulb.transform.position, new Color(1f, 0.75f, 0.45f), 90f, 3.2f, 0f);
+                    }
+                    prev = pt;
+                }
+            }
+            Vector3 Top(Vector3 p) => new Vector3(p.x, gy + ph, p.z);
+            // a frame around the corner and a cross over the dining table, plus strings back to the roof edge
+            Cable(Top(posts[0]), Top(posts[1]), 0.35f);
+            Cable(Top(posts[3]), Top(posts[2]), 0.35f);
+            Cable(Top(posts[0]), Top(posts[4]), 0.3f);
+            Cable(Top(posts[4]), Top(posts[3]), 0.3f);
+            Cable(Top(posts[1]), Top(posts[5]), 0.3f);
+            Cable(Top(posts[5]), Top(posts[2]), 0.3f);
+            Cable(Top(posts[4]), Top(posts[5]), 0.4f);
+            float roofY = UPY + H - 0.05f;
+            var groundRoot = root;
+            root = Group("Strings to the roof edge", roofRoot);   // these hang from the roof, so they hide with it
+            Cable(new Vector3(27.2f, roofY, WD + 1.55f), Top(posts[0]), 0.9f);
+            Cable(new Vector3(33.4f, roofY, WD + 1.55f), Top(posts[1]), 0.9f);
+            root = groundRoot;
+        }
+
+        /// <summary>Modern LED strips that outline the house at night: roof edge, deck edge, upper slab, stairs, pool rim.</summary>
+        static void LedStrips(Transform g, float gy, float px0, float px1, float pz0, float pz1)
+        {
+            var root = Group("LED strips", g);
+            void Strip(string nm, Vector3 a, Vector3 b, Material m, Color emit, Transform into = null)
+            {
+                var s = Box(nm, into ? into : root, a, b, m, false);
+                Object.DestroyImmediate(s.GetComponent<Collider>());
+                Glow(s, emit);
+            }
+            var warm = new Color(1f, 0.72f, 0.4f) * 5f;
+            var cool = new Color(0.55f, 0.82f, 1f) * 5f;
+            float ry = UPY + H;
+            // under the roof edge: front, and the two short sides
+            Strip("Roof edge front", new Vector3(-0.6f, ry - 0.06f, WD + 1.5f), new Vector3(WX + 0.6f, ry - 0.03f, WD + 1.53f), ledWarm, warm, roofRoot);
+            Strip("Roof edge left", new Vector3(-0.6f, ry - 0.06f, -0.6f), new Vector3(-0.57f, ry - 0.03f, WD + 1.5f), ledWarm, warm, roofRoot);
+            Strip("Roof edge right", new Vector3(WX + 0.57f, ry - 0.06f, -0.6f), new Vector3(WX + 0.6f, ry - 0.03f, WD + 1.5f), ledWarm, warm, roofRoot);
+            // under the lip of the upper floor slab, over the ground floor glass
+            Strip("Upper slab", new Vector3(0f, UPY - SLAB - 0.03f, WD + GLASS + 0.005f), new Vector3(WX, UPY - SLAB, WD + GLASS + 0.035f), ledCool, cool, upperRoot);
+            // under the deck edge, and along the slab base
+            Strip("Deck edge", new Vector3(0f, -0.14f, 10.47f), new Vector3(WX + GLASS, -0.11f, 10.5f), ledWarm, warm);
+            Strip("Slab base left", new Vector3(-OUT - 0.02f, -0.03f, -OUT), new Vector3(-OUT, 0f, WD + GLASS), ledCool, cool);
+            // stair treads (the stairs are built in BuildGround, these follow them)
+            const int steps = 14;
+            float rise = UPY / (steps + 1), run = 4f / steps;
+            for (int i = 0; i < steps; i++)
+            {
+                float top = (i + 1) * rise, z1 = 6f - i * run;
+                Strip($"Step light {i + 1}", new Vector3(14.22f, top - 0.1f, z1 - 0.03f), new Vector3(15.78f, top - 0.07f, z1), ledWarm, warm);
+            }
+            // round the pool, just under the coping
+            float py = gy - 0.16f;
+            Strip("Pool rim near", new Vector3(px0, py, pz0), new Vector3(px1, py + 0.03f, pz0 + 0.02f), ledCool, cool);
+            Strip("Pool rim far", new Vector3(px0, py, pz1 - 0.02f), new Vector3(px1, py + 0.03f, pz1), ledCool, cool);
+            Strip("Pool rim left", new Vector3(px0, py, pz0), new Vector3(px0 + 0.02f, py + 0.03f, pz1), ledCool, cool);
+            Strip("Pool rim right", new Vector3(px1 - 0.02f, py, pz0), new Vector3(px1, py + 0.03f, pz1), ledCool, cool);
+            // a few soft area lights washing the deck from the roof edge
+            for (int i = 0; i < 5; i++)
+                AddNightLight(roofRoot.gameObject, new Vector3(3f + i * 6f, ry - 0.08f, WD + 1.4f), new Color(1f, 0.75f, 0.5f), 420f, 6f, 0f, new Vector2(1.2f, 0.25f), 90f);
+        }
+
+        /// <summary>A zig-zag (bi-fold) glass door in the garage's front glass wall.</summary>
+        static void GarageFoldingDoor(Transform parent, string wallPath, float a, float b)
+        {
+            var root = Group("Garage folding glass door", parent);
+            float zc = WD + GLASS * 0.5f;
+            const int n = 6;
+            float w = (b - a) / n;
+            var panels = new Transform[n];
+            for (int i = 0; i < n; i++)
+            {
+                bool left = i < n / 2;
+                var pnl = Group($"Panel {i + 1}", root);
+                float x0 = left ? 0f : -w, x1 = left ? w : 0f;
+                Vector3 P(float x, float y, float dz) => new Vector3(x, y, dz);
+                Box("Glass", pnl, P(x0, 0.03f, -0.006f), P(x1, DOOR_H, 0.006f), glass, false);
+                const float f = 0.04f;
+                Box("Frame bottom", pnl, P(x0, 0.02f, -0.02f), P(x1, 0.02f + f, 0.02f), steel);
+                Box("Frame top", pnl, P(x0, DOOR_H - f, -0.02f), P(x1, DOOR_H, 0.02f), steel);
+                Box("Frame near", pnl, P(x0, 0.02f, -0.02f), P(x0 + f, DOOR_H, 0.02f), steel);
+                Box("Frame far", pnl, P(x1 - f, 0.02f, -0.02f), P(x1, DOOR_H, 0.02f), steel);
+                Box("Hinge stile", pnl, P(left ? x0 - 0.01f : x1 - 0.03f, 0.02f, -0.03f), P(left ? x0 + 0.03f : x1 + 0.01f, DOOR_H, 0.03f), steel);
+                panels[i] = pnl;
+            }
+            Box("Header rail", root, new Vector3(a - 0.05f, DOOR_H, zc - 0.05f), new Vector3(b + 0.05f, DOOR_H + 0.06f, zc + 0.05f), steel);
+            Box("Threshold", root, new Vector3(a - 0.05f, 0f, zc - 0.06f), new Vector3(b + 0.05f, 0.02f, zc + 0.06f), steel);
+            var door = root.gameObject.AddComponent<FoldingDoor>();
+            door.panels = panels;
+            door.leftHinge = new Vector3(a, 0f, zc);
+            door.rightHinge = new Vector3(b, 0f, zc);
+            door.along = Vector3.right;
+            door.panelWidth = w;
+            door.leftCount = n / 2;
+            door.openSeconds = 1.2f;
+            door.stayOpenSeconds = 2.2f;
+            door.sensorCenter = new Vector3((a + b) * 0.5f, 1.1f, zc + 0.3f);
+            door.sensorSize = new Vector3((b - a) + 1.0f, 2.2f, 3.6f);
+            door.Refresh();
+            AttachTo(wallPath, root.gameObject);
         }
 
         static void Tree(Transform parent, Vector3 at, float size)
@@ -733,8 +903,8 @@ namespace Tiramisu.EditorTools
             ("dryer", 21.6f, 6.1f, 270f, 0),
             ("basket", 20.8f, 6.9f, 0f, 0),
             // garage (x 22 to 30): two cars nose to the garden, tools along the back wall
-            ("sedan", 24.4f, 4.5f, 0f, 0),
-            ("mpv", 27.4f, 4.3f, 0f, 0),
+            ("sedan", 26.2f, 3.05f, 90f, 0),
+            ("mpv", 26.0f, 5.3f, 90f, 0),
             ("evcharger", 25.9f, 0.12f, 0f, 0),
             ("workbench", 28.9f, 0.34f, 0f, 0),
             ("garageshelf", 23.1f, 0.24f, 0f, 0),
@@ -790,8 +960,8 @@ namespace Tiramisu.EditorTools
         static readonly (string id, float x, float y, float z, float rot)[] Tabletop =
         {
             // cushions sit on the sofa seat (they no longer drop and settle, they stay put, see StickyProp)
-            ("cushion", 3.39f, 0.71f, 3.11f, 12f),
-            ("cushion", 4.65f, 0.75f, 3.11f, -8f),
+            ("cushion", 3.36f, 0.612f, 3.28f, 12f),
+            ("cushion", 4.70f, 0.612f, 3.28f, -8f),
             // kitchen island top is 0.94 m, counter top 0.92 m
             ("fruitbowl", 10.55f, 0.94f, 3.6f, 0f),
             ("cuttingboard", 12.4f, 0.94f, 3.55f, 12f),
@@ -804,7 +974,7 @@ namespace Tiramisu.EditorTools
             ("towelstack", 21.6f, 0.87f, 6.1f, 90f),
             ("candles", 19.45f, 0.02f, 2.9f, 0f),
             // garage
-            ("cardboardboxes", 29.4f, 0.02f, 4.5f, 10f),
+            ("cardboardboxes", 29.4f, 0.02f, 7.2f, 10f),
             ("paintcans", 23.15f, 0.02f, 1.0f, 0f),
             ("sparetyres", 22.6f, 0.02f, 6.9f, 0f),
             // upper floor surfaces (floor top is 3.32 m): nightstands 0.52, desks 0.75
@@ -813,6 +983,38 @@ namespace Tiramisu.EditorTools
             ("bedlamp", 18.9f, 3.84f, 0.22f, 0f),
             ("globe", 0.5f, 4.07f, 5.6f, 0f),
             ("mug", 10.9f, 4.07f, 4.3f, 0f),
+            // front yard (garden ground is -0.3, the deck -0.06), like the yard of the 2D Tiramisu App
+            ("fountain", 10.5f, -0.3f, 15.5f, 0f),
+            ("gardenbench", 8.2f, -0.3f, 14.0f, 200f),
+            ("gnome", 7.2f, -0.3f, 16.4f, 160f),
+            ("flamingo", 12.6f, -0.3f, 13.0f, 200f),
+            ("mailbox", 5.5f, -0.3f, 17.4f, 0f),
+            ("planterbox", 2.2f, -0.3f, 11.3f, 0f),
+            ("planterbox", 11.6f, -0.3f, 11.3f, 0f),
+            ("planterbox", 19.5f, -0.3f, 11.0f, 0f),
+            ("planterbox", 24.5f, -0.3f, 11.0f, 0f),
+            ("flowerbed", 9.5f, -0.3f, 19.8f, 0f),
+            ("flowerbed", 21.5f, -0.3f, 19.6f, 0f),
+            ("flowerbed", 27.0f, -0.3f, 20.6f, 0f),
+            ("hammock", 3.0f, -0.3f, 19.2f, 90f),
+            ("lounger", 16.7f, -0.3f, 13.0f, 90f),
+            ("lounger", 16.7f, -0.3f, 15.0f, 90f),
+            ("parasol", 15.4f, -0.3f, 14.0f, 0f),
+            ("lounger", 27.3f, -0.3f, 13.8f, 270f),
+            ("beachball", 22.0f, -0.5f, 14.0f, 0f),
+            // BBQ corner
+            ("bbqcounter", 30.2f, -0.3f, 11.5f, 0f),
+            ("bbq", 32.6f, -0.3f, 11.5f, 0f),
+            ("cooler", 28.6f, -0.3f, 11.5f, 0f),
+            ("telescope", 33.1f, -0.3f, 14.0f, 90f),
+            // long dining and the fire pit lounge
+            ("outdoorrug", 30.2f, -0.28f, 14.6f, 0f),
+            ("longdining", 30.2f, -0.3f, 14.6f, 0f),
+            ("outdoorrug", 30.2f, -0.28f, 18.4f, 0f),
+            ("firepit", 30.2f, -0.3f, 18.2f, 0f),
+            ("outdoorsectional", 30.2f, -0.3f, 20.6f, 180f),
+            ("lantern", 32.7f, -0.3f, 17.4f, 0f),
+            ("lantern", 27.7f, -0.3f, 17.4f, 0f),
             // things hung on upper walls
             ("chalkboard", 0.04f, 4.57f, 6f, 90f),
             ("worldmap", 5f, 4.72f, 0.03f, 0f),
@@ -881,6 +1083,7 @@ namespace Tiramisu.EditorTools
         {
             "kitchenrun", "shower", "toilet", "bathtub", "vanity", "pendant", "punchbag", "evcharger",
             "bathmirror", "worldmap", "chalkboard", "whiteboard", "gymmirror",
+            "fountain", "mailbox", "bbqcounter", "flowerbed", "hammock",
         };
 
         static void MakeMovable(GameObject go, bool pinned)
@@ -912,7 +1115,7 @@ namespace Tiramisu.EditorTools
 
             keyCount.Clear();
             var all = new System.Collections.Generic.List<(string id, float x, float y, float z, float rot, int floor)>();
-            foreach (var l in Layout) all.Add((l.id, l.x, -1f, l.z, l.rot, l.floor));   // y -1 = on the floor
+            foreach (var l in Layout) all.Add((l.id, l.x, -999f, l.z, l.rot, l.floor));   // y -999 = on the floor
             foreach (var t in Tabletop) all.Add((t.id, t.x, t.y, t.z, t.rot, t.y > 2f ? 1 : 0));
             foreach (var f in all)
             {
@@ -921,13 +1124,30 @@ namespace Tiramisu.EditorTools
                 var go = (GameObject)PrefabUtility.InstantiatePrefab(model, f.floor == 0 ? ground : upper);
                 go.name = f.id;
                 var spec = PhysicsSetup.Spec(f.id);
-                go.transform.position = new Vector3(f.x, f.y >= 0f ? f.y + spec.dropHeight : (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
+                go.transform.position = new Vector3(f.x, f.y > -900f ? f.y + spec.dropHeight : (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
                 MakeMovable(go, false);
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
                 if (f.id == "worldmap" || f.id == "whiteboard" || f.id == "gymmirror") AttachTo("House/Upper floor/Walls/Back wall", go);
                 if (f.id == "chalkboard") AttachTo("House/Upper floor/Walls/Left wall", go);
+                if (f.id == "firepit") // a flickering fire
+                {
+                    var fl = new GameObject("Fire light");
+                    fl.transform.SetParent(go.transform, false);
+                    fl.transform.position = go.transform.position + Vector3.up * 0.6f;
+                    var l = fl.AddComponent<Light>();
+                    l.type = LightType.Point;
+                    fl.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
+                    l.lightUnit = LightUnit.Lumen;
+                    l.color = new Color(1f, 0.55f, 0.2f);
+                    l.range = 6f;
+                    l.shadows = LightShadows.None;
+                    var sw = fl.AddComponent<SwitchableLight>();
+                    sw.day = 250f; sw.night = 900f;
+                    fl.AddComponent<Flicker>();
+                }
+                if (f.id == "lantern") AddNightLight(go, go.transform.position + Vector3.up * 0.3f, new Color(1f, 0.7f, 0.4f), 150f, 3f, 0f, new Vector2(0.25f, 0.25f), 90f);
                 if (f.id == "bedlamp") AddNightLight(go, go.transform.position + Vector3.up * 0.33f, new Color(1f, 0.78f, 0.5f), 110f, 3f, 0f, new Vector2(0.35f, 0.35f), 90f);
                 if (f.id == "uplight") // washes the ceiling with a wide, soft glow
                     AddNightLight(go, go.transform.position + Vector3.up * 1.68f, new Color(1f, 0.8f, 0.55f), 380f, 5f, 0f, new Vector2(0.5f, 0.5f), -90f);
@@ -938,7 +1158,7 @@ namespace Tiramisu.EditorTools
                     {
                         var lg = new GameObject("Tail light glow");
                         lg.transform.SetParent(go.transform, false);
-                        lg.transform.position = go.transform.position + new Vector3(side * 0.5f, 0.78f, -(rear + 0.12f));
+                        lg.transform.position = go.transform.TransformPoint(new Vector3(side * 0.5f, 0.78f, -(rear + 0.12f)));
                         var l = lg.AddComponent<Light>();
                         l.type = LightType.Point;
                         lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
