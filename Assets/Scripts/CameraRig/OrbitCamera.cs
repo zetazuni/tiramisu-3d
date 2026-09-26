@@ -51,6 +51,9 @@ namespace Tiramisu
         /// <summary>Screen area covered by the HUD, so drags there do not move the camera.</summary>
         public static System.Func<Vector2, bool> IsOverUi;
 
+        /// <summary>Set while something else (decorate mode dragging furniture) owns the mouse.</summary>
+        public static bool Blocked;
+
         /// <summary>True for the frame a left click ended without dragging (for picking furniture later).</summary>
         public bool ClickedThisFrame { get; private set; }
 
@@ -107,7 +110,7 @@ namespace Tiramisu
         {
             Vector3 m = Input.mousePosition;
 
-            if (Input.GetMouseButtonDown(0) && !OverUi(m)) { downMouse = m; lastMouse = m; spinning = true; }
+            if (Input.GetMouseButtonDown(0) && !OverUi(m) && !Blocked) { downMouse = m; lastMouse = m; spinning = true; }
             if ((Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2)) && !OverUi(m)) { lastMouse = m; panning = true; }
 
             if (spinning && Input.GetMouseButton(0))

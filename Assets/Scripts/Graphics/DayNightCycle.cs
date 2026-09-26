@@ -1,0 +1,161 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
+
+namespace Tiramisu
+{
+    /// <summary>
+    /// Time of day: the sun crosses the sky, the moon and stars take over at night, the exposure opens up,
+    /// room lights, pendants, lamps, the garden path and the pool lights fade on, and the baked reflection
+    /// probes dim so the glass does not mirror a daylit house at midnight.
+    /// </summary>
+    public class DayNightCycle : MonoBehaviour
+    {
+        public static DayNightCycle Instance { get; private set; }
+
+        public Light sun, moon;
+        public Volume volume;
+        [Range(0f, 24f)] public float hour = 15f;
+        public bool auto;
+        public float secondsPerHour = 20f;
+
+        const string PrefKey = "tiramisu.hour";
+        Exposure exposure;
+        PhysicallyBasedSky sky;
+        HDAdditionalReflectionData[] probes;
+        float nightAmount;
+
+        public float Night01 => nightAmount;
+        public string Clock => $"{Mathf.FloorToInt(hour) % 24:00}:{Mathf.FloorToInt((hour % 1f) * 60f):00}";
+        public string Phase => hour < 5f || hour >= 21f ? "Night" : hour < 7.5f ? "Dawn" : hour < 17f ? "Day" : hour < 19.5f ? "Sunset" : "Evening";
+
+        void Awake()
+        {
+            Instance = this;
+            if (PlayerPrefs.HasKey(PrefKey)) hour = PlayerPrefs.GetFloat(PrefKey);
+        }
+
+        void Start()
+        {
+            if (volume && volume.profile)
+            {
+                if (volume.profile.TryGet(out exposure))
+                {
+                    // quick eyes: a jump from night to day should not take half a minute
+                    exposure.adaptationSpeedDarkToLight.Override(9f);
+                    exposure.adaptationSpeedLightToDark.Override(6f);
+                }
+                if (volume.profile.TryGet(out sky)) sky.spaceEmissionTexture.Override(MakeStars());
+                if (sky != null) { sky.spaceEmissionMultiplier.Override(60f); }
+            }
+            probes = FindObjectsByType<HDAdditionalReflectionData>(FindObjectsInactive.Include);
+            Apply();
+        }
+
+        public void SetHour(float h)
+        {
+            hour = Mathf.Repeat(h, 24f);
+            Apply();
+            PlayerPrefs.SetFloat(PrefKey, hour);
+        }
+
+        void Update()
+        {
+            if (auto)
+            {
+                hour = Mathf.Repeat(hour + Time.deltaTime / Mathf.Max(secondsPerHour, 1f), 24f);
+                Apply();
+            }
+        }
+
+        void OnApplicationQuit() => PlayerPrefs.SetFloat(PrefKey, hour);
+
+        // ---------- the sky ----------
+
+        /// <summary>Sun elevation in degrees for an hour of the day. 6:00 sunrise, 18:00 sunset.</summary>
+        static float Elevation(float h)
+        {
+            float t = Mathf.Repeat(h - 6f, 24f);              // hours since sunrise
+            if (t <= 12f) return 68f * Mathf.Sin(Mathf.PI * t / 12f);
+            return -38f * Mathf.Sin(Mathf.PI * (t - 12f) / 12f);
+        }
+
+        static Vector3 Direction(float azimuthDeg, float elevationDeg)
+        {
+            float az = azimuthDeg * Mathf.Deg2Rad, el = elevationDeg * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Sin(az) * Mathf.Cos(el), Mathf.Sin(el), Mathf.Cos(az) * Mathf.Cos(el));
+        }
+
+        void Apply()
+        {
+            float e = Elevation(hour);
+            float az = 90f + 180f * Mathf.Repeat(hour - 6f, 24f) / 12f;   // east at sunrise, west 12 hours later
+            var toSun = Direction(az, e);
+            float day = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-5f, 12f, e));
+            nightAmount = 1f - day;
+
+            float sunK = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-1.5f, 14f, e));
+            if (sun)
+            {
+                sun.transform.rotation = Quaternion.LookRotation(-toSun, Vector3.up);
+                float k = sunK;
+                sun.intensity = 100000f * k;
+                sun.colorTemperature = Mathf.Lerp(2300f, 6000f, Mathf.InverseLerp(0f, 30f, e));
+                sun.enabled = k > 0.001f;
+            }
+            if (moon)
+            {
+                // the moon rides opposite the sun
+                float me = -e;
+                moon.transform.rotation = Quaternion.LookRotation(toSun, Vector3.up);
+                float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-3f, 10f, me));
+                moon.intensity = 1.6f * k;
+                moon.enabled = k > 0.001f;
+                // only one directional light can cast shadows at a time, the sun wins while it is up
+                moon.shadows = sunK > 0.02f ? LightShadows.None : LightShadows.Soft;
+            }
+
+            if (exposure != null)
+            {
+                exposure.limitMin.Override(Mathf.Lerp(4.2f, 9f, day));
+                exposure.limitMax.Override(Mathf.Lerp(9f, 13.8f, day));
+            }
+            if (probes != null)
+                foreach (var p in probes) if (p) p.multiplier = Mathf.Lerp(0.1f, 1f, day);
+            foreach (var l in SwitchableLight.All) l.Apply(nightAmount);
+        }
+
+        // ---------- stars ----------
+
+        static Cubemap MakeStars()
+        {
+            const int size = 512;
+            var cm = new Cubemap(size, TextureFormat.RGBA32, false);
+            var rnd = new System.Random(42);
+            var pix = new Color[size * size];
+            for (int face = 0; face < 6; face++)
+            {
+                for (int i = 0; i < pix.Length; i++) pix[i] = Color.black;
+                int stars = 260;
+                for (int s = 0; s < stars; s++)
+                {
+                    int x = rnd.Next(2, size - 2), y = rnd.Next(2, size - 2);
+                    float b = Mathf.Pow((float)rnd.NextDouble(), 3f) * 0.9f + 0.1f;
+                    var tint = Color.Lerp(new Color(1f, 0.85f, 0.7f), new Color(0.75f, 0.85f, 1f), (float)rnd.NextDouble());
+                    var c = tint * b;
+                    c.a = 1f;
+                    pix[y * size + x] = c;
+                    if (b > 0.55f)
+                    {
+                        var d = c * 0.45f; d.a = 1f;
+                        pix[y * size + x + 1] = d; pix[y * size + x - 1] = d; pix[(y + 1) * size + x] = d; pix[(y - 1) * size + x] = d;
+                    }
+                }
+                cm.SetPixels(pix, (CubemapFace)face);
+            }
+            cm.Apply(false, true);
+            return cm;
+        }
+    }
+}

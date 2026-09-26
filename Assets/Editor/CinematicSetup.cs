@@ -197,6 +197,22 @@ namespace Tiramisu.EditorTools
 
         // ---------- lights ----------
 
+        public static Light Moon()
+        {
+            var go = new GameObject("Moon");
+            var l = go.AddComponent<Light>();
+            l.type = LightType.Directional;
+            go.AddComponent<HDAdditionalLightData>();
+            l.lightUnit = LightUnit.Lux;
+            l.intensity = 1.6f;
+            l.useColorTemperature = true;
+            l.colorTemperature = 8500f;
+            l.color = Color.white;
+            l.shadows = LightShadows.Soft;
+            go.transform.rotation = Quaternion.Euler(-40f, 140f, 0f);
+            return l;
+        }
+
         public static Light Sun()
         {
             var go = new GameObject("Sun");
@@ -231,6 +247,9 @@ namespace Tiramisu.EditorTools
                 l.color = Color.white;
                 l.range = Mathf.Max(size.x, size.y) * 1.1f;
                 l.shadows = LightShadows.None;
+                var sw = lg.AddComponent<SwitchableLight>();   // dimmer by day, warm and bright at night
+                sw.day = 500f;
+                sw.night = 1100f;
             }
 
             var pg = new GameObject($"{name} reflections");

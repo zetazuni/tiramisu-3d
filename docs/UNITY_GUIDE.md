@@ -57,7 +57,7 @@ Click inside the Scene view first, then:
 - **Maximize on Play** (in the Game view's top bar, sometimes under a small menu) makes the game fill the window while playing.
 - **Stats** shows frames per second (FPS) and draw calls. Handy for checking performance. For a fair number set the Game view to **1920x1080** first (Claude sets a "Full HD benchmark" size for you) and press F9.
 
-### Game controls (v0.4)
+### Game controls (v0.9)
 
 | Action | Mouse | Keyboard | Touch screen |
 | --- | --- | --- | --- |
@@ -70,8 +70,20 @@ Click inside the Scene view first, then:
 | Walls: automatic, always up, always down | "Walls" button | **Tab** | Button |
 | See the whole house | "See the whole house" button | **F** | Button |
 | Shove something (physics test) | **Click** a sofa, chair, book, vase or cushion without dragging | | Tap |
+| Move furniture (decorate mode) | "Move furniture" button | **M** | |
+| ...pick up, carry and put down | Press on a piece, drag, let go. It follows any surface under the mouse (a mug can go from the island to the floor). Things standing on it ride along | | |
+| ...turn it | | **R** (Shift+R the other way) | |
+| ...put it back where it was | Right click | **Esc** | |
+| ...free placement without the 5 cm grid | | Hold **Ctrl** | |
+| ...reset the whole house | "Put everything back" button (in decorate mode) | | |
+| Time of day | Slider and Morning, Noon, Sunset, Night buttons top right, "Let time run" | | |
+| Drop a stone in the pool | **Click** the water | | |
 | Graphics mode (Ultra, Quality, Performance) | "Graphics" button | **G** | Button |
 | Run the frame rate benchmark (about a minute) | | **F9** | |
+
+### Decorate mode (v0.9)
+
+Press **M**. Press on a sofa, chair, plant, mug, car or bike and drag it. A green outline means it fits, red means a wall or another piece is in the way (letting go there puts it back at the last free spot). Built in things (kitchen counter, shower, toilet, bath, vanity, lamps hung from the ceiling, the punching bag and everything on walls) cannot be moved. Your layout is saved automatically and is there next time; **Put everything back** resets it.
 
 ## 5. Test checklist
 
@@ -87,6 +99,9 @@ Run through this after each update and tell Claude anything that feels off (with
 - [ ] Cycle the walls button through all three modes.
 - [ ] The picture looks like a film still: warm light, soft shadows, reflections on glass, water and floors (rule 5).
 - [ ] Up close, surfaces show real texture: wood grain in the parquet, the bouclé weave on the sofa, veins in the marble, grass on the lawn (rule 6).
+- [ ] Press **M**, drag the sofa across the living room: the cushions ride along, the outline turns red near a wall. Press **R** to turn it. Close the game, open it again: it is still there.
+- [ ] Slide the time to Night: lights come on in every room, pendants glow, the garden path lights and the pool light up, stars and a moon show. Set it to Sunset for the golden light.
+- [ ] Push a cushion into the pool with the mouse (click it) or click on the water: rings spread across the surface and bounce off the edges, things float and bob.
 - [ ] Physics: the two cushions drop onto the sofa when Play starts and settle naturally. Clicking a cushion sends it flying, clicking the sofa only nudges it (rule 6).
 - [ ] Stats shows a steady frame rate (60 FPS or more at 1920x1080 in Quality mode).
 - [ ] Press F9 once in a while: it measures every graphics mode and writes the results to the Console (and to `benchmark.txt` in the game's data folder). Send Claude the numbers if anything looks slow.

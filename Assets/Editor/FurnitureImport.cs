@@ -129,7 +129,7 @@ namespace Tiramisu.EditorTools
                     : name == "Headlight" ? new Color(0.9f, 0.95f, 1f) * 1.5f
                     : name == "Screen" ? new Color(0.3f, 0.55f, 0.95f) * 1.4f
                     : name == "Flame" ? new Color(1f, 0.6f, 0.15f) * 8f
-                    : name == "Taillight" ? new Color(1f, 0.04f, 0.02f) * 5f : (Color?)null;
+                    : name == "Taillight" ? new Color(1f, 0.04f, 0.02f) * 12f : (Color?)null;
                 if (glow.HasValue) // bulbs and car lights glow
                 {
                     pm.SetFloat("_UseEmissiveIntensity", 0f);

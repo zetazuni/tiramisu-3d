@@ -19,7 +19,7 @@ namespace Tiramisu
         void LateUpdate()
         {
             var orbit = OrbitCamera.Instance;
-            if (!orbit || !orbit.ClickedThisFrame) return;
+            if (!orbit || !orbit.ClickedThisFrame || DecorateMode.Active) return;
             var ray = cam.ScreenPointToRay(Input.mousePosition);
             if (!Physics.Raycast(ray, out var hit, 200f)) return;
             var rb = hit.rigidbody;

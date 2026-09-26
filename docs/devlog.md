@@ -98,7 +98,14 @@
 - **Tested in Play mode:** 50 rigid bodies, none moving or fallen after settling, no console errors. Looked at all four upper rooms and the gym from the garden.
 - Unity note: `Tiramisu > Build greybox house` refuses to run while Play mode is on, so stop Play before rebuilding.
 
+- **Feedback round from Amir (v0.9.0).** Taller plants: the 27 cm succulent pots are gone, replaced by money trees (1.9 m) and the 1.8 m plant. The shower still had an open side: Blender +X arrives as Unity -X, so the glass was on the wall side. Mirrored the shower in Blender (documented in CLAUDE.md), it is now closed on every side. The tail lights are now proper blocks with a dark bezel, sticking out of the body, emission x12.
+- **Kitchen and bathroom props moved:** for the same reason the counter run is mirrored (oven tower next to the fridge, cooktop on the left), so the espresso machine, utensils and herbs moved, and the towel stack went on the dryer.
+- **Pool ripples** (new `PoolRipples`), tested by simulating 6 seconds of physics: a coffee table dropped in floats half submerged, a cushion floats on the surface, rings spread and bounce off the walls.
+- **Decorate mode** (new `DecorateMode` and `Furniture`): tested the rules through the API (wall and furniture overlaps are rejected, free spots accepted, the sofa carried its two cushions to a new place and turned 90 degrees with them, the saved layout survived a restart and reset cleanly). Not tested with a real mouse, please try it.
+- **Night lighting and day and night cycle** (new `DayNightCycle`, `SwitchableLight`). Warm interiors, glowing pendants and lamps, garden bollards, roof downlights, cyan pool lamps, moon and stars. First attempt was blown out (exposure floor too low), tuned to EV 4.2. Exposure adapts in about 2 seconds now.
+- Unity gotcha found on the way: a MonoBehaviour must live in its own file named after the class, or scene references turn into "missing script".
+
 **Next**
-- Amir walks through the whole house in Play and says what feels off (scale, colours, placement).
-- Kitchen and garage tweaks he asks for, then decorate mode (moving furniture with the mouse) or the people and pets, from `docs/GAME_DESIGN.md`.
-- Grass that looks like grass up close, hills on the horizon, night lighting and a day and night cycle (session 5 list).
+- Amir plays with decorate mode and the time slider and says what feels off (snapping, outlines, the night mood, light strengths).
+- Wall pieces (mirrors, boards, pictures) could become movable along their wall, and furniture could be bought or unlocked like in the 2D game.
+- People and pets from `docs/GAME_DESIGN.md`, grass and hills, weather.

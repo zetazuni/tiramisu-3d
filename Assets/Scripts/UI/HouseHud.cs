@@ -8,13 +8,13 @@ namespace Tiramisu
     /// </summary>
     public class HouseHud : MonoBehaviour
     {
-        Rect panel;
+        Rect panel, timePanel;
         GUIStyle btn, btnOn, label, hint, version;
         float scale = 1f;
 
         void Awake()
         {
-            OrbitCamera.IsOverUi = p => panel.Contains(p / scale);
+            OrbitCamera.IsOverUi = p => panel.Contains(p / scale) || timePanel.Contains(p / scale);
         }
 
         void Styles()
@@ -73,10 +73,39 @@ namespace Tiramisu
             var gfx = GraphicsModes.Instance;
             if (gfx && Button("Graphics: " + gfx.Label, false)) gfx.Apply((GraphicsModes.Mode)(((int)gfx.mode + 1) % 3));
 
+            var dec = DecorateMode.Instance;
+            if (dec)
+            {
+                GUILayout.Space(10);
+                GUILayout.Label("Furniture", label);
+                if (Button(DecorateMode.Active ? "Decorate mode: on (M)" : "Move furniture (M)", DecorateMode.Active)) dec.Toggle();
+                if (DecorateMode.Active && Button("Put everything back", false)) dec.ResetLayout();
+            }
+
             GUILayout.EndArea();
 
+            var day = DayNightCycle.Instance;
+            if (day)
+            {
+                timePanel = new Rect(w - 262, 12, 250, 150);
+                GUILayout.BeginArea(timePanel);
+                GUILayout.Label($"{day.Phase} · {day.Clock}", label);
+                float nh = GUILayout.HorizontalSlider(day.hour, 0f, 24f);
+                if (Mathf.Abs(nh - day.hour) > 0.001f) day.SetHour(nh);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Morning", btn)) day.SetHour(8f);
+                if (GUILayout.Button("Noon", btn)) day.SetHour(13f);
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Sunset", btn)) day.SetHour(18.5f);
+                if (GUILayout.Button("Night", btn)) day.SetHour(22.5f);
+                GUILayout.EndHorizontal();
+                if (Button(day.auto ? "Time is running" : "Let time run", day.auto)) day.auto = !day.auto;
+                GUILayout.EndArea();
+            }
+
             GUI.Label(new Rect(0, h - 58, w, 30),
-                "Drag to spin around · Right drag to move · Scroll to zoom · Q/E spin · 1 2 3 floors · G graphics · Click things to nudge them", hint);
+                "Drag to spin around · Right drag to move · Scroll to zoom · Q/E spin · 1 2 3 floors · G graphics · M move furniture · Click things to nudge them", hint);
             GUI.Label(new Rect(w - 220, h - 26, 210, 22), $"Tiramisu 3D v{GameInfo.Version} · {GameInfo.BuildDate}", version);
         }
     }
