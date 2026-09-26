@@ -17,6 +17,8 @@ namespace Tiramisu
         public float surfaceY = -0.42f;
         public float floorY = -1.7f;
         public Material material;
+        [Tooltip("Round basins skip the corners of the grid.")] public bool round;
+        [Tooltip("Off for decorative basins: no floating, no click splash.")] public bool buoyancy = true;
 
         [Header("Waves")]
         public float cell = 0.08f;
@@ -71,6 +73,11 @@ namespace Tiramisu
                 for (int x = 0; x < nx; x++)
                 {
                     int a = z * (nx + 1) + x, b = a + 1, c = a + nx + 1, d = c + 1;
+                    if (round)
+                    {
+                        float ux = (x + 0.5f) / nx * 2f - 1f, uz = (z + 0.5f) / nz * 2f - 1f;
+                        if (ux * ux + uz * uz > 1f) { tris[t++] = a; tris[t++] = a; tris[t++] = a; tris[t++] = a; tris[t++] = a; tris[t++] = a; continue; }
+                    }
                     tris[t++] = a; tris[t++] = c; tris[t++] = b;
                     tris[t++] = b; tris[t++] = c; tris[t++] = d;
                 }
@@ -118,7 +125,7 @@ namespace Tiramisu
         {
             // a stone in the water on click
             var orbit = OrbitCamera.Instance;
-            if (orbit && orbit.ClickedThisFrame && cam)
+            if (buoyancy && orbit && orbit.ClickedThisFrame && cam)
             {
                 var ray = cam.ScreenPointToRay(Input.mousePosition);
                 var plane = new Plane(Vector3.up, new Vector3(0f, surfaceY, 0f));
@@ -143,6 +150,16 @@ namespace Tiramisu
             while (tick >= 1f / 60f && steps < 3) { Step(); tick -= 1f / 60f; steps++; }
             if (steps == 3) tick = 0f;
             Upload();
+        }
+
+        Vector2 SlopeAt(Vector3 world)
+        {
+            int w = nx + 1;
+            int x = Mathf.Clamp(Mathf.RoundToInt((world.x - min.x) / (max.x - min.x) * nx), 1, nx - 1);
+            int z = Mathf.Clamp(Mathf.RoundToInt((world.z - min.y) / (max.y - min.y) * nz), 1, nz - 1);
+            int i = z * w + x;
+            float dx = (max.x - min.x) / nx, dz = (max.y - min.y) / nz;
+            return new Vector2((cur[i + 1] - cur[i - 1]) / (2f * dx), (cur[i + w] - cur[i - w]) / (2f * dz)) * heightScale;
         }
 
         void Step()
@@ -182,6 +199,7 @@ namespace Tiramisu
 
         void FixedUpdate()
         {
+            if (!buoyancy) return;
             var centre = new Vector3((min.x + max.x) / 2f, (surfaceY + floorY) / 2f + 1f, (min.y + max.y) / 2f);
             var half = new Vector3((max.x - min.x) / 2f, (surfaceY - floorY) / 2f + 1.2f, (max.y - min.y) / 2f);
             var cols = Physics.OverlapBox(centre, half, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
@@ -213,6 +231,15 @@ namespace Tiramisu
                     rb.AddForce(Vector3.up * (density * 9.81f * displaced), ForceMode.Force);
                     rb.AddForce(-rb.linearVelocity * (waterDrag * frac * rb.mass), ForceMode.Force);
                     rb.AddTorque(-rb.angularVelocity * (waterDrag * 0.3f * frac * rb.mass), ForceMode.Force);
+                    if (rb.GetComponent<RollingBall>())
+                    {
+                        // the waves push it down their slope and roll it
+                        var sl = SlopeAt(b.center);
+                        var f = new Vector3(-sl.x, 0f, -sl.y) * (rb.mass * 9.81f * 3f);
+                        f = Vector3.ClampMagnitude(f, 14f);
+                        rb.AddForce(f, ForceMode.Force);
+                        rb.AddTorque(Vector3.Cross(Vector3.up, f) * 0.12f, ForceMode.Force);
+                    }
                 }
 
                 // a splash when it enters, and wakes while it moves through the surface

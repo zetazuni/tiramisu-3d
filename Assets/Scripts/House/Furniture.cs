@@ -72,8 +72,25 @@ namespace Tiramisu
 
         const string PrefKey = "tiramisu.layout";
 
-        [Serializable] class Entry { public string key; public Vector3 pos; public float yaw; }
+        [Serializable] class Entry { public string key; public Vector3 pos; public float yaw; public string host; }
         [Serializable] class Layout { public int version = 1; public List<Entry> items = new List<Entry>(); }
+
+        /// <summary>The piece a small thing rests on (a cushion on a sofa), or null.</summary>
+        static Furniture HostOf(Furniture f)
+        {
+            Furniture best = null;
+            float bestTop = -1f;
+            foreach (var h in All)
+            {
+                if (h == f || h.pinned || h.GetComponent<StickyProp>()) continue;
+                var lb = h.LocalBounds;
+                var l = h.transform.InverseTransformPoint(f.transform.position);
+                if (Mathf.Abs(l.x - lb.center.x) > lb.extents.x || Mathf.Abs(l.z - lb.center.z) > lb.extents.z) continue;
+                if (l.y < lb.min.y + 0.05f || l.y > lb.max.y + 0.12f) continue;
+                if (lb.max.y > bestTop) { best = h; bestTop = lb.max.y; }
+            }
+            return best;
+        }
 
         public static void SaveAll()
         {
@@ -82,7 +99,18 @@ namespace Tiramisu
             {
                 if (f.pinned) continue;
                 if ((f.transform.position - f.homePos).sqrMagnitude < 1e-4f && Quaternion.Angle(f.transform.rotation, f.homeRot) < 0.1f) continue;
-                l.items.Add(new Entry { key = f.key, pos = f.transform.position, yaw = f.transform.eulerAngles.y });
+                var e = new Entry { key = f.key, pos = f.transform.position, yaw = f.transform.eulerAngles.y };
+                if (f.GetComponent<StickyProp>())
+                {
+                    var host = HostOf(f);
+                    if (host)
+                    {
+                        e.host = host.key;
+                        e.pos = host.transform.InverseTransformPoint(f.transform.position);
+                        e.yaw = Mathf.DeltaAngle(host.transform.eulerAngles.y, f.transform.eulerAngles.y);
+                    }
+                }
+                l.items.Add(e);
             }
             PlayerPrefs.SetString(PrefKey, JsonUtility.ToJson(l));
             PlayerPrefs.Save();
@@ -91,22 +119,43 @@ namespace Tiramisu
         /// <summary>Puts every piece where the player left it. Returns how many moved.</summary>
         public static int LoadAll()
         {
-            if (!PlayerPrefs.HasKey(PrefKey)) return 0;
-            Layout l;
-            try { l = JsonUtility.FromJson<Layout>(PlayerPrefs.GetString(PrefKey)); }
-            catch { return 0; }
-            if (l == null || l.items == null) return 0;
-            var byKey = new Dictionary<string, Furniture>();
-            foreach (var f in All) byKey[f.key] = f;
+            Physics.SyncTransforms();
             int n = 0;
-            foreach (var e in l.items)
+            if (PlayerPrefs.HasKey(PrefKey))
             {
-                if (!byKey.TryGetValue(e.key, out var f) || f.pinned) continue;
-                f.Place(e.pos, Quaternion.Euler(0f, e.yaw, 0f));
-                n++;
+                Layout l = null;
+                try { l = JsonUtility.FromJson<Layout>(PlayerPrefs.GetString(PrefKey)); } catch { }
+                if (l != null && l.items != null)
+                {
+                    var byKey = new Dictionary<string, Furniture>();
+                    foreach (var f in All) byKey[f.key] = f;
+                    // hosts and loose pieces first, then the small things that rest on them
+                    for (int pass = 0; pass < 2; pass++)
+                        foreach (var e in l.items)
+                        {
+                            bool sticky = !string.IsNullOrEmpty(e.host);
+                            if (sticky != (pass == 1)) continue;
+                            if (!byKey.TryGetValue(e.key, out var f) || f.pinned) continue;
+                            if (sticky)
+                            {
+                                if (!byKey.TryGetValue(e.host, out var h)) continue;
+                                f.Place(h.transform.TransformPoint(e.pos), Quaternion.Euler(0f, h.transform.eulerAngles.y + e.yaw, 0f));
+                            }
+                            else f.Place(e.pos, Quaternion.Euler(0f, e.yaw, 0f));
+                            n++;
+                        }
+                }
             }
             Physics.SyncTransforms();
+            SettleSmallThings();
             return n;
+        }
+
+        /// <summary>Drops every small thing straight down onto what is under it, so nothing hangs in the air.</summary>
+        public static void SettleSmallThings()
+        {
+            Physics.SyncTransforms();
+            foreach (var st in UnityEngine.Object.FindObjectsByType<StickyProp>(FindObjectsInactive.Exclude)) st.Settle();
         }
 
         public static void ResetAll()

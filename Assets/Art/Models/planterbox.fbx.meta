@@ -37,6 +37,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Soil
+    second: {fileID: 2100000, guid: a43c84126bf68ac46a9feb7d245302fc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Teak
     second: {fileID: 2100000, guid: a2a4f0f6f373dce48bbcb722527fcca6, type: 2}
   materials:

@@ -15,6 +15,8 @@ namespace Tiramisu
 
         void Awake() => cam = GetComponent<Camera>();
 
+        void SettleLater() => Furniture.SettleSmallThings();
+
         // LateUpdate so the orbit camera has already decided whether this was a click or a drag
         void LateUpdate()
         {
@@ -37,6 +39,8 @@ namespace Tiramisu
             Vector3 dir = new Vector3(ray.direction.x, 0f, ray.direction.z).normalized;   // sideways only, never lifts or tips
             float impulse = Mathf.Min(rb.mass * strength, maxImpulse);
             rb.AddForceAtPosition(dir * impulse, hit.point, ForceMode.Impulse);
+            CancelInvoke(nameof(SettleLater));
+            Invoke(nameof(SettleLater), 1.2f);   // small things follow whatever they sit on
         }
     }
 }

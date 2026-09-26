@@ -147,6 +147,15 @@ Amir's notes on the first night: too glowy and reflective, lights too strong and
 - **Curtains fluffier,** two rounds of thickness and depth tuning. Please judge them by eye and tell me if you want them even fuller.
 - Not tested with a real mouse: hovering the garage folding door, dragging the new yard furniture.
 
+## Session 11: pool, fountains, skylights, night fixes (2026-09-26) · v0.13.0
+
+Amir's notes: night too dark outside, skylights, lounger backrest upside down, ball should float submerged and roll with the ripples, flower bed soil, floating cushions, floating weeds, black marble pool with a jacuzzi and a wall fountain, brighter LED strips, a real moving round fountain.
+
+- All done, see CLAUDE.md for how. Checked by looking (day, night, close ups) and by scripts: the ball drifted and turned, five ripple surfaces run, cushions settle within 2.4 cm after the first pass (threshold tightened to 4 mm after).
+- **Cushions:** my earlier fix was right for a fresh build, but an old saved layout on Amir's machine could still hold the old floating heights. Small things now save relative to their host and always settle on what is under them.
+- **Weeds:** the scanned shrub has stem tips above its lowest leaf, so it hung in the air. Sunk into the lawn.
+- Not tested by hand: dragging the yard furniture, hovering the folding door, clicking the water.
+
 **Next**
-- Amir walks the yard at night and says what feels off (fewer or more lights, colours).
-- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.
+- Amir walks the yard by day and night and says what feels off (moonlight strength, fountain look, bubbles).
+- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights, weather.

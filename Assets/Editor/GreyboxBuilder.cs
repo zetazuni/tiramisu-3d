@@ -18,7 +18,7 @@ namespace Tiramisu.EditorTools
         const float FLOOR_TOP = 0.02f; // room floor plates are 2 cm thick, furniture stands on top
 
         static Material oak, oakDark, wallWhite, cap, slab, tile, bathTile, garageFloor, gym, lawn, lawnDark,
-            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, ledWarm, ledCool, bulbGlow, doorWood, asphalt, apron, shutter, shutterDark, lineWhite, lineYellow, curtainFabric,
+            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, poolMarble, dropMat, bubbleMat, ledWarm, ledCool, bulbGlow, doorWood, asphalt, apron, shutter, shutterDark, lineWhite, lineYellow, curtainFabric,
             pLiving, pKitchen, pHall, pBath, pGarage, pTeacher, pOffice, pLanding, pEngineer, pGym;
         static Material sideMinus, sidePlus;   // room paints for the two faces of an interior wall, set just before building it
 
@@ -102,6 +102,9 @@ namespace Tiramisu.EditorTools
             ledWarm = Glowing("LedWarm", new Color(1f, 0.8f, 0.55f), new Color(1f, 0.72f, 0.4f) * 5f);
             ledCool = Glowing("LedCool", new Color(0.7f, 0.9f, 1f), new Color(0.55f, 0.82f, 1f) * 5f);
             bulbGlow = Glowing("StringBulb", new Color(1f, 0.9f, 0.7f), new Color(1f, 0.75f, 0.4f) * 6f);
+            poolMarble = Tn("PoolMarble", "grey_cartago_03", T, new Color(0.55f, 0.55f, 0.6f), new Vector2(0.78f, 0.95f), 1f);   // near black marble with white veins
+            dropMat = MaterialLibrary.Glass($"{MatDir}/WaterDrop.mat", new Color(0.85f, 0.95f, 1f, 0.45f));
+            bubbleMat = MaterialLibrary.Glass($"{MatDir}/Bubble.mat", new Color(1f, 1f, 1f, 0.55f));
             poolGlow = Glowing("PoolGlow", new Color(0.5f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 2.5f);
         }
 
@@ -524,13 +527,51 @@ namespace Tiramisu.EditorTools
             Wall(walls, "Engineer and gym glass", WallCutaway.Axis.X, 22f - PART / 2, PART, 0f, WD, UPY, glass, true, new Vector2(3, 5));
         }
 
+        /// <summary>A box slab with rectangular holes cut in it (x0, z0, x1, z1 in world metres), built as a grid of boxes.</summary>
+        static void SlabWithHoles(string name, Transform parent, Vector3 lo, Vector3 hi, Material m, System.Collections.Generic.List<Vector4> holes)
+        {
+            var xs = new System.Collections.Generic.SortedSet<float> { lo.x, hi.x };
+            var zs = new System.Collections.Generic.SortedSet<float> { lo.z, hi.z };
+            foreach (var h in holes) { xs.Add(h.x); xs.Add(h.z); zs.Add(h.y); zs.Add(h.w); }
+            var xa = new System.Collections.Generic.List<float>(xs);
+            var za = new System.Collections.Generic.List<float>(zs);
+            for (int i = 0; i + 1 < xa.Count; i++)
+                for (int j = 0; j + 1 < za.Count; j++)
+                {
+                    float cx = (xa[i] + xa[i + 1]) * 0.5f, cz = (za[j] + za[j + 1]) * 0.5f;
+                    bool inHole = false;
+                    foreach (var h in holes) if (cx > h.x && cx < h.z && cz > h.y && cz < h.w) { inHole = true; break; }
+                    if (inHole) continue;
+                    Box($"{name} {i}.{j}", parent, new Vector3(xa[i], lo.y, za[j]), new Vector3(xa[i + 1], hi.y, za[j + 1]), m);
+                }
+        }
+
         static void BuildRoof(Transform g)
         {
-            // flat modern roof: deep overhang over the deck, oak soffit underneath, black steel fascia
+            // flat modern roof: deep overhang over the deck, oak soffit underneath, black steel fascia, and skylights
             float y = UPY + H;
             Vector3 lo = new Vector3(-0.7f, y, -0.7f), hi = new Vector3(WX + 0.7f, y + 0.32f, WD + 1.6f);
-            Box("Roof", g, new Vector3(lo.x, y + 0.03f, lo.z), hi, roof);
-            Box("Roof soffit (oak)", g, lo, new Vector3(hi.x, y + 0.03f, hi.z), oakDark);
+            var holes = new System.Collections.Generic.List<Vector4>
+            {
+                new Vector4(14.15f, 2.3f, 15.85f, 5.7f),      // over the stairwell, light falls down into the stair hall
+                new Vector4(3.4f, 2.6f, 5.6f, 4.6f),          // teacher's room
+                new Vector4(9.9f, 2.6f, 12.1f, 4.6f),         // office
+                new Vector4(18.9f, 2.6f, 21.1f, 4.6f),        // engineer's room
+                new Vector4(24.9f, 2.6f, 27.1f, 4.6f),        // gym
+            };
+            SlabWithHoles("Roof", g, new Vector3(lo.x, y + 0.03f, lo.z), hi, roof, holes);
+            SlabWithHoles("Roof soffit (oak)", g, lo, new Vector3(hi.x, y + 0.03f, hi.z), oakDark, holes);
+            foreach (var h in holes)
+            {
+                // a low black steel curb round each opening and a pane of glass in it
+                const float c = 0.06f;
+                Box("Skylight curb a", g, new Vector3(h.x - c, y, h.y - c), new Vector3(h.z + c, y + 0.45f, h.y), steel);
+                Box("Skylight curb b", g, new Vector3(h.x - c, y, h.w), new Vector3(h.z + c, y + 0.45f, h.w + c), steel);
+                Box("Skylight curb c", g, new Vector3(h.x - c, y, h.y), new Vector3(h.x, y + 0.45f, h.w), steel);
+                Box("Skylight curb d", g, new Vector3(h.z, y, h.y), new Vector3(h.z + c, y + 0.45f, h.w), steel);
+                Box("Skylight glass", g, new Vector3(h.x, y + 0.2f, h.y), new Vector3(h.z, y + 0.22f, h.w), glass, false);
+                Box("Skylight bar", g, new Vector3((h.x + h.z) * 0.5f - 0.02f, y + 0.19f, h.y), new Vector3((h.x + h.z) * 0.5f + 0.02f, y + 0.24f, h.w), steel);
+            }
             const float f = 0.06f;
             Box("Fascia front", g, new Vector3(lo.x - f, y - 0.02f, hi.z), new Vector3(hi.x + f, hi.y + 0.08f, hi.z + f), steel);
             Box("Fascia back", g, new Vector3(lo.x - f, y - 0.02f, lo.z - f), new Vector3(hi.x + f, hi.y + 0.08f, lo.z), steel);
@@ -545,12 +586,18 @@ namespace Tiramisu.EditorTools
             float px0 = 18f, px1 = 26f, pz0 = 12f, pz1 = 16f;
             float gb = gy - 0.4f, gt = gy - 0.02f;
             Box("Ground front", g, new Vector3(-200f, gb, -200f), new Vector3(230f, gt, pz0), lawnDark);
-            Box("Ground back", g, new Vector3(-200f, gb, pz1), new Vector3(230f, gt, 230f), lawnDark);
+            // the jacuzzi is attached to the far long edge of the pool (x 20.5 to 23.5, z 16 to 18)
+            float jx0 = 20.5f, jx1 = 23.5f, jz1 = 18f;
+            Box("Ground back a", g, new Vector3(-200f, gb, pz1), new Vector3(jx0, gt, 230f), lawnDark);
+            Box("Ground back b", g, new Vector3(jx1, gb, pz1), new Vector3(230f, gt, 230f), lawnDark);
+            Box("Ground back c", g, new Vector3(jx0, gb, jz1), new Vector3(jx1, gt, 230f), lawnDark);
             Box("Ground left", g, new Vector3(-200f, gb, pz0), new Vector3(px0, gt, pz1), lawnDark);
             Box("Ground right", g, new Vector3(px1, gb, pz0), new Vector3(230f, gt, pz1), lawnDark);
 
             Box("Lawn front", g, new Vector3(-2f, gy - 0.02f, 10.5f), new Vector3(34f, gy, pz0), lawn);
-            Box("Lawn back", g, new Vector3(-2f, gy - 0.02f, pz1), new Vector3(34f, gy, 22f), lawn);
+            Box("Lawn back a", g, new Vector3(-2f, gy - 0.02f, pz1), new Vector3(jx0, gy, 22f), lawn);
+            Box("Lawn back b", g, new Vector3(jx1, gy - 0.02f, pz1), new Vector3(34f, gy, 22f), lawn);
+            Box("Lawn back c", g, new Vector3(jx0, gy - 0.02f, jz1), new Vector3(jx1, gy, 22f), lawn);
             Box("Lawn left", g, new Vector3(-2f, gy - 0.02f, pz0), new Vector3(px0, gy, pz1), lawn);
             Box("Lawn right", g, new Vector3(px1, gy - 0.02f, pz0), new Vector3(34f, gy, pz1), lawn);
 
@@ -559,22 +606,75 @@ namespace Tiramisu.EditorTools
             Road(g, gy);
 
             var pool = Group("Pool", g);
-            Box("Pool basin", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px1, gy - 1.3f, pz1), poolTile);
-            Box("Pool wall near", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px1, gy, pz0 + 0.05f), poolTile);
-            Box("Pool wall far", pool, new Vector3(px0, gy - 1.4f, pz1 - 0.05f), new Vector3(px1, gy, pz1), poolTile);
-            Box("Pool wall left", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px0 + 0.05f, gy, pz1), poolTile);
-            Box("Pool wall right", pool, new Vector3(px1 - 0.05f, gy - 1.4f, pz0), new Vector3(px1, gy, pz1), poolTile);
-            // the surface is a live wave mesh (ripples, splashes, buoyancy), see PoolRipples
+            Box("Pool basin", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px1, gy - 1.3f, pz1), poolMarble);
+            Box("Pool wall near", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px1, gy, pz0 + 0.05f), poolMarble);
+            Box("Pool wall far a", pool, new Vector3(px0, gy - 1.4f, pz1 - 0.05f), new Vector3(jx0, gy, pz1), poolMarble);
+            Box("Pool wall far b", pool, new Vector3(jx1, gy - 1.4f, pz1 - 0.05f), new Vector3(px1, gy, pz1), poolMarble);
+            Box("Pool wall left", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px0 + 0.05f, gy, pz1), poolMarble);
+            Box("Pool wall right", pool, new Vector3(px1 - 0.05f, gy - 1.4f, pz0), new Vector3(px1, gy, pz1), poolMarble);
+            // jacuzzi: a shallow rectangular tub open to the pool along its long edge
+            Box("Jacuzzi basin", pool, new Vector3(jx0, gy - 0.95f, pz1), new Vector3(jx1, gy - 0.9f, jz1), poolMarble);
+            Box("Jacuzzi wall left", pool, new Vector3(jx0, gy - 0.95f, pz1), new Vector3(jx0 + 0.05f, gy, jz1), poolMarble);
+            Box("Jacuzzi wall right", pool, new Vector3(jx1 - 0.05f, gy - 0.95f, pz1), new Vector3(jx1, gy, jz1), poolMarble);
+            Box("Jacuzzi wall far", pool, new Vector3(jx0, gy - 0.95f, jz1 - 0.05f), new Vector3(jx1, gy, jz1), poolMarble);
+            Box("Jacuzzi bench", pool, new Vector3(jx0 + 0.05f, gy - 0.9f, jz1 - 0.5f), new Vector3(jx1 - 0.05f, gy - 0.5f, jz1 - 0.05f), poolMarble);
+            // the surfaces are live wave meshes (ripples, splashes, buoyancy), see PoolRipples
             var ripples = pool.gameObject.AddComponent<PoolRipples>();
             ripples.min = new Vector2(px0 + 0.05f, pz0 + 0.05f);
             ripples.max = new Vector2(px1 - 0.05f, pz1 - 0.05f);
             ripples.surfaceY = gy - 0.12f;
             ripples.floorY = gy - 1.3f;
             ripples.material = water;
+            var tub = Group("Jacuzzi water", pool);
+            var tubRipples = tub.gameObject.AddComponent<PoolRipples>();
+            tubRipples.min = new Vector2(jx0 + 0.05f, pz1 - 0.04f);
+            tubRipples.max = new Vector2(jx1 - 0.05f, jz1 - 0.05f);
+            tubRipples.surfaceY = gy - 0.12f;
+            tubRipples.floorY = gy - 0.9f;
+            tubRipples.material = water;
+            tubRipples.breeze = 9f;            // the jets keep it churning
+            tubRipples.damping = 0.975f;
+            var bubbles = tub.gameObject.AddComponent<BubbleField>();
+            bubbles.min = new Vector2(jx0 + 0.1f, pz1);
+            bubbles.max = new Vector2(jx1 - 0.1f, jz1 - 0.5f);
+            bubbles.floorY = gy - 0.9f;
+            bubbles.surfaceY = gy - 0.12f;
+            bubbles.material = bubbleMat;
+            bubbles.surface = tubRipples;
+            bubbles.count = 110;
+            // cyan glow from under the tub bench
+            Strip2(pool, "Jacuzzi glow", new Vector3(jx0 + 0.05f, gy - 0.55f, jz1 - 0.06f), new Vector3(jx1 - 0.05f, gy - 0.5f, jz1 - 0.05f), ledCool, new Color(0.5f, 0.85f, 1f) * 14f);
+            AddNightLight(tub.gameObject, new Vector3((jx0 + jx1) * 0.5f, gy - 0.3f, 17.2f), new Color(0.3f, 0.85f, 1f), 420f, 4f, 0f, new Vector2(1.4f, 0.6f), 90f);
+            // coping: around the pool, the tub cut out of it
             Box("Coping near", pool, new Vector3(px0 - 0.3f, gy, pz0 - 0.3f), new Vector3(px1 + 0.3f, gy + 0.05f, pz0), stone);
-            Box("Coping far", pool, new Vector3(px0 - 0.3f, gy, pz1), new Vector3(px1 + 0.3f, gy + 0.05f, pz1 + 0.3f), stone);
+            Box("Coping far a", pool, new Vector3(px0 - 0.3f, gy, pz1), new Vector3(jx0 - 0.3f, gy + 0.05f, pz1 + 0.3f), stone);
+            Box("Coping far b", pool, new Vector3(jx1 + 0.3f, gy, pz1), new Vector3(px1 + 0.3f, gy + 0.05f, pz1 + 0.3f), stone);
             Box("Coping left", pool, new Vector3(px0 - 0.3f, gy, pz0), new Vector3(px0, gy + 0.05f, pz1), stone);
             Box("Coping right", pool, new Vector3(px1, gy, pz0), new Vector3(px1 + 0.3f, gy + 0.05f, pz1), stone);
+            Box("Tub coping left", pool, new Vector3(jx0 - 0.3f, gy, pz1), new Vector3(jx0, gy + 0.05f, jz1 + 0.3f), stone);
+            Box("Tub coping right", pool, new Vector3(jx1, gy, pz1), new Vector3(jx1 + 0.3f, gy + 0.05f, jz1 + 0.3f), stone);
+            Box("Tub coping far", pool, new Vector3(jx0 - 0.3f, gy, jz1), new Vector3(jx1 + 0.3f, gy + 0.05f, jz1 + 0.3f), stone);
+
+            // a small wall fountain standing on the short east end of the pool, black marble with a spout over the water
+            var wf = Group("Wall fountain", pool);
+            Box("Wall", wf, new Vector3(26.06f, gy, 13.0f), new Vector3(26.36f, gy + 1.7f, 15.0f), poolMarble);
+            Box("Wall cap", wf, new Vector3(26.02f, gy + 1.7f, 12.96f), new Vector3(26.4f, gy + 1.74f, 15.04f), steel);
+            Box("Spout ledge", wf, new Vector3(25.6f, gy + 1.42f, 13.15f), new Vector3(26.06f, gy + 1.48f, 14.85f), steel);
+            Strip2(wf, "Wall fountain glow", new Vector3(25.62f, gy + 1.38f, 13.2f), new Vector3(26.05f, gy + 1.42f, 14.8f), ledWarm, new Color(1f, 0.72f, 0.4f) * 18f);
+            Strip2(wf, "Wall fountain edge a", new Vector3(26.02f, gy + 0.05f, 12.96f), new Vector3(26.07f, gy + 1.7f, 13.0f), ledCool, new Color(0.55f, 0.82f, 1f) * 18f);
+            Strip2(wf, "Wall fountain edge b", new Vector3(26.02f, gy + 0.05f, 15.0f), new Vector3(26.07f, gy + 1.7f, 15.04f), ledCool, new Color(0.55f, 0.82f, 1f) * 18f);
+            AddNightLight(wf.gameObject, new Vector3(25.85f, gy + 1.35f, 14f), new Color(1f, 0.76f, 0.5f), 420f, 4.5f, 0f, new Vector2(1.5f, 0.3f), 90f);
+            var sheet = wf.gameObject.AddComponent<FallingWater>();
+            sheet.start = new Vector3(25.75f, gy + 1.42f, 14f);
+            sheet.lineAxis = Vector3.forward;
+            sheet.lineLength = 1.6f;
+            sheet.endY = gy - 0.12f;
+            sheet.count = 70;
+            sheet.fallSeconds = 0.55f;
+            sheet.target = ripples;
+            sheet.splash = 0.5f;
+            sheet.material = dropMat;
+            sheet.streak = new Vector2(0.022f, 0.16f);
 
             var path = Group("Stepping stones", g);
             for (int i = 0; i < 9; i++)
@@ -688,6 +788,16 @@ namespace Tiramisu.EditorTools
 
         static Transform roofRoot, upperRoot;   // things that belong to the roof or the upper floor hide with them
 
+        /// <summary>A glowing strip (at least 5 cm thick) that only lights up at night.</summary>
+        static void Strip2(Transform parent, string nm, Vector3 a, Vector3 b, Material m, Color emit)
+        {
+            Vector3 mid = (a + b) * 0.5f, size = b - a;
+            for (int k = 0; k < 3; k++) if (size[k] < 0.04f) size[k] = 0.04f;
+            var st = Box(nm, parent, mid - size * 0.5f, mid + size * 0.5f, m, false);
+            Object.DestroyImmediate(st.GetComponent<Collider>());
+            Glow(st, emit);
+        }
+
         static void Glow(GameObject g, Color emission)
         {
             var ng = g.AddComponent<NightGlow>();
@@ -772,12 +882,15 @@ namespace Tiramisu.EditorTools
             var root = Group("LED strips", g);
             void Strip(string nm, Vector3 a, Vector3 b, Material m, Color emit, Transform into = null)
             {
-                var s = Box(nm, into ? into : root, a, b, m, false);
+                // strips are at least 5 cm thick so they read from a distance
+                Vector3 mid = (a + b) * 0.5f, size = b - a;
+                for (int k = 0; k < 3; k++) if (size[k] < 0.05f) size[k] = 0.05f;
+                var s = Box(nm, into ? into : root, mid - size * 0.5f, mid + size * 0.5f, m, false);
                 Object.DestroyImmediate(s.GetComponent<Collider>());
                 Glow(s, emit);
             }
-            var warm = new Color(1f, 0.72f, 0.4f) * 5f;
-            var cool = new Color(0.55f, 0.82f, 1f) * 5f;
+            var warm = new Color(1f, 0.72f, 0.4f) * 18f;
+            var cool = new Color(0.55f, 0.82f, 1f) * 18f;
             float ry = UPY + H;
             // under the roof edge: front, and the two short sides
             Strip("Roof edge front", new Vector3(-0.6f, ry - 0.06f, WD + 1.5f), new Vector3(WX + 0.6f, ry - 0.03f, WD + 1.53f), ledWarm, warm, roofRoot);
@@ -1071,9 +1184,9 @@ namespace Tiramisu.EditorTools
             Pr("shrub_02", "_d", 13.5f, -SLAB, 11.5f, 90f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
             Pr("shrub_02", "_a", 28.5f, -SLAB, 11.4f, 45f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
             Pr("shrub_02", "_c", 17f, -SLAB, 19.5f, 0f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
-            Pr("shrub_04", null, 2.6f, -SLAB, 12.8f, 0f, 1.2f, PropPlacer.Body.None),
-            Pr("shrub_04", null, 5.3f, -SLAB, 15.2f, 70f, 1.2f, PropPlacer.Body.None),
-            Pr("shrub_04", null, 2.8f, -SLAB, 18.4f, 140f, 1.2f, PropPlacer.Body.None),
+            Pr("shrub_04", null, 2.6f, -SLAB - 0.16f, 12.8f, 0f, 1.2f, PropPlacer.Body.None),
+            Pr("shrub_04", null, 5.3f, -SLAB - 0.16f, 15.2f, 70f, 1.2f, PropPlacer.Body.None),
+            Pr("shrub_04", null, 2.8f, -SLAB - 0.16f, 18.4f, 140f, 1.2f, PropPlacer.Body.None),
         };
 
         static readonly System.Collections.Generic.Dictionary<string, int> keyCount = new System.Collections.Generic.Dictionary<string, int>();
@@ -1095,6 +1208,52 @@ namespace Tiramisu.EditorTools
             var f = go.AddComponent<Furniture>();
             f.key = $"{id}#{n}";
             f.pinned = pinned || Pinned.Contains(id);
+        }
+
+        /// <summary>Round fountain with real moving water: ripple surfaces in the basin and the two bowls, a crown of spray and two overflows.</summary>
+        static void SetupFountain(Vector3 at)
+        {
+            var root = new GameObject("Fountain water").transform;
+            root.SetParent(GameObject.Find("Furniture") ? GameObject.Find("Furniture").transform : null, false);
+            PoolRipples Surface(string nm, float r, float y, float floor, float breeze)
+            {
+                var go = new GameObject(nm);
+                go.transform.SetParent(root, false);
+                var pr = go.AddComponent<PoolRipples>();
+                pr.min = new Vector2(at.x - r, at.z - r);
+                pr.max = new Vector2(at.x + r, at.z + r);
+                pr.round = true;
+                pr.buoyancy = false;
+                pr.cell = r < 0.6f ? 0.04f : 0.06f;
+                pr.surfaceY = at.y + y;
+                pr.floorY = at.y + floor;
+                pr.material = water;
+                pr.breeze = breeze;
+                pr.damping = 0.98f;
+                return pr;
+            }
+            var basin = Surface("Basin water", 0.96f, 0.5f, 0.3f, 1.2f);
+            var mid = Surface("Middle bowl water", 0.5f, 1.17f, 1.1f, 2f);
+            var top = Surface("Top bowl water", 0.27f, 1.55f, 1.5f, 2f);
+            void Fall(string nm, float ring, float startY, float endY, float drift, int n, PoolRipples target, float fall)
+            {
+                var go = new GameObject(nm);
+                go.transform.SetParent(root, false);
+                var fw = go.AddComponent<FallingWater>();
+                fw.start = new Vector3(at.x, at.y + startY, at.z);
+                fw.ringRadius = ring;
+                fw.drift = drift;
+                fw.endY = at.y + endY;
+                fw.count = n;
+                fw.fallSeconds = fall;
+                fw.target = target;
+                fw.splash = 0.3f;
+                fw.material = dropMat;
+                fw.streak = new Vector2(0.02f, 0.09f);
+            }
+            Fall("Crown spray", 0.03f, 1.78f, 1.56f, 0.2f, 14, top, 0.42f);
+            Fall("Top bowl overflow", 0.3f, 1.55f, 1.19f, 0.14f, 26, mid, 0.42f);
+            Fall("Middle bowl overflow", 0.58f, 1.21f, 0.5f, 0.2f, 36, basin, 0.55f);
         }
 
         static void AttachTo(string wallPath, GameObject item)
@@ -1131,6 +1290,20 @@ namespace Tiramisu.EditorTools
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
                 if (f.id == "worldmap" || f.id == "whiteboard" || f.id == "gymmirror") AttachTo("House/Upper floor/Walls/Back wall", go);
                 if (f.id == "chalkboard") AttachTo("House/Upper floor/Walls/Left wall", go);
+                if (f.id == "beachball")
+                {
+                    foreach (var bc in go.GetComponentsInChildren<BoxCollider>()) Object.DestroyImmediate(bc);
+                    var mf = go.GetComponentInChildren<MeshFilter>();
+                    var sc = mf.gameObject.AddComponent<SphereCollider>();
+                    sc.center = mf.sharedMesh.bounds.center;
+                    sc.radius = mf.sharedMesh.bounds.extents.x;
+                    var rbb = go.GetComponent<Rigidbody>();
+                    rbb.constraints = RigidbodyConstraints.None;   // it may roll
+                    rbb.linearDamping = 0.5f;
+                    rbb.angularDamping = 0.25f;
+                    go.AddComponent<RollingBall>();
+                }
+                if (f.id == "fountain") SetupFountain(go.transform.position);
                 if (f.id == "firepit") // a flickering fire
                 {
                     var fl = new GameObject("Fire light");

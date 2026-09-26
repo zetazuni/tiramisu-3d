@@ -42,6 +42,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Soil
+    second: {fileID: 2100000, guid: a43c84126bf68ac46a9feb7d245302fc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: StoneGrey
     second: {fileID: 2100000, guid: 0ce48d37aeb4fa7469ae17f22ef29aca, type: 2}
   materials:

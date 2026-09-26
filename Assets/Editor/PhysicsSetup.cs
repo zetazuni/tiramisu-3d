@@ -103,7 +103,7 @@ namespace Tiramisu.EditorTools
             { "hammock", new FurnitureSpec { mass = 30f, dynamic = false } },
             { "gnome", new FurnitureSpec { mass = 4f, dynamic = true } },
             { "flamingo", new FurnitureSpec { mass = 1.5f, dynamic = true } },
-            { "beachball", new FurnitureSpec { mass = 3f, dynamic = true } },
+            { "beachball", new FurnitureSpec { mass = 5f, dynamic = true } },
             { "fountain", new FurnitureSpec { mass = 400f, dynamic = false } },
             { "mailbox", new FurnitureSpec { mass = 10f, dynamic = false } },
             { "planterbox", new FurnitureSpec { mass = 25f, dynamic = true } },

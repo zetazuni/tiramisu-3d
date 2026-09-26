@@ -18,7 +18,7 @@ RES = "2k"
 SETS = [
     # architecture
     "herringbone_parquet", "dark_wooden_planks", "white_plaster_02", "brushed_concrete",
-    "marble_tiles", "large_grey_tiles", "concrete_floor", "rubber_tiles",
+    "marble_tiles", "large_grey_tiles", "concrete_floor", "rubber_tiles", "grey_cartago_03", "forest_ground_06",
     "leafy_grass", "sparse_grass", "wood_floor_deck", "precast_stone_paving",
     "blue_floor_tiles_01", "box_profile_metal_sheet", "bark_brown_02",
     # furniture

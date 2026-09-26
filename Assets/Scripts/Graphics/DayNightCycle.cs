@@ -112,7 +112,7 @@ namespace Tiramisu
                 float me = -e;
                 moon.transform.rotation = Quaternion.LookRotation(toSun, Vector3.up);
                 float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-3f, 10f, me));
-                moon.intensity = 1.6f * k;
+                moon.intensity = 110f * k;
                 moon.enabled = k > 0.001f;
                 // only one directional light can cast shadows at a time, the sun wins while it is up
                 moon.shadows = sunK > 0.02f ? LightShadows.None : LightShadows.Soft;
@@ -120,7 +120,7 @@ namespace Tiramisu
 
             if (exposure != null)
             {
-                exposure.limitMin.Override(Mathf.Lerp(4.2f, 9f, day));
+                exposure.limitMin.Override(Mathf.Lerp(3.4f, 9f, day));
                 exposure.limitMax.Override(Mathf.Lerp(9f, 13.8f, day));
                 exposure.compensation.Override(Mathf.Lerp(-0.2f, 0f, day));
             }

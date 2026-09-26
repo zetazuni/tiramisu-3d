@@ -15,7 +15,7 @@ If you are a new conversation or a new account, read these in order before doing
 - Repo: https://github.com/zetazuni/tiramisu-3d (public, branch `main`, Git LFS for models, textures and audio).
 - Unity 6000.6.3f1 with **HDRP 17.6** on DirectX 12, Blender 5.2.2 LTS, both driven by Claude through MCP. Target: Windows PC (dev PC has an RTX 4050 laptop GPU).
 - The original 2D game is at `S:\Tiramisu App by Zetazuni`. Its `CLAUDE.md` is the detailed feature reference.
-- Current version: **0.12.0** (decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
+- Current version: **0.13.0** (decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
 - New to Unity? `docs/UNITY_GUIDE.md` explains the panes, controls, testing and troubleshooting.
 - Main scene: `Assets/Scenes/Main.unity`. It is generated, see "Greybox builder" below.
 
@@ -65,3 +65,10 @@ One short paragraph per system. Keep these accurate as the code changes. All run
 - **Kitchen floor** is large format polished marble (Poly Haven `marble_01`, tinted soft warm white, 2 m tiles at real size).
 - **Curtains** are now 60 to 90 overlapping round folds per panel that alternate in depth (8 cm), with a gathered heading.
 - **Cushions on the sofa** floated because the layout used the old drop height (they were placed 10 to 14 cm above the seat). Now placed exactly on the seat.
+- **Pool** (builder `BuildGarden`): black marble with white veins (Poly Haven `grey_cartago_03`, its neutral greyscale map tinted 0.55, the orange is dropped), a 3 x 2 m shallow jacuzzi attached to the far long edge (`Jacuzzi water` = its own `PoolRipples` with breeze 9, plus `BubbleField.cs`: 110 bubbles that rise from six floor jets, wobble and pop at the surface, stirring it), and a wall fountain in black marble on the east short end (`FallingWater.cs` sheet of streaks that splash into the pool surface, warm and cool LED strips, an area light). Ground and lawn boxes have a hole for the tub, the pool far wall and coping are cut where the tub joins.
+- **Round fountain** water is real (`SetupFountain`): three round `PoolRipples` (basin r 0.96, middle bowl 0.5, top bowl 0.27, `round` skips the grid corners, `buoyancy` off) plus three `FallingWater` rings (crown spray, top bowl overflow, middle bowl overflow) whose streaks splash the surface below. The water discs were removed from the Blender model.
+- **Beach ball** (`RollingBall.cs`): sphere collider, 5 kg, free rotation. `PoolRipples` pushes it down the slope of the waves (3 x g x mass, clamped to 14 N) and rolls it, and it floats with its lowest 11 cm under water. Tested: it drifted 0.5 m and turned in 18 s.
+- **Skylights** in the roof over the stairwell (light falls into the stair hall), the teacher's room, office, engineer's room and gym (`SlabWithHoles`, a curb, glass and a bar for each). The roof and soffit are built as grids of boxes around the holes.
+- **Night:** moon 110 lux (was 14, still too dark outside), LED strips at least 5 cm thick and 18 x emission, night exposure floor EV 3.4.
+- **Small things** are saved relative to the piece they rest on (`Furniture.HostOf`), and `StickyProp.Settle()` drops them onto whatever is under them after loading and after a shove, so nothing hangs in the air whatever an old saved layout says.
+- Soil (`Soil` material, Poly Haven `forest_ground_06`, non reflective) in flower beds and planters. The lounger backrest was tilted the wrong way (upside down), fixed. `shrub_04` weeds are sunk 16 cm so they stand in the lawn.

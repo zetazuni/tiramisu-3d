@@ -15,7 +15,7 @@ exec(_u[:_u.index("# -----------------------------------------------------------
 COLORS.update({
     "Teak": (0.55, 0.38, 0.24), "Umbrella": (0.9, 0.55, 0.42), "StoneGrey": (0.6, 0.6, 0.58), "FlowerPink": (0.95, 0.5, 0.65),
     "FlowerYellow": (0.98, 0.85, 0.2), "FlowerWhite": (0.96, 0.96, 0.94), "Flamingo": (0.98, 0.5, 0.6), "GnomeSkin": (0.9, 0.7, 0.6),
-    "OutdoorFabric_main": (0.85, 0.82, 0.75), "CoolerBlue": (0.2, 0.45, 0.75), "FireGlow": (1.0, 0.5, 0.1),
+    "OutdoorFabric_main": (0.85, 0.82, 0.75), "CoolerBlue": (0.2, 0.45, 0.75), "FireGlow": (1.0, 0.5, 0.1), "Soil": (0.25, 0.17, 0.1),
     "BallRed": (0.85, 0.1, 0.1), "BallWhite": (0.95, 0.95, 0.95), "BallBlue": (0.15, 0.35, 0.8), "BallYellow": (0.95, 0.8, 0.1),
 })
 
@@ -40,8 +40,8 @@ def lounger():
         box(f"slat {i}", rt, (-W / 2, y, 0.33), (W / 2, y + 0.07, 0.355), "Teak", 0.004)
     box("seat pad", rt, (-W / 2 + 0.03, -L / 2 + 0.02, 0.355), (W / 2 - 0.03, 0.2, 0.42), "OutdoorFabric_main", 0.03)
     piv = (0, 0.22, 0.36)
-    tilt_box("back frame", rt, (-W / 2, 0.22, 0.33), (W / 2, 0.9, 0.355), "Teak", piv, -58, 'X', 0.004)
-    tilt_box("back pad", rt, (-W / 2 + 0.03, 0.22, 0.355), (W / 2 - 0.03, 0.9, 0.42), "OutdoorFabric_main", piv, -58, 'X', 0.03)
+    tilt_box("back frame", rt, (-W / 2, 0.22, 0.33), (W / 2, 0.9, 0.355), "Teak", piv, 58, 'X', 0.004)
+    tilt_box("back pad", rt, (-W / 2 + 0.03, 0.22, 0.355), (W / 2 - 0.03, 0.9, 0.42), "OutdoorFabric_main", piv, 58, 'X', 0.03)
     box("wheel bar", rt, (-W / 2, -L / 2 + 0.02, 0.04), (W / 2, -L / 2 + 0.06, 0.08), "BlackSteel", 0.004)
     return rt
 
@@ -283,13 +283,10 @@ def beachball():
 def fountain():
     rt = root("fountain")
     lathe("basin", rt, [(0.0, 0.0), (1.0, 0.0), (1.1, 0.12), (1.12, 0.55), (1.05, 0.58), (0.98, 0.5), (0.9, 0.3), (0.0, 0.3)], "StoneGrey", seg=64, subsurf=1)
-    cyl("water", rt, (0, 0, 0.5), 0.98, 0.01, "BlueWater", seg=64, bevel=0.001)
     lathe("column", rt, [(0.0, 0.3), (0.2, 0.3), (0.16, 0.55), (0.12, 1.0), (0.14, 1.1), (0.0, 1.1)], "StoneGrey", seg=32, subsurf=1)
     lathe("bowl", rt, [(0.0, 1.05), (0.5, 1.12), (0.58, 1.22), (0.5, 1.2), (0.0, 1.12)], "StoneGrey", seg=48, subsurf=1)
-    cyl("bowl water", rt, (0, 0, 1.17), 0.5, 0.01, "BlueWater", seg=48, bevel=0.001)
     lathe("top column", rt, [(0.0, 1.15), (0.09, 1.15), (0.07, 1.5), (0.0, 1.52)], "StoneGrey", seg=24, subsurf=1)
     lathe("top bowl", rt, [(0.0, 1.45), (0.28, 1.5), (0.32, 1.58), (0.26, 1.56), (0.0, 1.5)], "StoneGrey", seg=32, subsurf=1)
-    cyl("top water", rt, (0, 0, 1.55), 0.27, 0.01, "BlueWater", seg=32, bevel=0.001)
     sphere("finial", rt, (0, 0, 1.68), 0.06, "StoneGrey", seg=16, rings=10)
     return rt
 
@@ -312,7 +309,7 @@ def planterbox():
         y = -D / 2 - 0.004
         x0 = -W / 2 + 0.05 + i * (W - 0.1) / 6
         box(f"slat {i}", rt, (x0, y, 0.05), (x0 + (W - 0.1) / 6 - 0.02, y + 0.008, H - 0.05), "Teak", 0.003)
-    cyl("soil", rt, (0, 0, H - 0.02), 0.01, 0.01, "Coffee", seg=8, bevel=0.0) if False else box("soil", rt, (-W / 2 + 0.03, -D / 2 + 0.03, H - 0.04), (W / 2 - 0.03, D / 2 - 0.03, H - 0.01), "Coffee", 0.003)
+    cyl("soil", rt, (0, 0, H - 0.02), 0.01, 0.01, "Coffee", seg=8, bevel=0.0) if False else box("soil", rt, (-W / 2 + 0.03, -D / 2 + 0.03, H - 0.04), (W / 2 - 0.03, D / 2 - 0.03, H - 0.01), "Soil", 0.003)
     rnd = random.Random(11)
     for i in range(9):
         x = -W / 2 + 0.12 + i * (W - 0.24) / 8
@@ -328,7 +325,7 @@ def flowerbed():
     for nm, lo, hi in [("edge front", (-W / 2, -D / 2, 0), (W / 2, -D / 2 + 0.1, 0.22)), ("edge back", (-W / 2, D / 2 - 0.1, 0), (W / 2, D / 2, 0.22)),
                        ("edge left", (-W / 2, -D / 2 + 0.1, 0), (-W / 2 + 0.1, D / 2 - 0.1, 0.22)), ("edge right", (W / 2 - 0.1, -D / 2 + 0.1, 0), (W / 2, D / 2 - 0.1, 0.22))]:
         box(nm, rt, lo, hi, "StoneGrey", 0.02)
-    box("soil", rt, (-W / 2 + 0.1, -D / 2 + 0.1, 0.02), (W / 2 - 0.1, D / 2 - 0.1, 0.16), "Coffee", 0.005)
+    box("soil", rt, (-W / 2 + 0.1, -D / 2 + 0.1, 0.02), (W / 2 - 0.1, D / 2 - 0.1, 0.16), "Soil", 0.005)
     rnd = random.Random(21)
     cols = ["FlowerPink", "FlowerWhite", "FlowerYellow", "PaintRed", "BookBlue"]
     for i in range(70):
