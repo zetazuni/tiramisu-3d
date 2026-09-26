@@ -4,7 +4,7 @@ A cozy 3D house game made by Amir Ariffin (Zetazuni) for Athirah. It is a 3D rem
 
 If you are a new conversation or a new account, read these in order before doing anything:
 
-1. **`docs/RULES.md`**: Amir's rules. Always follow them. (Short version: keep these notes updated, public repo so no secrets, everything on S:\, human wording with no em dashes, cinematic movie-like lighting and reflections, and **PC first**: high poly, detailed PBR textures, realistic physics, HDRP.)
+1. **`docs/RULES.md`**: Amir's rules. Always follow them. (Short version: keep these notes updated, public repo so no secrets, everything on S:\, human wording with no em dashes, cinematic movie-like lighting and reflections, and **PC first**: high poly, detailed PBR textures, realistic physics, HDRP. and rule 7: **play like The Sims 4** (controls, build and buy mode, money, needs and mood, pie menu interactions), original art only, see `docs/SIMS4_PLAN.md`.)
 2. **`docs/GAME_DESIGN.md`**: what the game is, what comes over from the 2D version and the phase plan.
 3. **`docs/PIPELINE.md`**: how Blender and Unity connect through MCP, units, folders, naming and the asset workflow.
 4. **`docs/devlog.md`**: what happened in each session and what is next. The last entry tells you where things stand.
@@ -15,7 +15,7 @@ If you are a new conversation or a new account, read these in order before doing
 - Repo: https://github.com/zetazuni/tiramisu-3d (public, branch `main`, Git LFS for models, textures and audio).
 - Unity 6000.6.3f1 with **HDRP 17.6** on DirectX 12, Blender 5.2.2 LTS, both driven by Claude through MCP. Target: Windows PC (dev PC has an RTX 4050 laptop GPU).
 - The original 2D game is at `S:\Tiramisu App by Zetazuni`. Its `CLAUDE.md` is the detailed feature reference.
-- Current version: **0.19.3** (fairer Athirah without glasses, Amir with black hair and glasses, distance-driven walk, dark starry night with a moon, decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
+- Current version: **0.20.0** (fairer Athirah without glasses, Amir with black hair and glasses, distance-driven walk, dark starry night with a moon, decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
 - New to Unity? `docs/UNITY_GUIDE.md` explains the panes, controls, testing and troubleshooting.
 - Main scene: `Assets/Scenes/Main.unity`. It is generated, see "Greybox builder" below.
 

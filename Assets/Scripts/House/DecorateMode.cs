@@ -18,6 +18,8 @@ namespace Tiramisu
 
         public float snap = 0.05f;
         public float turnStep = 15f;
+        [Tooltip("see-through material the people and pets get while decorating")] public Material ghostMaterial;
+        bool ghosted;
 
         Camera cam;
         Furniture held;
@@ -87,6 +89,7 @@ namespace Tiramisu
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.M)) Toggle();
+            if (Active != ghosted) { ghosted = Active; Character.SetAllFrozen(Active, ghostMaterial); }
             if (!Active) { OrbitCamera.Blocked = false; return; }
             if (!cam) cam = Camera.main;
 

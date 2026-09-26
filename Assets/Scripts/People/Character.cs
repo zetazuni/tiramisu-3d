@@ -14,6 +14,51 @@ namespace Tiramisu
     {
         public static readonly List<Character> All = new List<Character>();
 
+        static readonly List<Character> Everyone = new List<Character>();   // also the ones that are switched off
+
+        /// <summary>Decorate mode stops everybody where they are and shows them as see-through silhouettes.</summary>
+        public static bool Frozen { get; private set; }
+        readonly List<(Renderer r, Material[] mats, UnityEngine.Rendering.ShadowCastingMode shadows)> original = new List<(Renderer, Material[], UnityEngine.Rendering.ShadowCastingMode)>();
+
+        public static void SetAllFrozen(bool on, Material ghost)
+        {
+            Frozen = on;
+            foreach (var c in Everyone.ToArray()) if (c) c.SetGhost(on, ghost);
+        }
+
+        void SetGhost(bool on, Material ghost)
+        {
+            if (on)
+            {
+                if (original.Count > 0 || !ghost) return;
+                foreach (var r in GetComponentsInChildren<Renderer>())
+                {
+                    original.Add((r, r.sharedMaterials, r.shadowCastingMode));
+                    var g = new Material[r.sharedMaterials.Length];
+                    for (int i = 0; i < g.Length; i++) g[i] = ghost;
+                    r.sharedMaterials = g;
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+            else
+            {
+                foreach (var o in original) if (o.r) { o.r.sharedMaterials = o.mats; o.r.shadowCastingMode = o.shadows; }
+                original.Clear();
+                if (agent && agent.enabled && agent.isOnNavMesh) agent.isStopped = false;
+            }
+        }
+
+        void HoldStill()
+        {
+            if (agent && agent.enabled && agent.isOnNavMesh) { agent.isStopped = true; agent.velocity = Vector3.zero; }
+            rig.walkSpeed = 0f;
+            if ((mode == Mode.Using || mode == Mode.Sitting) && spot != null)
+            {
+                SeatPose(out var p, out var q);   // still rides along if the piece is moved
+                transform.SetPositionAndRotation(p, q);
+            }
+        }
+
         public string displayName = "";
         public bool isPet;
         public float scale = 1f;
@@ -44,17 +89,20 @@ namespace Tiramisu
 
         void Awake()
         {
+            Everyone.Add(this);
             agent = GetComponent<NavMeshAgent>();
             rig = GetComponent<CharacterRig>();
             agent.enabled = false;
         }
 
+        void OnDestroy() => Everyone.Remove(this);
         void OnEnable() { if (!All.Contains(this)) All.Add(this); }
         void OnDisable() => All.Remove(this);
 
         void Update()
         {
             UpdateVisibility();
+            if (Frozen) { HoldStill(); return; }
             if (mode == Mode.Waiting)
             {
                 if (TiramisuNav.Ready) Begin();

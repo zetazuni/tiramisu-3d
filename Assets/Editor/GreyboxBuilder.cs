@@ -452,6 +452,7 @@ namespace Tiramisu.EditorTools
             foreach (var door in Object.FindObjectsByType<AutoDoor>(FindObjectsInactive.Include))
                 door.gameObject.AddComponent<Unity.AI.Navigation.NavMeshModifier>().ignoreFromBuild = true;   // they open for whoever walks up
             MoveIn(Group("People and pets", null));
+            ApplyDefaultLayout();
             PhysicsSetup.AssignSurfaces(house);
             PhysicsSetup.AssignSurfaces(GameObject.Find("Garden").transform);
 
@@ -1721,6 +1722,77 @@ namespace Tiramisu.EditorTools
                 if (t && t.name.StartsWith("seat cushion")) Object.DestroyImmediate(t.gameObject);
         }
 
+        /// <summary>The see-through blue silhouette people and pets turn into while decorating.</summary>
+        static Material GhostMaterial()
+        {
+            const string path = "Assets/Art/Materials/Ghost.mat";
+            System.IO.Directory.CreateDirectory("Assets/Art/Materials");
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!m)
+            {
+                m = new Material(Shader.Find("HDRP/Unlit"));
+                AssetDatabase.CreateAsset(m, path);
+            }
+            m.SetFloat("_SurfaceType", 1f);
+            m.SetFloat("_BlendMode", 0f);
+            m.SetFloat("_ZWrite", 0f);
+            m.SetFloat("_TransparentZWrite", 1f);   // one silhouette, not layers of limbs showing through each other
+            m.SetFloat("_DoubleSidedEnable", 0f);
+            m.SetColor("_UnlitColor", new Color(0.35f, 0.6f, 0.85f, 0.3f));
+            m.SetColor("_EmissiveColor", Color.black);
+            UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        [System.Serializable] class DefEntry { public string key; public Vector3 pos; public float yaw; public string host; }
+        [System.Serializable] class DefLayout { public System.Collections.Generic.List<DefEntry> items = new System.Collections.Generic.List<DefEntry>(); }
+
+        /// <summary>
+        /// The layout Amir left the house in (Assets/Editor/DefaultLayout.json, copied from the saved layout) becomes the starting layout.
+        /// Small things that stood on a moved piece are carried along with it.
+        /// </summary>
+        static void ApplyDefaultLayout()
+        {
+            const string path = "Assets/Editor/DefaultLayout.json";
+            if (!System.IO.File.Exists(path)) return;
+            var layout = JsonUtility.FromJson<DefLayout>(System.IO.File.ReadAllText(path));
+            if (layout == null) return;
+            var all = Object.FindObjectsByType<Furniture>(FindObjectsInactive.Include);
+            var byKey = new System.Collections.Generic.Dictionary<string, Furniture>();
+            foreach (var f in all) byKey[f.key] = f;
+            var placed = new System.Collections.Generic.HashSet<Furniture>();
+            foreach (var e in layout.items)
+                if (string.IsNullOrEmpty(e.host) && byKey.TryGetValue(e.key, out var f)) placed.Add(f);
+
+            foreach (var e in layout.items)
+            {
+                if (!string.IsNullOrEmpty(e.host) || !byKey.TryGetValue(e.key, out var f) || f.pinned) continue;
+                var oldPose = Matrix4x4.TRS(f.transform.position, f.transform.rotation, Vector3.one);
+                var bounds = new Bounds(f.transform.position, Vector3.zero);
+                foreach (var r in f.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
+                var riders = new System.Collections.Generic.List<Furniture>();
+                foreach (var r in all)
+                {
+                    if (r == f || !r.small || placed.Contains(r)) continue;
+                    var p = r.transform.position;
+                    if (Mathf.Abs(p.x - bounds.center.x) <= bounds.extents.x && Mathf.Abs(p.z - bounds.center.z) <= bounds.extents.z
+                        && p.y >= bounds.min.y + 0.05f && p.y <= bounds.max.y + 0.12f) riders.Add(r);
+                }
+                f.transform.SetPositionAndRotation(e.pos, Quaternion.Euler(0f, e.yaw, 0f));
+                var delta = Matrix4x4.TRS(f.transform.position, f.transform.rotation, Vector3.one) * oldPose.inverse;
+                foreach (var r in riders)
+                    r.transform.SetPositionAndRotation(delta.MultiplyPoint3x4(r.transform.position), delta.rotation * r.transform.rotation);
+            }
+            foreach (var e in layout.items)
+            {
+                if (string.IsNullOrEmpty(e.host) || !byKey.TryGetValue(e.key, out var f) || !byKey.TryGetValue(e.host, out var h)) continue;
+                f.transform.SetPositionAndRotation(h.transform.TransformPoint(e.pos), Quaternion.Euler(0f, h.transform.eulerAngles.y + e.yaw, 0f));
+            }
+            PlayerPrefs.DeleteKey("tiramisu.layout");   // the saved one is now the default
+            Debug.Log($"Tiramisu: {layout.items.Count} pieces put in the layout Amir left them in.");
+        }
+
         static void PutOnGlasses(GameObject person)
         {
             var glasses = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/Characters/glasses.fbx");
@@ -1905,7 +1977,7 @@ namespace Tiramisu.EditorTools
             hv.roof = roofGo;
             hv.upperFloorY = UPY;
             game.AddComponent<HouseHud>();
-            game.AddComponent<DecorateMode>();
+            game.AddComponent<DecorateMode>().ghostMaterial = GhostMaterial();
             game.AddComponent<TiramisuNav>();
             game.AddComponent<CharacterHud>();
             var dn = game.AddComponent<DayNightCycle>();
