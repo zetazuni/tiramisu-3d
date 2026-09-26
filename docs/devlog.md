@@ -105,6 +105,17 @@
 - **Night lighting and day and night cycle** (new `DayNightCycle`, `SwitchableLight`). Warm interiors, glowing pendants and lamps, garden bollards, roof downlights, cyan pool lamps, moon and stars. First attempt was blown out (exposure floor too low), tuned to EV 4.2. Exposure adapts in about 2 seconds now.
 - Unity gotcha found on the way: a MonoBehaviour must live in its own file named after the class, or scene references turn into "missing script".
 
+## Session 7: night look fixes (2026-09-26) · v0.9.1
+
+Amir's notes on the first night: too glowy and reflective, lights too strong and pointy, plants need a vase, cars too shiny, kitchen wall cabinet flickering.
+
+- **The glow was the reflection probes.** They were baked in full daylight (thousands of nits). At 10 percent they still lit every rough surface like a sunny day. At night they now go to 0.02 percent, so the plants stopped glowing white and the chair went back to its real colour. Bloom and exposure compensation also drop a little at night, and emissive lamps, bulbs and screens are about half as strong.
+- **Softer lights.** Room lights are now big rectangle panels in the ceiling (no more hot spots), pendants and downlights and lamps and pool lamps are small soft area lights that face where the light really goes (down, up into the ceiling, into the pool). Fewer lumens, more even.
+- **Less shine:** floors, wood, marble, ceramic, steel and brass have lower smoothness. Car paint went from a mirror to satin (smoothness 0.55, metallic 0.3 to 0.35).
+- **Planters:** a new `planter` model (ceramic, soil and pebbles) under all five money trees, the trees stand on it.
+- **Flicker found and fixed:** the kitchen wall doors sat inside their cabinet with front faces exactly level, so the two surfaces fought (diagonal stripes, flickering when the camera moved). The doors now stand 1 cm in front. I ruled out shadows, screen space reflections, global illumination and contact shadows by switching each off in Play mode first. Also gave the sun and moon more shadow bias.
+- Tested in Play mode with the time at 21:30 and at 13:00: living room, kitchen, whole house and the cars from behind.
+
 **Next**
 - Amir plays with decorate mode and the time slider and says what feels off (snapping, outlines, the night mood, light strengths).
 - Wall pieces (mirrors, boards, pictures) could become movable along their wall, and furniture could be bought or unlocked like in the 2D game.

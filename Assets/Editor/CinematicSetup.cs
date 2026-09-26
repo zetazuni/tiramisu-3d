@@ -202,13 +202,16 @@ namespace Tiramisu.EditorTools
             var go = new GameObject("Moon");
             var l = go.AddComponent<Light>();
             l.type = LightType.Directional;
-            go.AddComponent<HDAdditionalLightData>();
+            var hdMoon = go.AddComponent<HDAdditionalLightData>();
+            hdMoon.normalBias = 1.6f;
+            hdMoon.slopeBias = 1.0f;
             l.lightUnit = LightUnit.Lux;
             l.intensity = 1.6f;
             l.useColorTemperature = true;
             l.colorTemperature = 8500f;
             l.color = Color.white;
-            l.shadows = LightShadows.Soft;
+            l.shadows = LightShadows.None;   // the day and night cycle turns them on when the sun is down
+            l.enabled = false;
             go.transform.rotation = Quaternion.Euler(-40f, 140f, 0f);
             return l;
         }
@@ -218,7 +221,9 @@ namespace Tiramisu.EditorTools
             var go = new GameObject("Sun");
             var l = go.AddComponent<Light>();
             l.type = LightType.Directional;
-            go.AddComponent<HDAdditionalLightData>();
+            var hdSun = go.AddComponent<HDAdditionalLightData>();
+            hdSun.normalBias = 1.6f;   // stops the sawtooth shadow acne on doors and thin panels
+            hdSun.slopeBias = 1.0f;
             l.lightUnit = LightUnit.Lux;
             l.intensity = 100000f;
             l.useColorTemperature = true;
@@ -236,20 +241,23 @@ namespace Tiramisu.EditorTools
             {
                 var lg = new GameObject($"{name} light");
                 lg.transform.SetParent(parent, false);
-                lg.transform.position = floorCentre + Vector3.up * (ceiling - 0.35f);
+                // a big soft panel in the ceiling instead of a bulb: even, gentle light without hot spots
+                lg.transform.position = floorCentre + Vector3.up * (ceiling - 0.06f);
+                lg.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
                 var l = lg.AddComponent<Light>();
-                l.type = LightType.Point;
+                l.type = LightType.Rectangle;
+                l.areaSize = new Vector2(Mathf.Clamp(size.x * 0.5f, 0.8f, 3.5f), Mathf.Clamp(size.y * 0.5f, 0.8f, 3.5f));
                 lg.AddComponent<HDAdditionalLightData>();
                 l.lightUnit = LightUnit.Lumen;
-                l.intensity = 900f;
+                l.intensity = 500f;
                 l.useColorTemperature = true;
                 l.colorTemperature = kelvin;
                 l.color = Color.white;
-                l.range = Mathf.Max(size.x, size.y) * 1.1f;
+                l.range = Mathf.Max(size.x, size.y) * 1.2f;
                 l.shadows = LightShadows.None;
-                var sw = lg.AddComponent<SwitchableLight>();   // dimmer by day, warm and bright at night
-                sw.day = 500f;
-                sw.night = 1100f;
+                var sw = lg.AddComponent<SwitchableLight>();   // dimmer by day, warm and gentle at night
+                sw.day = 400f;
+                sw.night = 800f;
             }
 
             var pg = new GameObject($"{name} reflections");

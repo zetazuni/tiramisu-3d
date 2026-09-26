@@ -153,7 +153,17 @@ def sparetyres():
     return rt
 
 
-PIECES = [fruitbowl, cuttingboard, mug, espresso, utensils, herbs, towelstack, candles, cardboardboxes, paintcans, sparetyres]
+def planter():
+    """Tall ceramic planter for the money trees. The tree stands on the soil, 0.38 m up."""
+    rt = root("planter")
+    prof = [(0.0, 0.0), (0.15, 0.0), (0.2, 0.03), (0.25, 0.2), (0.27, 0.38), (0.275, 0.42), (0.262, 0.425), (0.245, 0.395), (0.235, 0.36), (0.0, 0.36)]
+    lathe("pot", rt, prof, "Planter_main", seg=64, subsurf=1)
+    cyl("soil", rt, (0, 0, 0.375), 0.235, 0.012, "Coffee", seg=48, bevel=0.002)
+    cyl("stones", rt, (0, 0, 0.383), 0.2, 0.006, "Cardboard", seg=32, bevel=0.001)
+    return rt
+
+
+PIECES = [planter, fruitbowl, cuttingboard, mug, espresso, utensils, herbs, towelstack, candles, cardboardboxes, paintcans, sparetyres]
 
 
 def build_all():

@@ -88,6 +88,7 @@ namespace Tiramisu.EditorTools
             { "yogamat", new FurnitureSpec { mass = 2f, dynamic = true } },
             { "waterdispenser", new FurnitureSpec { mass = 18f, dynamic = true } },
             { "gymmirror", new FurnitureSpec { mass = 12f, dynamic = false } },
+            { "planter", new FurnitureSpec { mass = 14f, dynamic = false } },
             { "cushion",     new FurnitureSpec { mass = 0.8f, dynamic = true, dropHeight = 0.9f } },
         };
 

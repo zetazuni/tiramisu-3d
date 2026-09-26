@@ -55,14 +55,14 @@ namespace Tiramisu.EditorTools
         {
             var P = MaterialLibrary.Mapping.Planar;
             var T = MaterialLibrary.Mapping.Triplanar;
-            oak = Tx("Oak", "herringbone_parquet", P, new Vector2(0.35f, 0.72f));
-            oakDark = Tx("OakDark", "dark_wooden_planks", P, new Vector2(0.3f, 0.65f));
+            oak = Tx("Oak", "herringbone_parquet", P, new Vector2(0.2f, 0.48f));
+            oakDark = Tx("OakDark", "dark_wooden_planks", P, new Vector2(0.2f, 0.45f));
             wallWhite = Tn("WallWhite", "white_plaster_02", T, new Color(0.95f, 0.94f, 0.92f), new Vector2(0.02f, 0.22f), 0.3f);
             cap = Pl("DarkCap", new Color(0.05f, 0.05f, 0.055f), 0.5f);
             slab = Tn("Slab", "brushed_concrete", T, new Color(0.72f, 0.71f, 0.69f), new Vector2(0.1f, 0.4f));
-            tile = Tx("KitchenTile", "marble_tiles", P, new Vector2(0.6f, 0.95f));
-            bathTile = Tx("BathTile", "large_grey_tiles", P, new Vector2(0.5f, 0.9f));
-            garageFloor = Tn("GarageFloor", "concrete_floor", P, new Color(0.62f, 0.62f, 0.63f), new Vector2(0.35f, 0.8f));
+            tile = Tx("KitchenTile", "marble_tiles", P, new Vector2(0.35f, 0.65f));
+            bathTile = Tx("BathTile", "large_grey_tiles", P, new Vector2(0.3f, 0.6f));
+            garageFloor = Tn("GarageFloor", "concrete_floor", P, new Color(0.62f, 0.62f, 0.63f), new Vector2(0.2f, 0.5f));
             gym = Tx("GymFloor", "rubber_tiles", P, new Vector2(0.05f, 0.35f));
             lawn = Tn("Lawn", "leafy_grass", P, new Color(0.40f, 0.58f, 0.24f), new Vector2(0f, 0.3f));
             lawnDark = Tn("LawnEdge", "leafy_grass", P, new Color(0.33f, 0.48f, 0.21f), new Vector2(0f, 0.25f));
@@ -76,7 +76,7 @@ namespace Tiramisu.EditorTools
             trunk = Tx("Trunk", "bark_brown_02", T, new Vector2(0f, 0.3f));
             leaf = Pl("Leaves", new Color(0.25f, 0.42f, 0.2f), 0.3f);
             mailbox = Pl("Mailbox", new Color(0.04f, 0.04f, 0.045f), 0.6f, 0.8f);
-            lampGlow = Glowing("LampGlow", new Color(1f, 0.82f, 0.55f), new Color(1f, 0.7f, 0.35f) * 5f);
+            lampGlow = Glowing("LampGlow", new Color(1f, 0.82f, 0.55f), new Color(1f, 0.7f, 0.35f) * 2.2f);
             poolGlow = Glowing("PoolGlow", new Color(0.5f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 2.5f);
         }
 
@@ -334,13 +334,24 @@ namespace Tiramisu.EditorTools
             Room(g, "Garden & pool", 0, 5, 0, WX, 10.5f, 22f, gy, null);
         }
 
-        static void AddNightLight(GameObject host, Vector3 at, Color colour, float night, float range, float day = 0f)
+        /// <summary>
+        /// A light that fades on at night. With an area size it is a soft rectangle panel that faces
+        /// (pitch, yaw) degrees (90 = down, -90 = up), otherwise a small point light.
+        /// </summary>
+        static void AddNightLight(GameObject host, Vector3 at, Color colour, float night, float range, float day = 0f,
+            Vector2 area = default, float pitch = 90f, float yaw = 0f)
         {
             var lg = new GameObject("Night light");
             lg.transform.SetParent(host.transform, false);
             lg.transform.position = at;
             var l = lg.AddComponent<Light>();
-            l.type = LightType.Point;
+            if (area != default)
+            {
+                l.type = LightType.Rectangle;
+                l.areaSize = area;
+                lg.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+            }
+            else l.type = LightType.Point;
             lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
             l.lightUnit = LightUnit.Lumen;
             l.color = colour;
@@ -378,7 +389,7 @@ namespace Tiramisu.EditorTools
                 cap.transform.localScale = new Vector3(0.9f, 0.08f, 0.9f);
                 cap.GetComponent<Renderer>().sharedMaterial = lampGlow;
                 Object.DestroyImmediate(cap.GetComponent<Collider>());
-                AddNightLight(post, new Vector3(b.x, gy + 0.75f, b.y), warm, 320f, 4.5f);
+                AddNightLight(post, new Vector3(b.x, gy + 0.72f, b.y), warm, 140f, 4f, 0f, new Vector2(0.3f, 0.3f), 90f);
             }
 
             // downlights in the roof overhang above the deck
@@ -393,7 +404,7 @@ namespace Tiramisu.EditorTools
                 disc.transform.localScale = new Vector3(0.22f, 0.005f, 0.22f);
                 disc.GetComponent<Renderer>().sharedMaterial = lampGlow;
                 Object.DestroyImmediate(disc.GetComponent<Collider>());
-                AddNightLight(disc, new Vector3(x, ry - 0.3f, WD + 1.1f), warm, 900f, 7f);
+                AddNightLight(disc, new Vector3(x, ry - 0.05f, WD + 1.1f), warm, 380f, 6f, 0f, new Vector2(0.7f, 0.7f), 90f);
             }
 
             // glowing lamps in the pool wall and the water lit from below
@@ -410,7 +421,7 @@ namespace Tiramisu.EditorTools
                     lamp.transform.localScale = new Vector3(0.32f, 0.12f, 0.03f);
                     lamp.GetComponent<Renderer>().sharedMaterial = poolGlow;
                     Object.DestroyImmediate(lamp.GetComponent<Collider>());
-                    AddNightLight(lamp, new Vector3(x, gy - 0.85f, z + (near ? 0.5f : -0.5f)), new Color(0.3f, 0.85f, 1f), 500f, 7f);
+                    AddNightLight(lamp, new Vector3(x, gy - 0.85f, z + (near ? 0.12f : -0.12f)), new Color(0.3f, 0.85f, 1f), 260f, 6f, 0f, new Vector2(0.9f, 0.5f), 0f, near ? 0f : 180f);
                 }
             }
         }
@@ -480,6 +491,12 @@ namespace Tiramisu.EditorTools
             ("garageshelf", 23.1f, 0.24f, 0f, 0),
             ("toolchest", 29.5f, 1.4f, 270f, 0),
             ("bicycle", 22.65f, 3.9f, 0f, 0),
+            // planters under the money trees (the trees stand on their soil, 0.38 m up)
+            ("planter", 0.75f, 0.8f, 0f, 0),
+            ("planter", 16.75f, 5f, 0f, 0),
+            ("planter", 7.3f, 7.2f, 0f, 1),
+            ("planter", 21.3f, 2.6f, 0f, 1),
+            ("planter", 15f, 0.7f, 0f, 1),
             // upper floor, Teacher's Room (x 0 to 8)
             ("platformbed", 5f, 1.17f, 0f, 1),
             ("nightstand", 3.9f, 0.22f, 0f, 1),
@@ -569,8 +586,8 @@ namespace Tiramisu.EditorTools
             Pr("book_encyclopedia_set_01", null, 3.7f, TableTop + 0.004f, 4.6f, 0f, 1f, PropPlacer.Body.DynamicParts, 0.7f),
             Pr("ceramic_vase_03", null, 4.45f, TableTop + 0.002f, 4.62f, 0f, 1f, PropPlacer.Body.Dynamic, 1.2f),
             Pr("potted_plant_01", null, 7.3f, FLOOR_TOP, 0.75f, 30f, 1.35f, PropPlacer.Body.Static, 0f, 0.55f),
-            Pr("pachira_aquatica_01", "_d", 0.75f, FLOOR_TOP, 0.8f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
-            Pr("pachira_aquatica_01", "_d", 16.75f, FLOOR_TOP, 5.0f, 30f, 0.95f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("pachira_aquatica_01", "_d", 0.75f, FLOOR_TOP + 0.38f, 0.8f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("pachira_aquatica_01", "_d", 16.75f, FLOOR_TOP + 0.38f, 5.0f, 30f, 0.95f, PropPlacer.Body.Static, 0f, 0.5f),
         };
 
         const float UpFloor = UPY + FLOOR_TOP;
@@ -580,12 +597,12 @@ namespace Tiramisu.EditorTools
         {
             Pr("modern_arm_chair_01", null, 6.8f, UpFloor, 5.8f, 220f, 1f, PropPlacer.Body.Dynamic, 18f),
             Pr("side_table_01", null, 7.5f, UpFloor, 6.6f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
-            Pr("pachira_aquatica_01", "_d", 7.3f, UpFloor, 7.2f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("pachira_aquatica_01", "_d", 7.3f, UpFloor + 0.38f, 7.2f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
             Pr("potted_plant_01", null, 8.6f, UpFloor, 7.3f, 30f, 1.35f, PropPlacer.Body.Static, 0f, 0.55f),
             Pr("modern_arm_chair_01", null, 12.5f, UpFloor, 6.5f, 200f, 1f, PropPlacer.Body.Dynamic, 18f),
-            Pr("pachira_aquatica_01", "_c", 21.3f, UpFloor, 2.6f, 60f, 1.35f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("pachira_aquatica_01", "_c", 21.3f, UpFloor + 0.38f, 2.6f, 60f, 1.35f, PropPlacer.Body.Static, 0f, 0.5f),
             Pr("potted_plant_01", null, 29.3f, UpFloor, 7.2f, 0f, 1.35f, PropPlacer.Body.Static, 0f, 0.55f),
-            Pr("pachira_aquatica_01", "_a", 15f, UpFloor, 0.7f, 120f, 1.3f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("pachira_aquatica_01", "_a", 15f, UpFloor + 0.38f, 0.7f, 120f, 1.3f, PropPlacer.Body.Static, 0f, 0.5f),
         };
 
         /// <summary>Real trees and shrubs for the garden (garden ground sits at -SLAB).</summary>
@@ -659,26 +676,9 @@ namespace Tiramisu.EditorTools
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
                 if (f.id == "worldmap" || f.id == "whiteboard" || f.id == "gymmirror") AttachTo("House/Upper floor/Walls/Back wall", go);
                 if (f.id == "chalkboard") AttachTo("House/Upper floor/Walls/Left wall", go);
-                if (f.id == "bedlamp") AddNightLight(go, go.transform.position + Vector3.up * 0.32f, new Color(1f, 0.78f, 0.5f), 260f, 3.5f);
-                if (f.id == "uplight")
-                {
-                    var lg = new GameObject("Uplight glow");
-                    lg.transform.SetParent(go.transform, false);
-                    lg.transform.position = go.transform.position + Vector3.up * 1.7f;
-                    var l = lg.AddComponent<Light>();
-                    l.type = LightType.Point;
-                    lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
-                    l.lightUnit = LightUnit.Lumen;
-                    l.intensity = 500f;
-                    l.useColorTemperature = true;
-                    l.colorTemperature = 2400f;
-                    l.color = Color.white;
-                    l.range = 5f;
-                    l.shadows = LightShadows.None;
-                    var sw = lg.AddComponent<SwitchableLight>();
-                    sw.day = 0f;
-                    sw.night = 750f;
-                }
+                if (f.id == "bedlamp") AddNightLight(go, go.transform.position + Vector3.up * 0.33f, new Color(1f, 0.78f, 0.5f), 110f, 3f, 0f, new Vector2(0.35f, 0.35f), 90f);
+                if (f.id == "uplight") // washes the ceiling with a wide, soft glow
+                    AddNightLight(go, go.transform.position + Vector3.up * 1.68f, new Color(1f, 0.8f, 0.55f), 380f, 5f, 0f, new Vector2(0.5f, 0.5f), -90f);
                 if (f.id == "sedan" || f.id == "mpv") // red glow behind the tail lights
                 {
                     float rear = f.id == "sedan" ? 2.3f : 2.08f; // metres behind the centre (Blender +Y is Unity -Z)
@@ -697,25 +697,8 @@ namespace Tiramisu.EditorTools
                         l.shadows = LightShadows.None;
                     }
                 }
-                if (f.id == "pendant") // a small warm light inside each shade
-                {
-                    var lg = new GameObject("Pendant light");
-                    lg.transform.SetParent(go.transform, false);
-                    lg.transform.position = go.transform.position + Vector3.up * 1.9f;
-                    var l = lg.AddComponent<Light>();
-                    l.type = LightType.Point;
-                    lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
-                    l.lightUnit = LightUnit.Lumen;
-                    l.intensity = 350f;
-                    l.useColorTemperature = true;
-                    l.colorTemperature = 2500f;
-                    l.color = Color.white;
-                    l.range = 4f;
-                    l.shadows = LightShadows.None;
-                    var sw = lg.AddComponent<SwitchableLight>();
-                    sw.day = 90f;
-                    sw.night = 520f;
-                }
+                if (f.id == "pendant") // a soft downward glow from each shade
+                    AddNightLight(go, go.transform.position + Vector3.up * 1.86f, new Color(1f, 0.78f, 0.5f), 300f, 4f, 60f, new Vector2(0.5f, 0.5f), 90f);
             }
         }
 

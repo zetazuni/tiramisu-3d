@@ -215,8 +215,9 @@ def kitchenrun():
     # wall units on the left half
     for k, (a, b) in enumerate([(x0, x0 + 0.9), (x0 + 0.9, x0 + 1.8)]):
         box(f"wall carcass {k+1}", rt, (a, yb - 0.34, 1.45), (b, yb, 2.2), "Cabinet_main", 0.003)
-        box(f"wall door {k+1}", rt, (a + gap, yf + 0.28, 1.45 + gap), (b - gap, yf + 0.3, 2.2 - gap), "Walnut", 0.004)
-        handle(f"wall handle {k+1}", rt, b - 0.06, yf + 0.28, 1.6, 0.25)
+        # the door stands in front of the carcass (front at yb - 0.34), not inside it, or the two faces fight and flicker
+        box(f"wall door {k+1}", rt, (a + gap, yb - 0.36, 1.45 + gap), (b - gap, yb - 0.335, 2.2 - gap), "Walnut", 0.004)
+        handle(f"wall handle {k+1}", rt, b - 0.06, yb - 0.36, 1.6, 0.25)
 
     # oven tower at the right end
     tx0, tx1 = x1 - 0.7, x1

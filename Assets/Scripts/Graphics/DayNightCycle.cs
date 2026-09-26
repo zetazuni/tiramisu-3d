@@ -22,6 +22,7 @@ namespace Tiramisu
 
         const string PrefKey = "tiramisu.hour";
         Exposure exposure;
+        Bloom bloom;
         PhysicallyBasedSky sky;
         HDAdditionalReflectionData[] probes;
         float nightAmount;
@@ -49,6 +50,7 @@ namespace Tiramisu
                 if (volume.profile.TryGet(out sky)) sky.spaceEmissionTexture.Override(MakeStars());
                 if (sky != null) { sky.spaceEmissionMultiplier.Override(60f); }
             }
+            if (volume && volume.profile) volume.profile.TryGet(out bloom);
             probes = FindObjectsByType<HDAdditionalReflectionData>(FindObjectsInactive.Include);
             Apply();
         }
@@ -120,9 +122,16 @@ namespace Tiramisu
             {
                 exposure.limitMin.Override(Mathf.Lerp(4.2f, 9f, day));
                 exposure.limitMax.Override(Mathf.Lerp(9f, 13.8f, day));
+                exposure.compensation.Override(Mathf.Lerp(-0.2f, 0f, day));
             }
+            if (bloom != null) bloom.intensity.Override(Mathf.Lerp(0.07f, 0.18f, day));   // less glow at night
             if (probes != null)
-                foreach (var p in probes) if (p) p.multiplier = Mathf.Lerp(0.1f, 1f, day);
+                {
+                    // the probes were baked in full daylight (thousands of nits), so at night they must almost vanish,
+                    // otherwise every rough surface reflects a sunny sky and glows
+                    float m = Mathf.Lerp(0.0002f, 1f, day * day);
+                    foreach (var p in probes) if (p) p.multiplier = m;
+                }
             foreach (var l in SwitchableLight.All) l.Apply(nightAmount);
         }
 
