@@ -97,19 +97,22 @@ def cyl(name, parent, center, r, h, material, axis='Z', r2=None, seg=48, bevel=0
     return _finish(name, parent, bm, material, min(bevel, r * 0.4, h * 0.4))
 
 
-def torus(name, parent, center, R, r, material, seg=64, rings=16):
+def torus(name, parent, center, R, r, material, seg=64, rings=16, axis='Z'):
+    """Ring round the given axis ('Z' lies flat, 'X' stands up like a wheel), centred at `center`."""
     bm = bmesh.new()
     for i in range(seg):
         a = 2 * math.pi * i / seg
         for j in range(rings):
             b = 2 * math.pi * j / rings
-            bm.verts.new(((R + r * math.cos(b)) * math.cos(a) + center[0], (R + r * math.cos(b)) * math.sin(a) + center[1], r * math.sin(b) + center[2]))
+            bm.verts.new(((R + r * math.cos(b)) * math.cos(a), (R + r * math.cos(b)) * math.sin(a), r * math.sin(b)))
     bm.verts.ensure_lookup_table()
     for i in range(seg):
         for j in range(rings):
             a = bm.verts[i * rings + j]; b = bm.verts[i * rings + (j + 1) % rings]
             c = bm.verts[((i + 1) % seg) * rings + (j + 1) % rings]; d = bm.verts[((i + 1) % seg) * rings + j]
             bm.faces.new((a, d, c, b))
+    rot = Matrix.Rotation(math.radians(90), 4, 'Y') if axis == 'X' else Matrix.Identity(4)
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(center) @ rot, verts=bm.verts)
     bm.normal_update()
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return _finish(name, parent, bm, material, 0)
@@ -137,7 +140,7 @@ def stats(rt):
     return tris
 
 
-# ---------------------------------------------------------------- pieces
+# ---------------------------------------------------------------- pieces (toolkit ends above this line)
 
 def handle(name, parent, x, y, z, length, vertical=True):
     """Slim brass bar handle standing off the door face (front is -Y)."""
@@ -298,29 +301,30 @@ def diningtable():
 
 
 def diningchair():
+    """Walnut framed chair: padded seat, four slightly tapered legs, rear posts flush with a curved back pad."""
     rt = root("diningchair")
-    cyl("seat", rt, (0, 0, 0.44), 0.2, 0.06, "Fabric_main", seg=48, bevel=0.02)
-    box("seat frame", rt, (-0.17, -0.17, 0.4), (0.17, 0.17, 0.42), "BlackSteel", 0.004)
+    SH = 0.46                                   # seat top
+    box("seat pad", rt, (-0.225, -0.215, SH - 0.075), (0.225, 0.215, SH), "Fabric_main", 0.03)
+    box("seat frame", rt, (-0.21, -0.2, SH - 0.11), (0.21, 0.2, SH - 0.075), "Walnut", 0.006)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            cyl(f"leg {sx}{sy}", rt, (sx * 0.16, sy * 0.16, 0.2), 0.014, 0.4, "BlackSteel", r2=0.01, seg=20, bevel=0.002)
-    # curved back: a fabric arc panel standing on two rear posts
-    for sx in (-1, 1):
-        cyl(f"back post {sx}", rt, (sx * 0.16, 0.17, 0.72), 0.013, 0.62, "BlackSteel", seg=20, bevel=0.002)
+            x, y = sx * 0.19, sy * 0.185
+            if sy > 0:      # rear leg keeps going up as the back post
+                box(f"rear post {sx}", rt, (x - 0.017, y - 0.017, 0), (x + 0.017, y + 0.017, 0.84), "Walnut", 0.008)
+            else:
+                cyl(f"front leg {sx}", rt, (x, y, (SH - 0.11) / 2), 0.019, SH - 0.11, "Walnut", r2=0.012, seg=24, bevel=0.002)
+    # curved back pad between the posts
+    n, half = 20, 0.19
+    z0, z1 = 0.56, 0.82
     bm = bmesh.new()
-    n, R, hh = 24, 0.2, 0.24
     for i in range(n + 1):
-        a = math.radians(-50 + 100 * i / n)
-        x, y = R * math.sin(a), 0.17 + R * (1 - math.cos(a)) * 0.6
-        for z in (0.5, 0.5 + hh):
-            bm.verts.new((x, y, z))
-            bm.verts.new((x, y + 0.04, z))
+        x = -half + 2 * half * i / n
+        y = 0.185 + 0.035 * (1 - (x / half) ** 2)
+        for (yy, zz) in ((y - 0.02, z0), (y + 0.02, z0), (y - 0.02, z1), (y + 0.02, z1)):
+            bm.verts.new((x, yy, zz))
     bm.verts.ensure_lookup_table()
-    # thin curved strip: 4 verts per column (front z0, back z0, front z1, back z1)
     def V(i, k): return bm.verts[i * 4 + k]
     for i in range(n):
-        for (a, b, c, d) in ((0, 2, 6, 4), (1, 5, 7, 3), (2, 3, 7, 6), (0, 4, 5, 1)):
-            pass
         bm.faces.new((V(i, 0), V(i + 1, 0), V(i + 1, 2), V(i, 2)))   # front
         bm.faces.new((V(i, 1), V(i, 3), V(i + 1, 3), V(i + 1, 1)))   # back
         bm.faces.new((V(i, 2), V(i + 1, 2), V(i + 1, 3), V(i, 3)))   # top
@@ -329,7 +333,7 @@ def diningchair():
     bm.faces.new((V(n, 0), V(n, 1), V(n, 3), V(n, 2)))
     bm.normal_update()
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    ob = _finish("back panel", rt, bm, "Fabric_main", 0.01)
+    _finish("back pad", rt, bm, "Fabric_main", 0.012)
     return rt
 
 
@@ -375,6 +379,6 @@ def build_all():
     return out
 
 
-if __name__ == "__main__" or True:
+if globals().get("RUN_KITCHEN", True):
     RESULT = build_all()
     print(RESULT)

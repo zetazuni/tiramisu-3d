@@ -83,6 +83,12 @@
 - **Kitchen furnished** (v0.5.0). New script `tools/blender_kitchen.py` builds and exports seven pieces in one go (run it inside Blender): a 4.4 m counter run (charcoal cabinets, marble worktop and splashback, sink with tap, glass cooktop with hood, wall units, oven tower with two ovens, brass handles), a stainless fridge, a waterfall marble island with a walnut slat front, three bar stools, a walnut dining table, four dining chairs and three brass pendant lamps with glowing bulbs and a warm light each. Between them about 75k triangles. Placed by the builder's `Layout` table; fixed pieces (run, fridge, island, pendants) are static, stools, table and chairs are real rigid bodies.
 - Tested: rebuilt the scene, no errors, looked from the garden and from inside the kitchen. Not yet played by hand, so please try shoving a stool.
 
+- **Dining chairs redone.** The first ones had posts poking above a floating back. Now a padded seat, walnut legs and rear posts flush with a curved back pad.
+- **Bathroom furnished** (v0.6.0): walk-in shower with glass and rain head, floating walnut vanity with a vessel basin, mirror, wall hung toilet, freestanding tub, towel ladder, bath mat, washer, dryer and laundry basket, plus a plant.
+- **Garage furnished:** a red sedan and a silver MPV (built in Blender by lofting cross sections, with subdivision, boolean wheel arches, glass, alloy wheels, lights), EV charger, workbench with pegboard, metal shelving with bins, tool chest and a bicycle. `tools/blender_bathgarage.py` builds and exports all 17 pieces.
+- Found by looking: bike wheels lay flat (the torus helper only made flat rings, now has an `axis` option).
+- Tested: rebuilt the scene, checked the bathroom, garage and dining corner from inside. The car window edges are a bit jagged up close, worth a proper remodel later.
+
 **Next**
-- Kitchen props (fruit bowl, cups, cutting board on the island) and a rug or plant for the dining corner.
-- Bathroom next, then the rest of the "Next" list from session 5.
+- Props for the kitchen (fruit bowl, cups, cutting board), bathroom (towels, candles) and garage (tools on the pegboard, boxes), and cleaner car windows.
+- Then the rest of the "Next" list from session 5.

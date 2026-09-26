@@ -362,6 +362,25 @@ namespace Tiramisu.EditorTools
             ("pendant", 10.5f, 3.7f, 0f, 0),
             ("pendant", 11.6f, 3.7f, 0f, 0),
             ("pendant", 12.7f, 3.7f, 0f, 0),
+            // bathroom (x 16 to 22): shower, vanity and toilet along the back wall, tub in the middle, laundry on the right
+            ("shower", 16.95f, 0.62f, 0f, 0),
+            ("vanity", 18.75f, 0.27f, 0f, 0),
+            ("bathmirror", 18.75f, 0.04f, 0f, 0),
+            ("toilet", 20.1f, 0.33f, 0f, 0),
+            ("towelrack", 21.35f, 0.08f, 0f, 0),
+            ("bathmat", 18.75f, 1.05f, 0f, 0),
+            ("bathtub", 20.75f, 3.3f, 0f, 0),
+            ("washer", 21.6f, 5.4f, 270f, 0),
+            ("dryer", 21.6f, 6.1f, 270f, 0),
+            ("basket", 20.8f, 6.9f, 0f, 0),
+            // garage (x 22 to 30): two cars nose to the garden, tools along the back wall
+            ("sedan", 24.4f, 4.5f, 0f, 0),
+            ("mpv", 27.4f, 4.3f, 0f, 0),
+            ("evcharger", 25.9f, 0.12f, 0f, 0),
+            ("workbench", 28.9f, 0.34f, 0f, 0),
+            ("garageshelf", 23.1f, 0.24f, 0f, 0),
+            ("toolchest", 29.5f, 1.4f, 270f, 0),
+            ("bicycle", 22.65f, 3.9f, 0f, 0),
         };
 
         static PropPlacer.Prop Pr(string id, string variant, float x, float y, float z, float rot, float scale,
@@ -381,6 +400,7 @@ namespace Tiramisu.EditorTools
             Pr("ceramic_vase_03", null, 4.45f, TableTop + 0.002f, 4.62f, 0f, 1f, PropPlacer.Body.Dynamic, 1.2f),
             Pr("potted_plant_01", null, 7.3f, FLOOR_TOP, 0.75f, 30f, 1f, PropPlacer.Body.Static, 0f, 0.55f),
             Pr("pachira_aquatica_01", "_d", 0.75f, FLOOR_TOP, 0.8f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("potted_plant_04", null, 16.8f, FLOOR_TOP, 5.0f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
         };
 
         /// <summary>Real trees and shrubs for the garden (garden ground sits at -SLAB).</summary>
@@ -419,6 +439,7 @@ namespace Tiramisu.EditorTools
                 go.transform.position = new Vector3(f.x, (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
+                if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
                 if (f.id == "pendant") // a small warm light inside each shade
                 {
                     var lg = new GameObject("Pendant light");

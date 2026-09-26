@@ -32,6 +32,17 @@ namespace Tiramisu.EditorTools
             { "Brass",        (null, new Color(0.80f, 0.60f, 0.30f), new Vector2(0.8f, 0.8f), 1f, false) },
             { "GlassDark",    (null, new Color(0.015f, 0.018f, 0.022f), new Vector2(0.95f, 0.95f), 0f, false) },
             { "Bulb",         (null, new Color(1f, 0.9f, 0.7f), new Vector2(0.9f, 0.9f), 0f, false) },
+            { "Ceramic",      (null, new Color(0.96f, 0.96f, 0.95f), new Vector2(0.9f, 0.9f), 0f, false) },
+            { "ClearGlass",   (null, new Color(0.9f, 0.96f, 0.98f, 0.12f), new Vector2(0.97f, 0.97f), 0f, false) },
+            { "Mirror",       (null, new Color(0.82f, 0.86f, 0.88f), new Vector2(1f, 1f), 1f, false) },
+            { "Rattan",       ("rough_linen", new Color(0.66f, 0.5f, 0.32f), new Vector2(0.05f, 0.25f), 0f, true) },
+            { "PaintRed",     (null, new Color(0.62f, 0.05f, 0.05f), new Vector2(0.65f, 0.65f), 0.2f, false) },
+            { "Car_main",     (null, new Color(0.45f, 0.03f, 0.06f), new Vector2(0.92f, 0.92f), 0.7f, false) },
+            { "CarSilver",    (null, new Color(0.7f, 0.72f, 0.75f), new Vector2(0.9f, 0.9f), 0.8f, false) },
+            { "Tire",         (null, new Color(0.03f, 0.03f, 0.03f), new Vector2(0.35f, 0.35f), 0f, false) },
+            { "CarGlass",     (null, new Color(0.04f, 0.06f, 0.08f, 0.85f), new Vector2(0.97f, 0.97f), 0f, false) },
+            { "Headlight",    (null, new Color(0.95f, 0.97f, 1f), new Vector2(0.95f, 0.95f), 0f, false) },
+            { "Taillight",    (null, new Color(0.7f, 0.02f, 0.02f), new Vector2(0.9f, 0.9f), 0f, false) },
             { "Cushion_main", ("rough_linen", new Color(0.60f, 0.68f, 0.54f), new Vector2(0f, 0.25f), 0f, true) },
         };
 
@@ -80,13 +91,17 @@ namespace Tiramisu.EditorTools
             string path = $"{MatDir}/{name}.mat";
             if (!Looks.TryGetValue(name, out var l))
                 return MaterialLibrary.Plain(path, new Color(0.6f, 0.6f, 0.6f), 0.3f);
+            if (name == "ClearGlass" || name == "CarGlass") return MaterialLibrary.Glass(path, l.tint);
             if (l.tex == null)
             {
                 var pm = MaterialLibrary.Plain(path, l.tint, l.smooth.y, l.metal);
-                if (name == "Bulb") // the pendant bulbs glow
+                Color? glow = name == "Bulb" ? new Color(1f, 0.78f, 0.45f) * 6f
+                    : name == "Headlight" ? new Color(0.9f, 0.95f, 1f) * 1.5f
+                    : name == "Taillight" ? new Color(1f, 0.05f, 0.03f) * 1.2f : (Color?)null;
+                if (glow.HasValue) // bulbs and car lights glow
                 {
                     pm.SetFloat("_UseEmissiveIntensity", 0f);
-                    pm.SetColor("_EmissiveColor", new Color(1f, 0.78f, 0.45f) * 6f);
+                    pm.SetColor("_EmissiveColor", glow.Value);
                     UnityEditor.EditorUtility.SetDirty(pm);
                 }
                 return pm;
