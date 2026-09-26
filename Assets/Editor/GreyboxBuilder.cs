@@ -18,7 +18,7 @@ namespace Tiramisu.EditorTools
         const float FLOOR_TOP = 0.02f; // room floor plates are 2 cm thick, furniture stands on top
 
         static Material oak, oakDark, wallWhite, cap, slab, tile, bathTile, garageFloor, gym, lawn, lawnDark,
-            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow;
+            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, doorWood;
 
         // ---------- render pipeline ----------
 
@@ -76,6 +76,7 @@ namespace Tiramisu.EditorTools
             trunk = Tx("Trunk", "bark_brown_02", T, new Vector2(0f, 0.3f));
             leaf = Pl("Leaves", new Color(0.25f, 0.42f, 0.2f), 0.3f);
             mailbox = Pl("Mailbox", new Color(0.04f, 0.04f, 0.045f), 0.6f, 0.8f);
+            doorWood = Tn("DoorWood", "american_walnut_veneer", T, new Color(0.62f, 0.42f, 0.27f), new Vector2(0.3f, 0.5f), 1f);
             lampGlow = Glowing("LampGlow", new Color(1f, 0.82f, 0.55f), new Color(1f, 0.7f, 0.35f) * 2.2f);
             poolGlow = Glowing("PoolGlow", new Color(0.5f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 2.5f);
         }
@@ -130,6 +131,110 @@ namespace Tiramisu.EditorTools
             if (to > cursor) Segment(line, $"{name} {i}", axis, at, thick, cursor, to, floorY, floorY + H, m, isGlass);
         }
 
+        static WindowWall.Win Win(float center, float width, float sill, float top)
+            => new WindowWall.Win { center = center, width = width, sill = sill, top = top, homeCenter = center, homeWidth = width };
+
+        /// <summary>A concrete wall line whose windows can be moved and resized in decorate mode (see WindowWall).</summary>
+        static void WindowedWall(Transform parent, string name, WallCutaway.Axis axis, float at, float thick,
+            float from, float to, float floorY, Material m, params WindowWall.Win[] wins)
+        {
+            var line = Group(name, parent);
+            var cut = line.gameObject.AddComponent<WallCutaway>();
+            cut.axis = axis;
+            cut.plane = at + thick * 0.5f;
+            cut.floor = floorY > 0.1f ? 1 : 0;
+            cut.floorY = floorY;
+            cut.fullHeight = H;
+            var ww = line.gameObject.AddComponent<WindowWall>();
+            ww.axis = axis; ww.at = at; ww.thick = thick; ww.from = from; ww.to = to; ww.floorY = floorY;
+            ww.wallHeight = H; ww.doorHeight = DOOR_H; ww.interiorSide = 1;
+            ww.wallMat = m; ww.glassMat = glass; ww.frameMat = steel; ww.sillMat = oak;
+            ww.windows.AddRange(wins);
+            ww.Rebuild();
+        }
+
+        // ---------- sliding doors between the rooms ----------
+
+        /// <summary>
+        /// A modern sliding door hung on a black rail in front of the wall. Glass walls get a framed glass door,
+        /// concrete walls a walnut door with fine grooves. Opens by hover and for anyone with a DoorOpener.
+        /// </summary>
+        static void SlidingDoorAt(Transform parent, string wallPath, string label, WallCutaway.Axis axis, float at, float thick,
+            float a, float b, float floorY, bool glassDoor, int side, int slideDir)
+        {
+            var root = Group($"Sliding door: {label}", parent);
+            var panel = Group("Panel", root);
+            float t = glassDoor ? 0.03f : 0.045f;
+            float d0 = side > 0 ? at + thick + 0.025f : at - 0.025f - t;
+            float d1 = d0 + t;
+            float front = side > 0 ? d1 : d0;          // the face people touch
+            float w0 = a - 0.07f, w1 = b + 0.07f, h = DOOR_H + 0.03f;
+            Vector3 P(float along, float y, float depth) => axis == WallCutaway.Axis.X ? new Vector3(depth, floorY + y, along) : new Vector3(along, floorY + y, depth);
+            GameObject B(string nm, Transform par, float u0, float y0, float u1, float y1, float e0, float e1, Material mat, bool shadows = true)
+            {
+                var g = Box(nm, par, P(u0, y0, e0), P(u1, y1, e1), mat, shadows);
+                return g;
+            }
+
+            float fd = side > 0 ? d1 : d0 - 0.02f, fe = side > 0 ? d1 + 0.02f : d0;   // handle depth range
+            if (glassDoor)
+            {
+                const float f = 0.04f;
+                B("Glass", panel, w0, 0.02f, w1, h, d0 + 0.008f, d1 - 0.008f, glass, false);
+                B("Frame bottom", panel, w0, 0.02f, w1, 0.02f + f, d0, d1, steel);
+                B("Frame top", panel, w0, h - f, w1, h, d0, d1, steel);
+                B("Frame left", panel, w0, 0.02f, w0 + f, h, d0, d1, steel);
+                B("Frame right", panel, w1 - f, 0.02f, w1, h, d0, d1, steel);
+            }
+            else
+            {
+                B("Slab", panel, w0, 0.02f, w1, h, d0, d1, doorWood);
+                int grooves = Mathf.Max(3, Mathf.RoundToInt((w1 - w0) / 0.2f));
+                for (int i = 1; i < grooves; i++)
+                {
+                    float u = w0 + (w1 - w0) * i / grooves;
+                    B($"Groove {i}", panel, u - 0.004f, 0.1f, u + 0.004f, h - 0.1f, side > 0 ? d1 - 0.002f : d0 - 0.001f, side > 0 ? d1 + 0.001f : d0 + 0.002f, steel, false);
+                }
+            }
+            // long black bar handle on the leading edge
+            float hx = slideDir < 0 ? w1 - 0.16f : w0 + 0.16f;
+            B("Handle", panel, hx - 0.015f, 0.75f, hx + 0.015f, 1.45f, fd + (side > 0 ? 0.0f : 0.0f), fe, steel);
+            B("Handle stand a", panel, hx - 0.01f, 0.8f, hx + 0.01f, 0.83f, front - (side > 0 ? 0f : 0.03f), front + (side > 0 ? 0.03f : 0f), steel);
+            B("Handle stand b", panel, hx - 0.01f, 1.37f, hx + 0.01f, 1.4f, front - (side > 0 ? 0f : 0.03f), front + (side > 0 ? 0.03f : 0f), steel);
+
+            // the rail above, long enough for the door to slide open, with two hangers
+            float dist = (b - a) + 0.14f;
+            float r0 = Mathf.Min(w0, w0 + slideDir * dist) - 0.05f, r1 = Mathf.Max(w1, w1 + slideDir * dist) + 0.05f;
+            float re0 = side > 0 ? d1 + 0.005f : d0 - 0.055f, re1 = re0 + 0.05f;
+            B("Rail", root, r0, h + 0.03f, r1, h + 0.09f, re0, re1, steel);
+            foreach (float u in new[] { w0 + 0.2f, w1 - 0.2f })
+                B("Hanger", panel, u - 0.02f, h - 0.01f, u + 0.02f, h + 0.05f, Mathf.Min(d0, re0), Mathf.Max(d1, re1), steel);
+
+            var door = root.gameObject.AddComponent<SlidingDoor>();
+            door.panel = panel;
+            door.slide = axis == WallCutaway.Axis.X ? new Vector3(0f, 0f, slideDir * dist) : new Vector3(slideDir * dist, 0f, 0f);
+            float mid = at + thick * 0.5f;
+            door.sensorCenter = P((a + b) * 0.5f, 1.1f, mid);
+            door.sensorSize = axis == WallCutaway.Axis.X ? new Vector3(2.6f, 2.2f, (b - a) + 0.8f) : new Vector3((b - a) + 0.8f, 2.2f, 2.6f);
+            AttachTo(wallPath, root.gameObject);   // hides with its wall when the wall is cut down
+        }
+
+        static void BuildDoors(Transform house)
+        {
+            var g0 = Group("Doors ground floor", house);
+            const string gw = "House/Ground floor/Walls/";
+            SlidingDoorAt(g0, gw + "Living and kitchen glass", "living room and kitchen", WallCutaway.Axis.X, 8f - PART / 2, PART, 3f, 5f, 0f, true, 1, -1);
+            SlidingDoorAt(g0, gw + "Kitchen and hall wall", "kitchen and stair hall", WallCutaway.Axis.X, 14f - PART / 2, PART, 6.2f, 7.8f, 0f, false, -1, -1);
+            SlidingDoorAt(g0, gw + "Hall and bathroom wall", "stair hall and bathroom", WallCutaway.Axis.X, 16f - PART / 2, PART, 6.2f, 7.8f, 0f, false, 1, -1);
+            SlidingDoorAt(g0, gw + "Bathroom and garage glass", "bathroom and garage", WallCutaway.Axis.X, 22f - PART / 2, PART, 3f, 5f, 0f, true, 1, -1);
+            var g1 = Group("Doors upper floor", house);
+            const string uw = "House/Upper floor/Walls/";
+            SlidingDoorAt(g1, uw + "Teacher and office wall", "teacher's room and office", WallCutaway.Axis.X, 8f - PART / 2, PART, 3f, 5f, UPY, false, 1, -1);
+            SlidingDoorAt(g1, uw + "Office and landing wall", "office and landing", WallCutaway.Axis.X, 14f - PART / 2, PART, 0.4f, 1.8f, UPY, false, 1, 1);
+            SlidingDoorAt(g1, uw + "Landing and engineer wall", "landing and engineer's room", WallCutaway.Axis.X, 16f - PART / 2, PART, 0.4f, 1.8f, UPY, false, 1, 1);
+            SlidingDoorAt(g1, uw + "Engineer and gym glass", "engineer's room and gym", WallCutaway.Axis.X, 22f - PART / 2, PART, 3f, 5f, UPY, true, 1, -1);
+        }
+
         static void Segment(Transform line, string name, WallCutaway.Axis axis, float at, float thick,
             float a, float b, float y0, float y1, Material m, bool isGlass)
         {
@@ -169,8 +274,8 @@ namespace Tiramisu.EditorTools
 
             if (m) // real rooms get a warm ceiling light and a reflection probe
             {
-                bool cool = name == "Garage" || name == "Gym";
-                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, cool ? 4000f : 2700f, true);
+                bool crisp = name == "Garage" || name == "Gym" || name == "Bathroom" || name == "Office & Library";
+                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, crisp ? 5200f : 4300f, true);
             }
         }
 
@@ -192,6 +297,7 @@ namespace Tiramisu.EditorTools
             var roofGroup = Group("Roof", house);
             BuildRoof(roofGroup);
             BuildGarden(Group("Garden", null));
+            BuildDoors(house);
             Furnish(Group("Furniture", house), upper);
             var hv = BuildRig(upper.gameObject, roofGroup.gameObject);
             PhysicsSetup.AssignSurfaces(house);
@@ -219,8 +325,9 @@ namespace Tiramisu.EditorTools
             Room(g, "Garage", 0, 4, 22, 30, 0, WD, 0f, garageFloor);
 
             var walls = Group("Walls", g);
-            Wall(walls, "Back wall", WallCutaway.Axis.Z, -OUT, OUT, -OUT, WX + GLASS, 0f, wallWhite, false);
-            Wall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, 0f, wallWhite, false);
+            WindowedWall(walls, "Back wall", WallCutaway.Axis.Z, -OUT, OUT, -OUT, WX + GLASS, 0f, wallWhite,
+                Win(1.9f, 1.2f, 1.0f, 2.3f), Win(6.2f, 1.2f, 1.0f, 2.3f), Win(15f, 0.8f, 0.9f, 2.5f), Win(20.4f, 1.4f, 1.9f, 2.5f), Win(27f, 1.2f, 1.2f, 2.3f));
+            WindowedWall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, 0f, wallWhite, Win(5.2f, 1.6f, 0.9f, 2.3f));
             Wall(walls, "Garage end glass", WallCutaway.Axis.X, WX, GLASS, 0f, WD, 0f, glass, true);
             Wall(walls, "Front glass", WallCutaway.Axis.Z, WD, GLASS, 0f, WX + GLASS, 0f, glass, true,
                 new Vector2(3, 5), new Vector2(10, 12), new Vector2(18, 20), new Vector2(24, 28));
@@ -256,18 +363,15 @@ namespace Tiramisu.EditorTools
             Room(g, "Gym", 1, 14, 22, 30, 0, WD, UPY, gym);
 
             var walls = Group("Walls", g);
-            Wall(walls, "Back wall", WallCutaway.Axis.Z, -OUT, OUT, -OUT, WX + GLASS, UPY, wallWhite, false);
-            Wall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, UPY, wallWhite, false);
+            WindowedWall(walls, "Back wall", WallCutaway.Axis.Z, -OUT, OUT, -OUT, WX + GLASS, UPY, wallWhite,
+                Win(7.3f, 0.9f, 1.0f, 2.2f), Win(15f, 0.8f, 1.0f, 2.4f), Win(29.2f, 1.2f, 1.2f, 2.4f));
+            WindowedWall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, UPY, wallWhite, Win(1.65f, 1.0f, 1.0f, 2.2f));
             Wall(walls, "Gym end glass", WallCutaway.Axis.X, WX, GLASS, 0f, WD, UPY, glass, true);
             Wall(walls, "Front glass", WallCutaway.Axis.Z, WD, GLASS, 0f, WX + GLASS, UPY, glass, true);
             Wall(walls, "Teacher and office wall", WallCutaway.Axis.X, 8f - PART / 2, PART, 0f, WD, UPY, wallWhite, false, new Vector2(3, 5));
             Wall(walls, "Office and landing wall", WallCutaway.Axis.X, 14f - PART / 2, PART, 0f, WD, UPY, wallWhite, false, new Vector2(0.4f, 1.8f));
             Wall(walls, "Landing and engineer wall", WallCutaway.Axis.X, 16f - PART / 2, PART, 0f, WD, UPY, wallWhite, false, new Vector2(0.4f, 1.8f));
             Wall(walls, "Engineer and gym glass", WallCutaway.Axis.X, 22f - PART / 2, PART, 0f, WD, UPY, glass, true, new Vector2(3, 5));
-
-            // glass balustrade along the top of the stairwell
-            Box("Stairwell rail", g, new Vector3(14f, UPY, 2f), new Vector3(16f, UPY + 1f, 2.06f), glass, false);
-            Box("Stairwell rail cap", g, new Vector3(14f, UPY + 1f, 1.99f), new Vector3(16f, UPY + 1.04f, 2.07f), steel);
         }
 
         static void BuildRoof(Transform g)

@@ -1,0 +1,233 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Tiramisu
+{
+    /// <summary>
+    /// A concrete wall line that has movable windows. It builds its own pieces (solid wall around the door
+    /// gaps and the windows, plus each window's glass, slim black frame and oak sill) and rebuilds them when a
+    /// window is moved or resized in decorate mode. Window positions are saved in PlayerPrefs.
+    /// </summary>
+    public class WindowWall : MonoBehaviour
+    {
+        public static readonly List<WindowWall> All = new List<WindowWall>();
+
+        [Serializable]
+        public class Win
+        {
+            public float center;          // along the wall, metres
+            public float width = 1.2f;
+            public float sill = 1f;       // height of the bottom above the floor
+            public float top = 2.3f;      // height of the top above the floor
+            [NonSerialized] public float homeCenter, homeWidth;
+        }
+
+        public WallCutaway.Axis axis;
+        public float at, thick;
+        public float from, to;
+        public float floorY;
+        public float wallHeight = 3f;
+        public float doorHeight = 2.3f;
+        public Vector2[] doors = new Vector2[0];
+        public int interiorSide = 1;                 // which side of the wall the room is on (+1 or -1)
+        public List<Win> windows = new List<Win>();
+        public Material wallMat, glassMat, frameMat, sillMat;
+
+        public static readonly float[] Widths = { 0.8f, 1.2f, 1.6f, 2.2f };
+        const float MinGap = 0.2f;
+
+        string Key => gameObject.name + "@" + floorY.ToString("0.0");
+
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        void OnDisable() => All.Remove(this);
+
+        void Awake()
+        {
+            foreach (var w in windows) { w.homeCenter = w.center; w.homeWidth = w.width; }
+            if (LoadSaved()) Rebuild();
+        }
+
+        // ---------- moving ----------
+
+        public bool CanPlace(int index, float center, float width)
+        {
+            float a = center - width * 0.5f, b = center + width * 0.5f;
+            if (a < from + MinGap || b > to - MinGap) return false;
+            foreach (var d in doors) if (b > d.x - MinGap && a < d.y + MinGap) return false;
+            for (int i = 0; i < windows.Count; i++)
+            {
+                if (i == index) continue;
+                var o = windows[i];
+                if (b > o.center - o.width * 0.5f - MinGap && a < o.center + o.width * 0.5f + MinGap) return false;
+            }
+            return true;
+        }
+
+        public bool TryMove(int index, float center)
+        {
+            var w = windows[index];
+            if (Mathf.Abs(center - w.center) < 0.0005f) return true;
+            if (!CanPlace(index, center, w.width)) return false;
+            w.center = center;
+            Rebuild();
+            return true;
+        }
+
+        /// <summary>Steps the width through the presets. Returns false if the wider window would not fit.</summary>
+        public bool CycleWidth(int index, int dir)
+        {
+            var w = windows[index];
+            int cur = 0;
+            for (int i = 0; i < Widths.Length; i++) if (Mathf.Abs(Widths[i] - w.width) < 0.05f) cur = i;
+            int next = (cur + dir + Widths.Length) % Widths.Length;
+            if (!CanPlace(index, w.center, Widths[next])) return false;
+            w.width = Widths[next];
+            Rebuild();
+            return true;
+        }
+
+        /// <summary>Screen rectangle corners of a window in world space (for the outline).</summary>
+        public Vector3[] Corners(int index)
+        {
+            var w = windows[index];
+            float u0 = w.center - w.width * 0.5f, u1 = w.center + w.width * 0.5f;
+            Vector3 P(float u, float h) => axis == WallCutaway.Axis.X ? new Vector3(at + thick * 0.5f, floorY + h, u) : new Vector3(u, floorY + h, at + thick * 0.5f);
+            return new[] { P(u0, w.sill), P(u1, w.sill), P(u1, w.top), P(u0, w.top) };
+        }
+
+        public float AlongCoordinate(Vector3 world) => axis == WallCutaway.Axis.X ? world.z : world.x;
+        public Plane WallPlane() => new Plane(axis == WallCutaway.Axis.X ? Vector3.right : Vector3.forward, axis == WallCutaway.Axis.X ? new Vector3(at + thick * 0.5f, 0f, 0f) : new Vector3(0f, 0f, at + thick * 0.5f));
+
+        // ---------- building ----------
+
+        public void Rebuild()
+        {
+            // clear old pieces (detached first so the cut-away sees only the new ones straight away)
+            var old = new List<GameObject>();
+            foreach (Transform c in transform) old.Add(c.gameObject);
+            foreach (var g in old)
+            {
+                g.SetActive(false);
+                g.transform.SetParent(null, false);
+                if (Application.isPlaying) Destroy(g); else DestroyImmediate(g);
+            }
+
+            var cuts = new List<(float a, float b, Win w, bool door)>();
+            foreach (var d in doors) cuts.Add((d.x, d.y, null, true));
+            foreach (var w in windows) cuts.Add((w.center - w.width * 0.5f, w.center + w.width * 0.5f, w, false));
+            cuts.Sort((p, q) => p.a.CompareTo(q.a));
+
+            float cursor = from;
+            int n = 0;
+            foreach (var c in cuts)
+            {
+                if (c.a > cursor) Solid($"{name} {n++}", cursor, c.a, 0f, wallHeight);
+                if (c.door) Solid($"{name} lintel {n++}", c.a, c.b, doorHeight, wallHeight);
+                else
+                {
+                    var w = c.w;
+                    int idx = windows.IndexOf(w);
+                    if (w.sill > 0.01f) Solid($"{name} under window {n++}", c.a, c.b, 0f, w.sill);
+                    if (w.top < wallHeight - 0.01f) Solid($"{name} over window {n++}", c.a, c.b, w.top, wallHeight);
+                    Glazing(idx, w);
+                }
+                cursor = c.b;
+            }
+            if (to > cursor) Solid($"{name} {n}", cursor, to, 0f, wallHeight);
+
+            var cut = GetComponent<WallCutaway>();
+            if (cut) cut.Refresh();
+        }
+
+        GameObject Box(string nm, Vector3 min, Vector3 max, Material m, bool shadows = true)
+        {
+            var g = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            g.name = nm;
+            g.transform.SetParent(transform, false);
+            g.transform.position = (min + max) * 0.5f;
+            g.transform.localScale = max - min;
+            var r = g.GetComponent<Renderer>();
+            r.sharedMaterial = m;
+            if (!shadows) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return g;
+        }
+
+        Vector3 P(float along, float h, float depth) =>
+            axis == WallCutaway.Axis.X ? new Vector3(depth, floorY + h, along) : new Vector3(along, floorY + h, depth);
+
+        void Solid(string nm, float a, float b, float h0, float h1) => Box(nm, P(a, h0, at), P(b, h1, at + thick), wallMat);
+
+        void Glazing(int idx, Win w)
+        {
+            float a = w.center - w.width * 0.5f, b = w.center + w.width * 0.5f;
+            float mid = at + thick * 0.5f;
+            const float f = 0.05f, t = 0.012f;
+            void Part(string nm, float u0, float h0, float u1, float h1, float d0, float d1, Material m, bool shadows = true)
+            {
+                var g = Box(nm, P(u0, h0, d0), P(u1, h1, d1), m, shadows);
+                var part = g.AddComponent<WallWindowPart>();
+                part.wall = this; part.index = idx;
+            }
+            Part($"Window {idx} glass", a, w.sill, b, w.top, mid - t * 0.5f, mid + t * 0.5f, glassMat, false);
+            float d0 = mid - 0.03f, d1 = mid + 0.03f;
+            Part($"Window {idx} frame bottom", a, w.sill, b, w.sill + f, d0, d1, frameMat);
+            Part($"Window {idx} frame top", a, w.top - f, b, w.top, d0, d1, frameMat);
+            Part($"Window {idx} frame left", a, w.sill, a + f, w.top, d0, d1, frameMat);
+            Part($"Window {idx} frame right", b - f, w.sill, b, w.top, d0, d1, frameMat);
+            if (w.width > 1.3f) Part($"Window {idx} mullion", w.center - f * 0.5f, w.sill, w.center + f * 0.5f, w.top, d0, d1, frameMat);
+            // oak sill on the room side, sticking out a little
+            float inner = interiorSide > 0 ? at + thick : at;
+            float sillOut = interiorSide > 0 ? inner + 0.08f : inner - 0.08f;
+            Part($"Window {idx} sill", a - 0.04f, w.sill - 0.03f, b + 0.04f, w.sill, Mathf.Min(inner, sillOut), Mathf.Max(inner, sillOut), sillMat);
+        }
+
+        // ---------- saving ----------
+
+        const string PrefKey = "tiramisu.windows";
+
+        [Serializable] class Entry { public string wall; public int i; public float center, width; }
+        [Serializable] class Layout { public int version = 1; public List<Entry> items = new List<Entry>(); }
+
+        public static void SaveAll()
+        {
+            var l = new Layout();
+            foreach (var ww in All)
+                for (int i = 0; i < ww.windows.Count; i++)
+                {
+                    var w = ww.windows[i];
+                    if (Mathf.Abs(w.center - w.homeCenter) < 0.001f && Mathf.Abs(w.width - w.homeWidth) < 0.001f) continue;
+                    l.items.Add(new Entry { wall = ww.Key, i = i, center = w.center, width = w.width });
+                }
+            PlayerPrefs.SetString(PrefKey, JsonUtility.ToJson(l));
+            PlayerPrefs.Save();
+        }
+
+        bool LoadSaved()
+        {
+            if (!PlayerPrefs.HasKey(PrefKey)) return false;
+            Layout l;
+            try { l = JsonUtility.FromJson<Layout>(PlayerPrefs.GetString(PrefKey)); } catch { return false; }
+            if (l == null || l.items == null) return false;
+            bool any = false;
+            foreach (var e in l.items)
+            {
+                if (e.wall != Key || e.i < 0 || e.i >= windows.Count) continue;
+                windows[e.i].center = e.center;
+                windows[e.i].width = e.width;
+                any = true;
+            }
+            return any;
+        }
+
+        public static void ResetAll()
+        {
+            PlayerPrefs.DeleteKey(PrefKey);
+            foreach (var ww in All)
+            {
+                foreach (var w in ww.windows) { w.center = w.homeCenter; w.width = w.homeWidth; }
+                ww.Rebuild();
+            }
+        }
+    }
+}

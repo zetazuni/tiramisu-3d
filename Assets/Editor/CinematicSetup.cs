@@ -239,25 +239,33 @@ namespace Tiramisu.EditorTools
         {
             if (light)
             {
-                var lg = new GameObject($"{name} light");
-                lg.transform.SetParent(parent, false);
-                // a big soft panel in the ceiling instead of a bulb: even, gentle light without hot spots
-                lg.transform.position = floorCentre + Vector3.up * (ceiling - 0.06f);
-                lg.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-                var l = lg.AddComponent<Light>();
-                l.type = LightType.Rectangle;
-                l.areaSize = new Vector2(Mathf.Clamp(size.x * 0.5f, 0.8f, 3.5f), Mathf.Clamp(size.y * 0.5f, 0.8f, 3.5f));
-                lg.AddComponent<HDAdditionalLightData>();
-                l.lightUnit = LightUnit.Lumen;
-                l.intensity = 500f;
-                l.useColorTemperature = true;
-                l.colorTemperature = kelvin;
-                l.color = Color.white;
-                l.range = Mathf.Max(size.x, size.y) * 1.2f;
-                l.shadows = LightShadows.None;
-                var sw = lg.AddComponent<SwitchableLight>();   // dimmer by day, warm and gentle at night
-                sw.day = 400f;
-                sw.night = 800f;
+                // several soft ceiling panels spread over the room, so the light is even and has no bright centre
+                int nx = Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), nz = Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f));
+                int n = nx * nz;
+                var panel = new Vector2(Mathf.Clamp(size.x / nx * 0.5f, 0.6f, 2f), Mathf.Clamp(size.y / nz * 0.5f, 0.6f, 2f));
+                for (int iz = 0; iz < nz; iz++)
+                    for (int ix = 0; ix < nx; ix++)
+                    {
+                        var lg = new GameObject($"{name} light {ix + iz * nx + 1}");
+                        lg.transform.SetParent(parent, false);
+                        float ux = (ix + 0.5f) / nx - 0.5f, uz = (iz + 0.5f) / nz - 0.5f;
+                        lg.transform.position = floorCentre + new Vector3(ux * size.x, ceiling - 0.06f, uz * size.y);
+                        lg.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                        var l = lg.AddComponent<Light>();
+                        l.type = LightType.Rectangle;
+                        l.areaSize = panel;
+                        lg.AddComponent<HDAdditionalLightData>();
+                        l.lightUnit = LightUnit.Lumen;
+                        l.intensity = 500f / n;
+                        l.useColorTemperature = true;
+                        l.colorTemperature = kelvin;
+                        l.color = Color.white;
+                        l.range = Mathf.Max(size.x / nx, size.y / nz) * 1.5f;
+                        l.shadows = LightShadows.None;
+                        var sw = lg.AddComponent<SwitchableLight>();   // dimmer by day, cool and even at night
+                        sw.day = 420f / n;
+                        sw.night = 1300f / n;
+                    }
             }
 
             var pg = new GameObject($"{name} reflections");

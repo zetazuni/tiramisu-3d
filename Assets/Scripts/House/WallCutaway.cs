@@ -28,8 +28,18 @@ namespace Tiramisu
         readonly List<Piece> pieces = new List<Piece>();
         float height, targetHeight;
 
+        bool ready;
+
         void Awake()
         {
+            Collect();
+            height = targetHeight = fullHeight;
+            ready = true;
+        }
+
+        void Collect()
+        {
+            pieces.Clear();
             foreach (Transform t in transform)
             {
                 float h = t.localScale.y;
@@ -42,7 +52,14 @@ namespace Tiramisu
                     top = t.position.y + h * 0.5f
                 });
             }
-            height = targetHeight = fullHeight;
+        }
+
+        /// <summary>Call after the wall's children were rebuilt (moving a window): picks up the new pieces.</summary>
+        public void Refresh()
+        {
+            if (!ready) return;   // Awake will collect them
+            Collect();
+            Apply();
         }
 
         void OnEnable() => All.Add(this);
@@ -62,11 +79,17 @@ namespace Tiramisu
         {
             if (Mathf.Abs(height - targetHeight) < 0.001f) return;
             height = Mathf.MoveTowards(height, targetHeight, 9f * Time.unscaledDeltaTime);
+            Apply();
+        }
+
+        void Apply()
+        {
             float limit = floorY + height;
             bool wallUp = height > fullHeight - 0.3f;
             foreach (var a in attachments) if (a && a.activeSelf != wallUp) a.SetActive(wallUp);
             foreach (var p in pieces)
             {
+                if (!p.t) continue;
                 float top = Mathf.Min(p.top, limit);
                 bool show = top - p.bottom > 0.01f;
                 if (p.r) p.r.enabled = show;

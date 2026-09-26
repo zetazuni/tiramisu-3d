@@ -33,7 +33,13 @@ namespace Tiramisu
             new List<(Furniture, Vector3, Quaternion, Vector3, Quaternion)>();
         static Texture2D white;
 
-        public bool Holding => held != null;
+        public bool Holding => held != null || winWall != null;
+
+        // a window being moved along its wall
+        WindowWall winWall;
+        int winIndex;
+        float winStartCenter, winStartWidth;
+        bool winValid = true;
 
         void Awake()
         {
@@ -50,7 +56,7 @@ namespace Tiramisu
 
         public void Toggle()
         {
-            if (Active) Drop(false);
+            if (Active) { Drop(false); DropWindow(false); }
             Active = !Active;
             Say(Active ? "Decorate mode: drag furniture around, R turns it, Esc puts it back." : "Decorate mode is off.");
         }
@@ -58,8 +64,10 @@ namespace Tiramisu
         public void ResetLayout()
         {
             Drop(false);
+            DropWindow(true);
             Furniture.ResetAll();
-            Say("Everything is back where it started.");
+            WindowWall.ResetAll();
+            Say("Everything is back where it started, standing upright.");
         }
 
         void Say(string t) { toast = t; toastUntil = Time.time + 4f; }
@@ -71,6 +79,8 @@ namespace Tiramisu
             if (Input.GetKeyDown(KeyCode.M)) Toggle();
             if (!Active) { OrbitCamera.Blocked = false; return; }
             if (!cam) cam = Camera.main;
+
+            if (winWall != null) { WindowUpdate(); return; }
 
             if (held == null)
             {
@@ -100,6 +110,8 @@ namespace Tiramisu
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (var h in hits)
             {
+                var part = h.collider.GetComponent<WallWindowPart>();
+                if (part) { StartWindow(part); return; }
                 if (IsArchitecture(h.collider)) continue;   // walls cut down or glass never block the pick
                 var f = h.collider.GetComponentInParent<Furniture>();
                 if (!f) return;                              // something solid that is not furniture is in front
@@ -154,6 +166,52 @@ namespace Tiramisu
             for (var t = c.transform; t != null; t = t.parent)
                 if (t.name == "Walls" || t.name == "Roof") return true;
             return false;
+        }
+
+        // ---------- windows ----------
+
+        void StartWindow(WallWindowPart part)
+        {
+            winWall = part.wall;
+            winIndex = part.index;
+            winStartCenter = winWall.windows[winIndex].center;
+            winStartWidth = winWall.windows[winIndex].width;
+            winValid = true;
+            OrbitCamera.Blocked = true;
+        }
+
+        void WindowUpdate()
+        {
+            OrbitCamera.Blocked = true;
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1)) { DropWindow(true); return; }
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                bool back = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                if (!winWall.CycleWidth(winIndex, back ? -1 : 1)) Say("That size does not fit here.");
+            }
+            if (!Input.GetMouseButton(0)) { DropWindow(false); return; }
+            var ray = cam.ScreenPointToRay(Input.mousePosition);
+            if (winWall.WallPlane().Raycast(ray, out float e))
+            {
+                float u = winWall.AlongCoordinate(ray.GetPoint(e));
+                u = Mathf.Round(u / 0.1f) * 0.1f;
+                winValid = winWall.TryMove(winIndex, u);
+            }
+        }
+
+        void DropWindow(bool cancel)
+        {
+            if (winWall == null) return;
+            var w = winWall.windows[winIndex];
+            if (cancel)
+            {
+                w.width = winStartWidth;
+                w.center = winStartCenter;
+                winWall.Rebuild();
+            }
+            winWall = null;
+            OrbitCamera.Blocked = false;
+            WindowWall.SaveAll();
         }
 
         // ---------- dragging ----------
@@ -269,6 +327,25 @@ namespace Tiramisu
                 var top = cam.WorldToScreenPoint(t.TransformPoint(new Vector3(lb.center.x, lb.max.y, lb.center.z)));
                 var r = new Rect(top.x - 100 * scale, Screen.height - top.y - 34 * scale, 200 * scale, 26 * scale);
                 GUI.Label(r, held.Label, style);
+            }
+
+            if (winWall != null && cam)
+            {
+                var wc = winWall.Corners(winIndex);
+                var col = winValid ? new Color(0.45f, 1f, 0.6f, 0.95f) : new Color(1f, 0.35f, 0.35f, 0.95f);
+                var sp = new Vector2[4];
+                bool visible = true;
+                for (int i = 0; i < 4; i++)
+                {
+                    var s = cam.WorldToScreenPoint(wc[i]);
+                    if (s.z < 0f) visible = false;
+                    sp[i] = new Vector2(s.x, Screen.height - s.y);
+                }
+                if (visible)
+                {
+                    for (int i = 0; i < 4; i++) Line(sp[i], sp[(i + 1) % 4], col, 3f * scale);
+                    GUI.Label(new Rect(sp[3].x - 100 * scale, sp[3].y - 30 * scale, 200 * scale, 26 * scale), "Window (R changes the size)", style);
+                }
             }
 
             if (Time.time < toastUntil)

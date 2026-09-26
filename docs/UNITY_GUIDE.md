@@ -75,8 +75,10 @@ Click inside the Scene view first, then:
 | ...turn it | | **R** (Shift+R the other way) | |
 | ...put it back where it was | Right click | **Esc** | |
 | ...free placement without the 5 cm grid | | Hold **Ctrl** | |
-| ...reset the whole house | "Put everything back" button (in decorate mode) | | |
+| ...reset the whole house | "Reset furniture and windows" button (always there) | | |
 | Time of day | Slider and Morning, Noon, Sunset, Night buttons top right, "Let time run" | | |
+| Open a sliding door | Hover the mouse over it (people and pets open them by walking up) | | |
+| Move or resize a window (decorate mode) | Press on the window and drag along its wall, **R** changes the size | | |
 | Drop a stone in the pool | **Click** the water | | |
 | Graphics mode (Ultra, Quality, Performance) | "Graphics" button | **G** | Button |
 | Run the frame rate benchmark (about a minute) | | **F9** | |
@@ -84,6 +86,10 @@ Click inside the Scene view first, then:
 ### Decorate mode (v0.9)
 
 Press **M**. Press on a sofa, chair, plant, mug, car or bike and drag it. A green outline means it fits, red means a wall or another piece is in the way (letting go there puts it back at the last free spot). Built in things (kitchen counter, shower, toilet, bath, vanity, lamps hung from the ceiling, the punching bag and everything on walls) cannot be moved. Your layout is saved automatically and is there next time; **Put everything back** resets it.
+
+### Doors and windows (v0.10)
+
+Every doorway between rooms has a sliding door. Hover over one and it glides open, move away and it closes. Windows sit in the concrete walls. In decorate mode (**M**) press on a window, drag it along the wall and it snaps every 10 cm. The wall re-forms around it. It turns red where it would hit a door, another window or the end of the wall.
 
 ## 5. Test checklist
 

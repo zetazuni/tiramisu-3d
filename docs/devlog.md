@@ -116,7 +116,17 @@ Amir's notes on the first night: too glowy and reflective, lights too strong and
 - **Flicker found and fixed:** the kitchen wall doors sat inside their cabinet with front faces exactly level, so the two surfaces fought (diagonal stripes, flickering when the camera moved). The doors now stand 1 cm in front. I ruled out shadows, screen space reflections, global illumination and contact shadows by switching each off in Play mode first. Also gave the sun and moon more shadow bias.
 - Tested in Play mode with the time at 21:30 and at 13:00: living room, kitchen, whole house and the cars from behind.
 
+## Session 8: doors, windows, steadier furniture (2026-09-26) · v0.10.0
+
+- **Furniture cannot be tipped any more.** Every movable body is frozen upright (it can still turn on the spot), damped hard, and the nudge is sideways only and small. Test: 12 shoves each on the table, sofa, cushion, armchair, side table, stool and chair, all shoved at the height that tips things worst: no tilt, at most 2 cm of movement. A **Reset furniture and windows** button in the HUD is always there and puts everything back upright.
+- **Room lights: several soft panels per room** (2 to 4, 64 area lights in the house) in a cooler colour, 4300 K, and 5200 K in the garage, gym, bathroom and office. The light is even, with no bright centre.
+- **The money tree in the engineer's room** is centred on its trunk now (the placer used the middle of the leaves, which hang to one side). All plants use the trunk.
+- **Stairwell glass removed.**
+- **Sliding doors** in all eight doorways between rooms, glass in glass walls and walnut in concrete walls, black rail, long bar handle. Open on hover and for anything carrying `DoorOpener` (hooks for the people and pets to come). Tested through the API: a door slid its full 2.1 m open on hover, a test pet stepping into another door's sensor opened it.
+- **Movable windows:** 11 windows in the concrete outer walls (living room, stair hall, bathroom high window, garage, teacher's room, landing, gym). Drag along the wall in decorate mode, R for the width. Tested through the API: it refuses to overlap a neighbour or the wall end, accepts a nudge, cycles the width, and a reset restores everything.
+- Not tested with a real mouse: hovering over doors, dragging windows. Please try both.
+
 **Next**
-- Amir plays with decorate mode and the time slider and says what feels off (snapping, outlines, the night mood, light strengths).
-- Wall pieces (mirrors, boards, pictures) could become movable along their wall, and furniture could be bought or unlocked like in the 2D game.
-- People and pets from `docs/GAME_DESIGN.md`, grass and hills, weather.
+- Amir tries doors, windows and the reset button and says what feels off.
+- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, buying or unlocking furniture.
+- Grass and hills, weather.

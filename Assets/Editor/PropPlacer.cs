@@ -53,7 +53,8 @@ namespace Tiramisu.EditorTools
             root.transform.SetParent(parent, false);
             inst.transform.localScale = Vector3.one * (p.scale <= 0f ? 1f : p.scale);
             var b = BoundsOf(inst);
-            inst.transform.position -= new Vector3(b.center.x, b.min.y, b.center.z);
+            var trunk = TrunkCenter(inst);   // centre plants on the trunk or stem, not on the leaves, so they sit in the middle of their pot
+            inst.transform.position -= new Vector3(trunk.HasValue ? trunk.Value.x : b.center.x, b.min.y, trunk.HasValue ? trunk.Value.z : b.center.z);
             inst.transform.SetParent(root.transform, true);
             root.transform.position = p.at;
             root.transform.rotation = Quaternion.Euler(0f, p.rot, 0f);
@@ -66,6 +67,18 @@ namespace Tiramisu.EditorTools
 
             AddPhysics(root, inst, p);
             return root;
+        }
+
+        static Vector3? TrunkCenter(GameObject go)
+        {
+            Bounds? t = null;
+            foreach (var r in go.GetComponentsInChildren<Renderer>())
+            {
+                string n = r.name.ToLower();
+                if (!(n.Contains("bark") || n.Contains("trunk") || n.Contains("stem"))) continue;
+                if (t == null) t = r.bounds; else { var bb = t.Value; bb.Encapsulate(r.bounds); t = bb; }
+            }
+            return t.HasValue ? t.Value.center : (Vector3?)null;
         }
 
         static Bounds BoundsOf(GameObject go)
@@ -96,6 +109,7 @@ namespace Tiramisu.EditorTools
                     rb.mass = p.mass;
                     rb.interpolation = RigidbodyInterpolation.Interpolate;
                     rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    PhysicsSetup.Steady(rb);
                 }
                 return;
             }
@@ -123,6 +137,7 @@ namespace Tiramisu.EditorTools
                 rb.mass = p.mass;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = p.mass < 5f ? CollisionDetectionMode.ContinuousDynamic : CollisionDetectionMode.Discrete;
+                PhysicsSetup.Steady(rb);
             }
         }
     }

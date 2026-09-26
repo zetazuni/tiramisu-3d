@@ -171,6 +171,17 @@ namespace Tiramisu.EditorTools
 
         // ---------- furniture ----------
 
+        /// <summary>
+        /// Furniture stays upright and does not skate about: it can only turn on the spot, it stops within a few
+        /// centimetres after a nudge, and it cannot be pushed over however many times it is poked.
+        /// </summary>
+        public static void Steady(Rigidbody rb)
+        {
+            rb.linearDamping = 4f;
+            rb.angularDamping = 6f;
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        }
+
         public static void MakeSolid(GameObject go, FurnitureSpec spec)
         {
             foreach (var mf in go.GetComponentsInChildren<MeshFilter>(true))
@@ -194,8 +205,7 @@ namespace Tiramisu.EditorTools
 
             var rb = go.AddComponent<Rigidbody>();
             rb.mass = spec.mass;
-            rb.linearDamping = 0.05f;
-            rb.angularDamping = 0.2f;
+            Steady(rb);
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = spec.mass < 5f ? CollisionDetectionMode.ContinuousDynamic : CollisionDetectionMode.Discrete;
         }
