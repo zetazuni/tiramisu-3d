@@ -22,6 +22,7 @@ namespace Tiramisu
         public int daysPerSeason = 3;
         [Tooltip("soft round texture for the falling things")] public Texture2D soft;
         public Material petalMaterial, snowMaterial, fireflyMaterial;
+        [Tooltip("Hidden/Tiramisu/Recolor, recolours the leaf cards of the trees")] public Shader recolor;
         [Tooltip("three colours of falling leaf (each a leaf shaped sprite, HDRP unlit has no vertex colours)")] public Material[] leafMaterials;
         [Tooltip("two shades of blossom petal")] public Material[] petalMaterials;
 
@@ -39,13 +40,13 @@ namespace Tiramisu
         static readonly Look[] Looks =
         {
             // spring: fresh light green, blossom, mild sun
-            new Look { lawn = new Color(0.46f, 0.66f, 0.26f), hedge = new Color(0.24f, 0.44f, 0.16f), leaf = new Color(0.85f, 1.05f, 0.7f), flower = Color.white, leafOn = 1f, snow = 0f,
+            new Look { lawn = new Color(0.46f, 0.66f, 0.26f), hedge = new Color(0.24f, 0.44f, 0.16f), leaf = new Color(1.15f, 1.12f, 1.12f), flower = Color.white, leafOn = 1f, snow = 0f,
                        sunPeak = 58f, sunrise = 6f, sunset = 18f, sunPower = 0.9f, warm = 200f, cloud = 1.1f, haze = 1.0f },
             // summer: deep green, high hot sun, long days
             new Look { lawn = new Color(0.38f, 0.56f, 0.2f), hedge = new Color(0.16f, 0.34f, 0.12f), leaf = new Color(0.92f, 1f, 0.85f), flower = Color.white, leafOn = 1f, snow = 0f,
                        sunPeak = 74f, sunrise = 5.5f, sunset = 19f, sunPower = 1.05f, warm = 0f, cloud = 0.7f, haze = 0.9f },
             // autumn: gold and rust, lower sun, warm light
-            new Look { lawn = new Color(0.5f, 0.46f, 0.2f), hedge = new Color(0.42f, 0.32f, 0.12f), leaf = new Color(1.5f, 0.75f, 0.28f), flower = new Color(1f, 0.75f, 0.5f), leafOn = 1f, snow = 0f,
+            new Look { lawn = new Color(0.5f, 0.46f, 0.2f), hedge = new Color(0.42f, 0.32f, 0.12f), leaf = new Color(1.2f, 1.1f, 1.05f), flower = new Color(1f, 0.75f, 0.5f), leafOn = 1f, snow = 0f,
                        sunPeak = 46f, sunrise = 6.4f, sunset = 17.6f, sunPower = 0.95f, warm = -300f, cloud = 1.3f, haze = 1.05f },
             // winter: bare trees, snow, low cool sun, short days, thick clouds and haze
             new Look { lawn = new Color(2.4f, 2.5f, 2.7f), hedge = new Color(1.6f, 1.8f, 1.9f), leaf = new Color(0.7f, 0.8f, 0.7f), flower = new Color(0.9f, 0.95f, 1f), leafOn = 0f, snow = 1f,
@@ -60,7 +61,9 @@ namespace Tiramisu
         readonly List<(Renderer r, string key)> lawns = new List<(Renderer, string)>();
         readonly List<Renderer> leaves = new List<Renderer>();
         readonly List<Renderer> flowers = new List<Renderer>();
-        readonly List<Material> leafMats = new List<Material>(), flowerMats = new List<Material>();
+        readonly List<Material> leafMats = new List<Material>(), flowerMats = new List<Material>(), shrubMats = new List<Material>(), woodMats = new List<Material>();
+        readonly Dictionary<Material, Texture> originalLeaf = new Dictionary<Material, Texture>();
+        readonly Dictionary<Texture, Texture[]> recoloured = new Dictionary<Texture, Texture[]>();   // spring, autumn
         Material lawnM, lawnEdgeM, hedgeM;
         int lastDay = -1;
         ParticleSystem snow, fireflies;
@@ -83,6 +86,7 @@ namespace Tiramisu
         {
             Collect();
             now = Looks[(int)season];
+            SwapLeafTextures(season);
             ApplyLook(now, true);
             MakeParticles();
             SetWeather(season, true);
@@ -120,8 +124,9 @@ namespace Tiramisu
                     else if (IsOutdoorLeaf(r, n))
                     {
                         shared[i] = Copy(m); changed = true;
-                        if (!leaves.Contains(r)) leaves.Add(r);
+                        if (n != "shrub_02" && !leaves.Contains(r)) leaves.Add(r);      // shrubs stay all year, the trees lose their leaves
                     }
+                    else if (IsOutdoorWood(r, n)) { shared[i] = Copy(m); changed = true; }
                 }
                 if (changed) r.sharedMaterials = shared;
             }
@@ -133,11 +138,25 @@ namespace Tiramisu
                 else if (n == "Hedge") hedgeM = kv.Value;
                 else if (n == "CityLeaf") cityLeaf.Add(kv.Value);
                 else if (n.StartsWith("HedgeFlower")) flowerMats.Add(kv.Value);
+                else if (kv.Key.name == "shrub_02") shrubMats.Add(kv.Value);
+                else if (kv.Key.name.EndsWith("_branches") || kv.Key.name.EndsWith("_twigs") || kv.Key.name.EndsWith("_bark")) woodMats.Add(kv.Value);
                 else leafMats.Add(kv.Value);
             }
         }
 
         /// <summary>Trees and shrubs in the garden (indoor plants stay green all year).</summary>
+        static bool IsOutdoorWood(Renderer r, string material)
+        {
+            if (!(material.EndsWith("_branches") || material.EndsWith("_twigs") || material.EndsWith("_bark"))) return false;
+            for (var t = r.transform; t != null; t = t.parent)
+            {
+                string n = t.name;
+                if (n.StartsWith("island_tree") || n.StartsWith("searsia") || n.StartsWith("shrub_02")) return true;
+                if (n.StartsWith("potted_plant") || n.StartsWith("pachira") || n.StartsWith("calathea")) return false;
+            }
+            return false;
+        }
+
         static bool IsOutdoorLeaf(Renderer r, string material)
         {
             if (!(material.EndsWith("_leaves") || material == "shrub_02")) return false;
@@ -173,6 +192,55 @@ namespace Tiramisu
             UpdateWeather(target);
         }
 
+        // ------------------------------------------------------------ recoloured leaf cards (cherry blossom in spring, gold and rust in autumn)
+
+        Texture[] Recoloured(Texture src)
+        {
+            if (recoloured.TryGetValue(src, out var pair)) return pair;
+            pair = new Texture[2];
+            if (recolor)
+            {
+                pair[0] = Bake(src, new Color(0.62f, 0.2f, 0.32f), new Color(1f, 0.8f, 0.88f), new Color(1f, 0.95f, 0.97f), 0.35f);     // cherry blossom
+                pair[1] = Bake(src, new Color(0.3f, 0.06f, 0.02f), new Color(1f, 0.55f, 0.1f), new Color(0.75f, 0.2f, 0.05f), 0.4f);   // orange, gold and rust
+            }
+            recoloured[src] = pair;
+            return pair;
+        }
+
+        Texture Bake(Texture src, Color dark, Color light, Color alt, float mix)
+        {
+            var mat = new Material(recolor);
+            mat.SetColor("_Dark", dark); mat.SetColor("_Light", light); mat.SetColor("_Alt", alt); mat.SetFloat("_Mix", mix);
+            var rt = new RenderTexture(Mathf.Min(src.width, 1024), Mathf.Min(src.height, 1024), 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { useMipMap = true, autoGenerateMips = true, anisoLevel = 4, wrapMode = TextureWrapMode.Repeat };
+            rt.Create();
+            Graphics.Blit(src, rt, mat);
+            Destroy(mat);
+            return rt;
+        }
+
+        static readonly int LeafTexture = Shader.PropertyToID("baseColorTexture");
+
+        void SwapLeafTextures(Season s)
+        {
+            foreach (var m in leafMats)
+            {
+                if (!originalLeaf.TryGetValue(m, out var orig))
+                {
+                    orig = m.HasProperty(LeafTexture) ? m.GetTexture(LeafTexture) : null;
+                    originalLeaf[m] = orig;
+                }
+                if (orig == null) continue;
+                Texture use = orig;
+                if (s == Season.Spring || s == Season.Autumn)
+                {
+                    var pair = Recoloured(orig);
+                    var t = pair[s == Season.Spring ? 0 : 1];
+                    if (t) use = t;
+                }
+                m.SetTexture(LeafTexture, use);
+            }
+        }
+
         public void Next() => Choose((Season)(((int)season + 1) % 4));
 
         public void Choose(Season s)
@@ -180,6 +248,7 @@ namespace Tiramisu
             season = s;
             DayInSeason = 0f;
             PlayerPrefs.SetInt(PrefKey, (int)s);
+            SwapLeafTextures(s);
             SetWeather(s, false);
         }
 
@@ -205,6 +274,8 @@ namespace Tiramisu
             Tint(hedgeM, l.hedge);
             foreach (var m in cityLeaf) Tint(m, Color.Lerp(l.hedge, l.leaf * 0.45f, 0.5f));
             foreach (var m in leafMats) Tint(m, l.leaf);
+            foreach (var m in shrubMats) Tint(m, Color.Lerp(l.leaf, new Color(2.2f, 2.3f, 2.4f), l.snow));
+            foreach (var m in woodMats) Tint(m, Color.Lerp(Color.white, new Color(2.6f, 2.6f, 2.8f), l.snow * 0.9f));
             foreach (var m in flowerMats) Tint(m, l.flower);
             bool leavesShown = l.leafOn > 0.35f;
             foreach (var r in leaves) if (r && r.enabled != leavesShown) r.enabled = leavesShown;
@@ -291,10 +362,10 @@ namespace Tiramisu
             snowStrength = Mathf.Lerp(snowStrength, season == Season.Winter ? 1f : 0f, k);
             float night = DayNightCycle.Instance ? DayNightCycle.Instance.Night01 : 0f;
             fireflyStrength = Mathf.Lerp(fireflyStrength, season == Season.Summer ? night : 0f, k);
-            foreach (var ps in petalSystems) { Rate(ps, 36f * petalStrength); Fade(ps, season == Season.Spring); }
-            foreach (var ps in leafSystems) { Rate(ps, 70f * leafStrength); Fade(ps, season == Season.Autumn); }
-            Rate(snow, 1100f * snowStrength); Fade(snow, season == Season.Winter);
-            Rate(fireflies, 26f * fireflyStrength); Fade(fireflies, season == Season.Summer);
+            foreach (var ps in petalSystems) { Rate(ps, 18f * petalStrength); Fade(ps, season == Season.Spring); }
+            foreach (var ps in leafSystems) { Rate(ps, 35f * leafStrength); Fade(ps, season == Season.Autumn); }
+            Rate(snow, 550f * snowStrength); Fade(snow, season == Season.Winter);
+            Rate(fireflies, 13f * fireflyStrength); Fade(fireflies, season == Season.Summer);
         }
 
         /// <summary>When a season ends, whatever is still in the air fades away within about a second instead of drifting on for ten.</summary>

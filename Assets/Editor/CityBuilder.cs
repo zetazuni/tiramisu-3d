@@ -88,32 +88,75 @@ namespace Tiramisu.EditorTools
 
         // -------------------------------------------------------------- textures and materials
 
-        static Texture2D Facade(string path, bool emissive)
+        /// <summary>
+        /// A 12.8 m tile with 4 x 4 cells of 3.2 m (one floor high). style 0: floor to ceiling glass panes with slim black mullions and a slab
+        /// edge at every floor, like the garden facade of the house. style 1: vertical timber slats with one wide window per cell.
+        /// style 2: white plaster with big square windows. The emissive map lights about a third of the windows warm.
+        /// </summary>
+        static Texture2D Facade(string path, bool emissive, int style)
         {
             if (System.IO.File.Exists(path)) return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             const int size = 512, cell = size / 4;
-            var rnd = new System.Random(emissive ? 77 : 77);            // the same window states in both maps
+            var rnd = new System.Random(77 + style);
             var px = new Color[size * size];
-            bool[,] lit = new bool[4, 4];
-            for (int a = 0; a < 4; a++) for (int b = 0; b < 4; b++) lit[a, b] = rnd.NextDouble() < 0.38;
+            bool[,] lit = new bool[4, 4]; float[,] curtain = new float[4, 4];
+            for (int a = 0; a < 4; a++) for (int b = 0; b < 4; b++) { lit[a, b] = rnd.NextDouble() < 0.4; curtain[a, b] = (float)rnd.NextDouble(); }
             for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++)
                 {
                     int cx = x / cell, cy = y / cell;
                     float u = (x % cell) / (float)cell, v = (y % cell) / (float)cell;
-                    bool win = u > 0.16f && u < 0.84f && v > 0.2f && v < 0.82f;
-                    bool frame = win && (u < 0.2f || u > 0.8f || v < 0.24f || v > 0.78f || Mathf.Abs(u - 0.5f) < 0.012f);
+                    bool glassArea; float gv, gu;                       // glass region and the position inside it
+                    Color solid = Color.white; bool frame = false;
+                    if (style == 0)
+                    {
+                        glassArea = u > 0.02f && u < 0.98f && v > 0.05f && v < 0.88f;
+                        gu = Mathf.InverseLerp(0.02f, 0.98f, u); gv = Mathf.InverseLerp(0.05f, 0.88f, v);
+                        frame = glassArea && (u < 0.045f || u > 0.955f || v < 0.075f || v > 0.86f || Mathf.Abs(u - 0.5f) < 0.006f);
+                        float g = 0.78f + 0.08f * Mathf.PerlinNoise(x * 0.05f, y * 0.05f);       // the slab edge: pale concrete
+                        solid = new Color(g, g, g * 0.98f, 1f);
+                    }
+                    else if (style == 1)
+                    {
+                        glassArea = u > 0.1f && u < 0.9f && v > 0.22f && v < 0.84f;
+                        gu = Mathf.InverseLerp(0.1f, 0.9f, u); gv = Mathf.InverseLerp(0.22f, 0.84f, v);
+                        frame = glassArea && (u < 0.13f || u > 0.87f || v < 0.25f || v > 0.81f || Mathf.Abs(u - 0.5f) < 0.008f);
+                        float slat = Mathf.Repeat(x * 0.55f, 1f);                                  // vertical boards
+                        float t = 0.5f + 0.5f * Mathf.PerlinNoise(x * 0.03f, y * 0.4f);
+                        var wood = Color.Lerp(new Color(0.36f, 0.22f, 0.13f), new Color(0.58f, 0.38f, 0.22f), t);
+                        solid = slat < 0.1f ? wood * 0.45f : wood;
+                        solid.a = 1f;
+                    }
+                    else
+                    {
+                        glassArea = u > 0.12f && u < 0.88f && v > 0.14f && v < 0.84f;
+                        gu = Mathf.InverseLerp(0.12f, 0.88f, u); gv = Mathf.InverseLerp(0.14f, 0.84f, v);
+                        frame = glassArea && (u < 0.15f || u > 0.85f || v < 0.17f || v > 0.81f);
+                        float g = 0.9f + 0.05f * Mathf.PerlinNoise(x * 0.09f, y * 0.09f);
+                        solid = new Color(g, g, g * 0.97f, 1f);
+                    }
                     Color c;
-                    if (emissive)
-                        c = win && !frame && lit[cx, cy] ? new Color(1f, 0.82f + 0.1f * (float)((cx * 7 + cy * 3) % 3) / 2f, 0.55f, 1f) * (0.75f + 0.25f * v) : Color.black;
-                    else if (!win) { float g = 0.9f + 0.05f * Mathf.PerlinNoise(x * 0.09f, y * 0.09f); c = new Color(g, g, g, 1f); }
-                    else if (frame) c = new Color(0.16f, 0.17f, 0.18f, 1f);
-                    else c = Color.Lerp(new Color(0.16f, 0.24f, 0.32f), new Color(0.42f, 0.55f, 0.66f), v * 0.8f);      // sky in the glass
+                    if (!glassArea) c = emissive ? Color.black : solid;
+                    else if (frame) c = emissive ? Color.black : new Color(0.06f, 0.065f, 0.07f, 1f);
+                    else if (emissive)
+                    {
+                        // a warm room: brighter towards the ceiling, with a curtain over one side in some windows
+                        float warm = 0.7f + 0.3f * (1f - gv);
+                        bool curtained = curtain[cx, cy] > 0.6f && gu < 0.45f;
+                        c = lit[cx, cy] ? new Color(1f, 0.8f + 0.1f * curtain[cx, cy], 0.5f, 1f) * (curtained ? warm * 0.35f : warm) : Color.black;
+                    }
+                    else
+                    {
+                        // dark reflective glass with a sky gradient and a diagonal streak
+                        float streak = Mathf.Clamp01(1f - Mathf.Abs(Mathf.Repeat(gu + gv * 0.8f + curtain[cx, cy], 1f) - 0.5f) * 7f) * 0.12f;
+                        c = Color.Lerp(new Color(0.07f, 0.1f, 0.14f), new Color(0.32f, 0.45f, 0.56f), Mathf.Pow(gv, 1.4f)) + new Color(streak, streak, streak);
+                        c.a = 1f;
+                    }
                     px[y * size + x] = c;
                 }
-            var t = new Texture2D(size, size, TextureFormat.RGBA32, true);
-            t.SetPixels(px); t.Apply();
-            System.IO.File.WriteAllBytes(path, t.EncodeToPNG());
+            var t2 = new Texture2D(size, size, TextureFormat.RGBA32, true);
+            t2.SetPixels(px); t2.Apply();
+            System.IO.File.WriteAllBytes(path, t2.EncodeToPNG());
             AssetDatabase.ImportAsset(path);
             var imp = (TextureImporter)AssetImporter.GetAtPath(path);
             imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.anisoLevel = 8; imp.wrapMode = TextureWrapMode.Repeat;
@@ -165,20 +208,21 @@ namespace Tiramisu.EditorTools
         {
             System.IO.Directory.CreateDirectory(MeshDir);
             System.IO.Directory.CreateDirectory(MatDir);
-            var diff = Facade("Assets/Art/Textures/CityFacade.png", false);
-            var emi = Facade("Assets/Art/Textures/CityFacadeLit.png", true);
-            var matWhite = FacadeMat("CityWhite", new Color(0.96f, 0.95f, 0.93f), 0.35f, diff, emi);
-            var matSand = FacadeMat("CitySand", new Color(0.86f, 0.76f, 0.63f), 0.3f, diff, emi);
-            var matWood = FacadeMat("CityWood", new Color(0.62f, 0.44f, 0.3f), 0.3f, diff, emi);
-            var matDark = FacadeMat("CityDark", new Color(0.36f, 0.4f, 0.45f), 0.4f, diff, emi);
-            var matGlass = FacadeMat("CityGlass", new Color(0.55f, 0.72f, 0.85f), 0.85f, diff, emi);
+            var glassD = Facade("Assets/Art/Textures/CityGlassFacade.png", false, 0); var glassE = Facade("Assets/Art/Textures/CityGlassFacadeLit.png", true, 0);
+            var woodD = Facade("Assets/Art/Textures/CityWoodFacade.png", false, 1); var woodE = Facade("Assets/Art/Textures/CityWoodFacadeLit.png", true, 1);
+            var whiteD = Facade("Assets/Art/Textures/CityWhiteFacade.png", false, 2); var whiteE = Facade("Assets/Art/Textures/CityWhiteFacadeLit.png", true, 2);
+            var matGlass = FacadeMat("CityGlass", new Color(0.92f, 0.97f, 1f), 0.85f, glassD, glassE);
+            var matGlassWarm = FacadeMat("CityGlassWarm", new Color(1f, 0.96f, 0.88f), 0.85f, glassD, glassE);
+            var matWood = FacadeMat("CityWood", new Color(1f, 1f, 1f), 0.3f, woodD, woodE);
+            var matWhite = FacadeMat("CityWhite", new Color(1f, 1f, 1f), 0.35f, whiteD, whiteE);
+            var matSlab = Plain("CitySlab", new Color(0.86f, 0.86f, 0.85f), 0.3f);
             var matRoof = Plain("CityRoof", new Color(0.22f, 0.23f, 0.25f), 0.3f);
             var matTrunk = Plain("CityTrunk", new Color(0.25f, 0.17f, 0.11f), 0.2f);
             var matLeaf = Plain("CityLeaf", new Color(0.24f, 0.44f, 0.16f), 0.15f);
             var matLamp = Plain("CityLamp", new Color(0.05f, 0.05f, 0.055f), 0.6f, 1f);
             var matBulb = Plain("CityLampGlow", new Color(1f, 0.86f, 0.6f), 0.2f);
             matBulb.SetFloat("_UseEmissiveIntensity", 0f); matBulb.SetColor("_EmissiveColor", Color.black); HDMaterialFix(matBulb);
-            var facades = new[] { matWhite, matSand, matWood, matDark, matGlass };
+            var facades = new[] { matGlass, matGlassWarm, matWood, matWhite };
 
             var root = new GameObject("City").transform;
             var night = root.gameObject.AddComponent<CityNight>();
@@ -215,15 +259,15 @@ namespace Tiramisu.EditorTools
                     if (xb - xa < 8f || zb - za < 8f) continue;
                     var blk = new GameObject($"Block {bx}_{bz}").transform; blk.SetParent(root, false);
                     var byMat = new Dictionary<Material, Batch>();
-                    var roofs = new Batch(); var trees = new Batch(); var trunks = new Batch();
+                    var roofs = new Batch(); var slabs = new Batch(); var trees = new Batch(); var trunks = new Batch();
                     Batch B(Material m) { if (!byMat.TryGetValue(m, out var b)) { b = new Batch(); byMat[m] = b; } return b; }
                     var lots = new List<Lot>();
                     Subdivide(rnd, xa, za, xb, zb, lots, true);
                     foreach (var lot in lots)
                     {
                         // the buildings keep clear of the plot: a lot that runs into it is cut down to the free strips round it
-                        if (!Overlaps(lot, Plot, 0.5f)) { Place(rnd, lot, B, roofs, facades, matWhite); continue; }
-                        foreach (var strip in Strips(lot)) Place(rnd, strip, B, roofs, facades, matWhite);
+                        if (!Overlaps(lot, Plot, 0.5f)) { Place(rnd, lot, B, roofs, slabs, facades); continue; }
+                        foreach (var strip in Strips(lot)) Place(rnd, strip, B, roofs, slabs, facades);
                     }
                     // street trees along the kerbs of this block
                     for (float x = xa + 3f; x < xb - 1f; x += 9f + (float)rnd.NextDouble() * 4f)
@@ -237,6 +281,7 @@ namespace Tiramisu.EditorTools
                     bool near = Vector2.Distance(new Vector2((xa + xb) * 0.5f, (za + zb) * 0.5f), Centre) < 110f;
                     foreach (var kv in byMat) Emit(blk, kv.Key.name, kv.Value, kv.Key, near);
                     Emit(blk, "Roofs", roofs, matRoof, near);
+                    Emit(blk, "Slabs", slabs, matSlab, near);
                     Emit(blk, "Trunks", trunks, matTrunk, false);
                     Emit(blk, "Tree crowns", trees, matLeaf, false);
                 }
@@ -337,47 +382,77 @@ namespace Tiramisu.EditorTools
             else { Subdivide(r, x0, z0, x1, z0 + cut, outLots, true); Subdivide(r, x0, z0 + cut, x1, z1, outLots, true); }
         }
 
-        static void Place(System.Random r, Lot lot, System.Func<Material, Batch> B, Batch roofs, Material[] facades, Material white)
+        /// <summary>
+        /// Buildings in the style of the house: glass volumes with slim frames, timber or white boxes cantilevered over them, and thin
+        /// white roof slabs that overhang. facades: 0 glass, 1 warm glass, 2 timber, 3 white plaster.
+        /// </summary>
+        static void Place(System.Random r, Lot lot, System.Func<Material, Batch> B, Batch roofs, Batch slabs, Material[] facades)
         {
             float cx = (lot.x0 + lot.x1) * 0.5f, cz = (lot.z0 + lot.z1) * 0.5f;
             float dist = Vector2.Distance(new Vector2(cx, cz), Centre);
-            float inset = 1.2f + (float)r.NextDouble() * 2.2f;
+            float inset = 1.5f + (float)r.NextDouble() * 2.2f;
             float x0 = lot.x0 + inset, x1 = lot.x1 - inset, z0 = lot.z0 + inset, z1 = lot.z1 - inset;
             if (x1 - x0 < 5f || z1 - z0 < 5f) return;
-            float floors;
-            Material main;
-            if (dist < 80f) { floors = 2 + r.Next(0, 2); main = facades[r.Next(0, 4)]; }
-            else if (dist < 140f) { floors = 4 + r.Next(0, 6); main = facades[r.Next(0, 5)]; }
-            else { floors = 8 + r.Next(0, 26); main = r.NextDouble() < 0.55 ? facades[4] : facades[r.Next(0, 4)]; }
-            float h = floors * 3.2f;
-            bool tower = h > 32f;
-            if (tower) { float s = 0.55f + (float)r.NextDouble() * 0.25f; float ccx = cx + ((float)r.NextDouble() - 0.5f) * 4f, ccz = cz + ((float)r.NextDouble() - 0.5f) * 4f; float hx = Mathf.Min((x1 - x0) * 0.5f, 24f) * s + 3f, hz = Mathf.Min((z1 - z0) * 0.5f, 24f) * s + 3f; x0 = ccx - hx; x1 = ccx + hx; z0 = ccz - hz; z1 = ccz + hz; }
-            var b = B(main);
-            float y0 = -0.32f;
-            b.Box(new Vector3(x0, y0, z0), new Vector3(x1, h, z1));
-            roofs.Box(new Vector3(x0 - 0.3f, h, z0 - 0.3f), new Vector3(x1 + 0.3f, h + 0.5f, z1 + 0.3f));
-            // second volume: a set-back upper storey, a cantilevered box or a stepped tower top
-            if (floors >= 2 && r.NextDouble() < 0.75)
+            const float F = 3.2f, y0 = -0.32f;
+            Material Glass() => facades[r.NextDouble() < 0.7 ? 0 : 1];
+            Material Solid() => facades[r.NextDouble() < 0.6 ? 2 : 3];
+
+            if (dist < 85f)
             {
-                float f2 = 1 + r.Next(0, Mathf.Max(1, (int)(floors * 0.4f)));
-                float h2 = h + f2 * 3.2f;
-                float wx = (x1 - x0), wz = (z1 - z0);
-                bool cant = r.NextDouble() < 0.5 && !tower;
-                float ax0 = x0 + wx * (cant ? -0.05f : 0.15f), ax1 = x1 - wx * (cant ? 0.35f : 0.15f);
-                float az0 = z0 + wz * (cant ? 0.1f : 0.15f), az1 = z1 - wz * (cant ? 0.1f : 0.15f);
-                var mat2 = facades[r.Next(0, facades.Length)];
-                B(mat2).Box(new Vector3(ax0, h + 0.5f, az0), new Vector3(ax1, h2, az1));
-                roofs.Box(new Vector3(ax0 - 0.25f, h2, az0 - 0.25f), new Vector3(ax1 + 0.25f, h2 + 0.4f, az1 + 0.25f));
+                // a house: a glass ground floor, a timber or white upper floor that hangs over one side, a thin roof slab
+                float w = x1 - x0, d = z1 - z0;
+                var g = Glass();
+                B(g).Box(new Vector3(x0, y0, z0), new Vector3(x1, F, z1));
+                slabs.Box(new Vector3(x0 - 0.15f, F, z0 - 0.15f), new Vector3(x1 + 0.15f, F + 0.32f, z1 + 0.15f));
+                bool two = r.NextDouble() < 0.85;
+                if (two)
+                {
+                    bool alongX = r.NextDouble() < 0.5;
+                    float frac = 0.55f + (float)r.NextDouble() * 0.25f;
+                    float over = 1.6f + (float)r.NextDouble() * 1.4f;
+                    float ux0 = x0, ux1 = x1, uz0 = z0, uz1 = z1;
+                    if (alongX) { if (r.NextDouble() < 0.5) { ux1 = x0 + w * frac + over; ux0 = x0 - 0.2f; } else { ux0 = x1 - w * frac - over; ux1 = x1 + 0.2f; } }
+                    else { if (r.NextDouble() < 0.5) { uz1 = z0 + d * frac + over; uz0 = z0 - 0.2f; } else { uz0 = z1 - d * frac - over; uz1 = z1 + 0.2f; } }
+                    var up = r.NextDouble() < 0.28 ? Glass() : Solid();
+                    B(up).Box(new Vector3(ux0, F + 0.32f, uz0), new Vector3(ux1, F * 2f + 0.32f, uz1));
+                    slabs.Box(new Vector3(ux0 - 0.7f, F * 2f + 0.32f, uz0 - 0.7f), new Vector3(ux1 + 0.7f, F * 2f + 0.66f, uz1 + 0.7f));       // the overhanging roof
+                }
+                roofs.Box(new Vector3(x0 + 0.5f, F + 0.32f, z0 + 0.5f), new Vector3(x0 + 1.6f, F + 0.75f, z0 + 1.6f));         // a plant box on the terrace roof
+                return;
             }
-            // a couple of plant rooms and antennas on the roofs
-            if (tower && r.NextDouble() < 0.6)
+
+            float floors; bool tower = false;
+            if (dist < 145f) floors = 4 + r.Next(0, 6); else { floors = 9 + r.Next(0, 26); tower = true; }
+            float h = floors * F;
+            if (tower)
             {
-                float mx = (x0 + x1) * 0.5f, mz = (z0 + z1) * 0.5f;
-                roofs.Box(new Vector3(mx - 0.15f, h + 0.5f, mz - 0.15f), new Vector3(mx + 0.15f, h + 9f, mz + 0.15f));
+                float s = 0.5f + (float)r.NextDouble() * 0.3f;
+                float ccx = cx + ((float)r.NextDouble() - 0.5f) * 4f, ccz = cz + ((float)r.NextDouble() - 0.5f) * 4f;
+                float hx = Mathf.Min((x1 - x0) * 0.5f, 26f) * s + 3f, hz = Mathf.Min((z1 - z0) * 0.5f, 26f) * s + 3f;
+                x0 = ccx - hx; x1 = ccx + hx; z0 = ccz - hz; z1 = ccz + hz;
             }
-            // a low garden wall and a paved yard for the small houses
-            if (!tower && dist < 80f)
-                roofs.Box(new Vector3(lot.x0 + 1f, -0.32f, lot.z0 + 1f), new Vector3(lot.x1 - 1f, -0.28f, lot.z1 - 1f));
+            var main = r.NextDouble() < 0.75 ? Glass() : Solid();
+            B(main).Box(new Vector3(x0, y0, z0), new Vector3(x1, h, z1));
+            slabs.Box(new Vector3(x0 - 0.5f, h, z0 - 0.5f), new Vector3(x1 + 0.5f, h + 0.45f, z1 + 0.5f));
+            // a timber or white core offset on one side, full height, and a glass pavilion on the roof
+            if (r.NextDouble() < 0.7)
+            {
+                bool alongX = (x1 - x0) > (z1 - z0);
+                float k = 0.22f + (float)r.NextDouble() * 0.12f;
+                Vector3 a, b;
+                if (alongX) { bool left = r.NextDouble() < 0.5; float wx = (x1 - x0) * k; a = new Vector3(left ? x0 - 0.8f : x1 - wx, y0, z0 - 0.8f); b = new Vector3(left ? x0 + wx : x1 + 0.8f, h + F * (float)r.Next(0, 3), z1 + 0.8f); }
+                else { bool near = r.NextDouble() < 0.5; float wz = (z1 - z0) * k; a = new Vector3(x0 - 0.8f, y0, near ? z0 - 0.8f : z1 - wz); b = new Vector3(x1 + 0.8f, h + F * (float)r.Next(0, 3), near ? z0 + wz : z1 + 0.8f); }
+                B(Solid()).Box(a, b);
+                slabs.Box(new Vector3(a.x - 0.3f, b.y, a.z - 0.3f), new Vector3(b.x + 0.3f, b.y + 0.4f, b.z + 0.3f));
+            }
+            if (r.NextDouble() < 0.55)
+            {
+                float mx = (x0 + x1) * 0.5f, mz = (z0 + z1) * 0.5f, hw = (x1 - x0) * 0.22f, hd = (z1 - z0) * 0.22f;
+                B(Glass()).Box(new Vector3(mx - hw, h + 0.45f, mz - hd), new Vector3(mx + hw, h + 0.45f + F, mz + hd));
+                slabs.Box(new Vector3(mx - hw - 0.6f, h + 0.45f + F, mz - hd - 0.6f), new Vector3(mx + hw + 0.6f, h + 0.85f + F, mz + hd + 0.6f));
+            }
+            if (tower && r.NextDouble() < 0.5)
+                roofs.Box(new Vector3((x0 + x1) * 0.5f - 0.15f, h + 0.45f, (z0 + z1) * 0.5f - 0.15f), new Vector3((x0 + x1) * 0.5f + 0.15f, h + 9f, (z0 + z1) * 0.5f + 0.15f));
         }
     }
 }

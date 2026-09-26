@@ -268,3 +268,10 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Falling leaves** are now real leaf shapes in three colours (rust, gold, brown) that tumble on all axes, instead of glowing dots that looked like ash. **Found:** HDRP unlit particles ignore the particle start colour, so each colour needs its own material and system.
 - **Season change:** what is still in the air of the old season fades away in about a second (`SeasonCycle.Fade`).
 - Not done: shops or people in the city, traffic, city sounds; the windows on far towers repeat the same pattern.
+
+## Session 28: city in the house's style, traffic, planes, tree seasons (2026-09-27) · v0.25.0
+
+- **City style:** three generated facade textures like the house: floor to ceiling glass with slim black mullions and a slab edge every floor, timber slats with wide windows, white plaster with big windows (`CityBuilder.Facade`). Houses near the plot are a glass ground floor with a timber or white upper floor hanging over one side and a thin white roof slab that overhangs; apartment blocks and towers are glass with a timber or white core and a glass roof pavilion. Windows light warm at night. The older sand and dark facades are gone.
+- **Traffic** (`CityTraffic.cs`, built from boxes at start): 14 cars in six colours (saloon, hatchback, van) drive on the LEFT on the road grid at 7 to 13 m/s, wrapping round at the edge, headlights and tail lights on at night. **An aeroplane** crosses the sky at 260 to 340 m every 2 to 4 minutes (about 95 m/s), with a blinking beacon and wing strobes. Cars do not react to each other at crossings, they can pass through each other there (rare).
+- **Particles halved** (petals 18/s, leaves 35/s per colour, snow 550/s, fireflies 13/s).
+- **Yard trees follow the seasons:** the leaf cards are recoloured on the GPU (`Assets/Shaders/Recolor.shader`, done once per tree texture): cherry blossom pink in spring, orange, gold and rust in autumn, original green in summer, bare in winter with white snow on the branches and trunk. The shrubs stay all year (white in winter). **No online tree import was needed.**

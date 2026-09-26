@@ -1838,6 +1838,7 @@ namespace Tiramisu.EditorTools
                 return m;
             }
             sc.soft = soft;
+            sc.recolor = Shader.Find("Hidden/Tiramisu/Recolor");
             sc.petalMaterials = new[] { Dot("SeasonPetal", new Color(1f, 0.8f, 0.88f, 1f), 0.6f), Dot("SeasonPetalWhite", new Color(1f, 0.96f, 0.96f, 1f), 0.6f) };
             sc.petalMaterial = sc.petalMaterials[0];
             sc.leafMaterials = new[] { Leaf("SeasonLeafRust", new Color(0.72f, 0.28f, 0.08f, 1f)), Leaf("SeasonLeafGold", new Color(0.92f, 0.66f, 0.12f, 1f)), Leaf("SeasonLeafBrown", new Color(0.5f, 0.3f, 0.12f, 1f)) };
@@ -2123,6 +2124,7 @@ namespace Tiramisu.EditorTools
             game.AddComponent<HouseHud>();
             game.AddComponent<DecorateMode>().ghostMaterial = GhostMaterial();
             game.AddComponent<LiveMode>().plumbobMaterial = PlumbobMaterial();
+            game.AddComponent<CityTraffic>();
             var seasons = game.AddComponent<SeasonCycle>();
             SeasonAssets(seasons);
             game.AddComponent<TiramisuNav>();
