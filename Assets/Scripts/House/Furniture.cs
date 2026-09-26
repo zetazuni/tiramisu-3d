@@ -20,6 +20,8 @@ namespace Tiramisu
         [Tooltip("A small thing (cushion, book, mug, lamp): it becomes part of the piece it rests on.")]
         public bool small;
         [NonSerialized] public Furniture attachedTo;
+        [NonSerialized] public bool bought;          // bought in buy mode (saved with the purchases, not with the layout)
+        [NonSerialized] public int pendingPrice;      // charged when it is put down
         [NonSerialized] public Vector3 homePos;
         [NonSerialized] public Quaternion homeRot;
         Bounds local;
@@ -100,7 +102,7 @@ namespace Tiramisu
             var l = new Layout();
             foreach (var f in All)
             {
-                if (f.pinned || f.attachedTo) continue;
+                if (f.pinned || f.attachedTo || f.bought) continue;
                 if ((f.transform.position - f.homePos).sqrMagnitude < 1e-4f && Quaternion.Angle(f.transform.rotation, f.homeRot) < 0.1f) continue;
                 var e = new Entry { key = f.key, pos = f.transform.position, yaw = f.transform.eulerAngles.y };
                 if (f.GetComponent<StickyProp>())

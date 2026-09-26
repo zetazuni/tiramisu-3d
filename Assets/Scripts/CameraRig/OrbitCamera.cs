@@ -56,6 +56,8 @@ namespace Tiramisu
 
         /// <summary>True for the frame a left click ended without dragging (for picking furniture later).</summary>
         public bool ClickedThisFrame { get; private set; }
+        public bool RightClickedThisFrame { get; private set; }
+        Vector3 rightDown;
 
         void Awake()
         {
@@ -81,6 +83,7 @@ namespace Tiramisu
         void Update()
         {
             ClickedThisFrame = false;
+            RightClickedThisFrame = false;
             if (Input.touchSupported && Input.touchCount > 0) HandleTouch();
             else HandleMouse();
             HandleKeys();
@@ -111,7 +114,8 @@ namespace Tiramisu
             Vector3 m = Input.mousePosition;
 
             if (Input.GetMouseButtonDown(0) && !OverUi(m) && !Blocked) { downMouse = m; lastMouse = m; spinning = true; }
-            if (Input.GetMouseButtonDown(1) && !OverUi(m)) { lastMouse = m; panning = true; }
+            if (Input.GetMouseButtonDown(1) && !OverUi(m)) { lastMouse = m; panning = true; rightDown = m; }
+            if (Input.GetMouseButtonUp(1) && panning && (m - rightDown).magnitude <= dragThreshold) RightClickedThisFrame = true;
             if (Input.GetMouseButtonDown(2) && !OverUi(m)) { lastMouse = m; midSpin = true; }
             if (midSpin && Input.GetMouseButton(2)) { Vector3 md = m - lastMouse; tYaw += md.x * spinSpeed; tPitch -= md.y * tiltSpeed; }
             if (!Input.GetMouseButton(2)) midSpin = false;

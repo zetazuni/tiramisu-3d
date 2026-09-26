@@ -20,6 +20,7 @@ namespace Tiramisu
         public float turnStep = 15f;
         [Tooltip("see-through material the people and pets get while decorating")] public Material ghostMaterial;
         bool ghosted;
+        bool placing, placingExisting, enteredByPlace;
 
         Camera cam;
         Furniture held;
@@ -95,6 +96,13 @@ namespace Tiramisu
 
             if (winWall != null) { WindowUpdate(); return; }
 
+            if (held != null && placing) { PlacingUpdate(); return; }
+            if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.Backspace))
+            {
+                if (held != null) { SellPiece(held); return; }
+                if (Selected != null && !Selected.pinned) { SellPiece(Selected); return; }
+            }
+
             if (held == null)
             {
                 if (Input.GetMouseButtonDown(0) && !(OrbitCamera.IsOverUi != null && OrbitCamera.IsOverUi(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y))))
@@ -119,6 +127,93 @@ namespace Tiramisu
                 MoveRiders();
             }
             Drag();
+        }
+
+        // ---------- buying and selling ----------
+
+        /// <summary>A piece just bought: it follows the mouse until you click to put it down.</summary>
+        public void BeginPlace(Furniture f)
+        {
+            enteredByPlace = !Active;
+            if (!Active) Toggle();
+            cam = Camera.main;
+            Grab(f, f.transform.position);
+            placing = true;
+            Say("Move it where you want it and click. R turns it, Esc puts it back.");
+        }
+
+        /// <summary>Move a piece that is already in the house (the pie menu): it follows the mouse until you click.</summary>
+        public void StartMove(Furniture f)
+        {
+            if (f == null || f.pinned) return;
+            enteredByPlace = !Active;
+            if (!Active) Toggle();
+            cam = Camera.main;
+            while (f.attachedTo) f = f.attachedTo;
+            Grab(f, f.transform.position);
+            placing = true; placingExisting = true;
+            Say("Move it where you want it and click. R turns it, Esc puts it back.");
+        }
+
+        void PlacingUpdate()
+        {
+            OrbitCamera.Blocked = true;
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1)) { CancelPlacing(); return; }
+            if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.Backspace)) { CancelPlacing(); return; }
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                float step = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? -turnStep : turnStep;
+                held.transform.Rotate(0f, step, 0f, Space.World);
+            }
+            float wheel = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(wheel) > 0.01f) held.transform.Rotate(0f, Mathf.Sign(wheel) * 5f, 0f, Space.World);
+            Drag();
+            bool overUi = OrbitCamera.IsOverUi != null && OrbitCamera.IsOverUi(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y));
+            if (Input.GetMouseButtonDown(0) && !overUi)
+            {
+                if (!valid) { Say("There is no room for that here."); GameAudio.Play(GameAudio.Sfx.No); return; }
+                var f = held;
+                bool existing = placingExisting; placingExisting = false;
+                int price = f.pendingPrice;
+                if (price > 0 && !Household.Spend(price, f.Label.ToLower())) { CancelPlacing(); return; }
+                f.pendingPrice = 0;
+                placing = false;
+                Drop(false);
+                if (existing) { if (f.bought) PurchaseSave.Record(f); GameAudio.Play(GameAudio.Sfx.Place); LeaveIfEntered(); return; }
+                PurchaseSave.Record(f);
+                GameAudio.Play(GameAudio.Sfx.Buy);
+                Say($"Bought the {f.Label.ToLower()} for {Household.Currency} {price:N0}.");
+                if (LiveMode.Selected && LiveMode.Selected.sim) LiveMode.Selected.sim.Report("buy");
+                LeaveIfEntered();
+            }
+        }
+
+        void LeaveIfEntered() { if (enteredByPlace && Active) { enteredByPlace = false; Toggle(); } }
+
+        void CancelPlacing()
+        {
+            var f = held;
+            bool existing = placingExisting; placingExisting = false;
+            placing = false;
+            Drop(true);
+            if (existing) { Say("Put back."); LeaveIfEntered(); return; }
+            if (f) Destroy(f.gameObject);
+            Say("Put back, nothing was charged.");
+            LeaveIfEntered();
+        }
+
+        public void SellPiece(Furniture f)
+        {
+            if (f == null) return;
+            if (f == held) { bool wasNew = placing; placing = false; Drop(true); if (wasNew) { Destroy(f.gameObject); return; } }
+            int price = Household.SellPrice(f.name);
+            Household.Earn(price, $"Sold the {f.Label.ToLower()}");
+            PurchaseSave.Forget(f);
+            Selected = null;
+            Destroy(f.gameObject);
+            GameAudio.Play(GameAudio.Sfx.Sell);
+            Say($"Sold the {f.Label.ToLower()} for {Household.Currency} {price:N0}.");
+            if (TiramisuNav.Instance) TiramisuNav.Instance.RequestRebuild();
         }
 
         // ---------- picking ----------

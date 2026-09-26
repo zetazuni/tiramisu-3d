@@ -10,7 +10,7 @@ namespace Tiramisu
     /// </summary>
     public class CharacterRig : MonoBehaviour
     {
-        public enum Pose { Stand, Walk, Sit, Lie, Wave, Crouch, Sleep, Groom, Happy }
+        public enum Pose { Stand, Walk, Sit, Lie, Wave, Crouch, Sleep, Groom, Happy, Eat, Cook, Read, Exercise, Work, Wash, Swim, Drink }
 
         public bool pet;
         [Tooltip("person, cat or dog: which joint table builds the skeleton")]
@@ -212,6 +212,56 @@ namespace Tiramisu
                     Set("spine", breathe);
                     break;
                 case Pose.Crouch: CrouchTargets(); break;
+                case Pose.Eat: case Pose.Drink:
+                {
+                    float bite = Mathf.Max(0f, Mathf.Sin(clock * 2.4f));
+                    Set("arm.R", 20f + 60f * bite); Set("forearm.R", 40f + 95f * bite);
+                    Set("arm.L", 12f); Set("forearm.L", 30f);
+                    Set("spine", 3f); Set("neck", -6f * bite);
+                    break;
+                }
+                case Pose.Cook:
+                {
+                    float st = Mathf.Sin(clock * 5f);
+                    Set("arm.R", 42f + 6f * st); Set("forearm.R", 62f + 14f * st);
+                    Set("arm.L", 34f); Set("forearm.L", 70f);
+                    Set("spine", 9f); Set("neck", -12f);
+                    break;
+                }
+                case Pose.Read:
+                    Set("arm.L", 36f); Set("arm.R", 36f); Set("forearm.L", 98f); Set("forearm.R", 98f);
+                    Set("spine", 4f); Set("neck", -20f + 2f * Mathf.Sin(clock * 0.8f));
+                    break;
+                case Pose.Work:
+                {
+                    float ty = Mathf.Sin(clock * 9f);
+                    Set("arm.L", 40f); Set("arm.R", 40f); Set("forearm.L", 72f + 5f * ty); Set("forearm.R", 72f - 5f * ty);
+                    Set("spine", 7f); Set("neck", -14f);
+                    break;
+                }
+                case Pose.Exercise:
+                {
+                    float b = Mathf.Abs(Mathf.Sin(clock * 3.2f));
+                    Set("pelvis", 0f, -0.18f * b);
+                    Set("leg.L", 38f * b); Set("leg.R", 38f * b); Set("shin.L", -55f * b); Set("shin.R", -55f * b);
+                    Set("arm.L", 20f + 130f * b); Set("arm.R", 20f + 130f * b); Set("forearm.L", 10f); Set("forearm.R", 10f);
+                    Set("spine", 8f * b);
+                    break;
+                }
+                case Pose.Wash:
+                {
+                    float sc = Mathf.Sin(clock * 7f);
+                    Set("arm.L", 100f); Set("arm.R", 100f); Set("forearm.L", 95f + 12f * sc); Set("forearm.R", 95f - 12f * sc);
+                    Set("spine", 3f); Set("neck", -4f);
+                    break;
+                }
+                case Pose.Swim:
+                {
+                    float sw = Mathf.Sin(clock * 3.2f);
+                    Set("arm.L", 85f + 85f * sw); Set("arm.R", 85f - 85f * sw); Set("forearm.L", 10f); Set("forearm.R", 10f);
+                    Set("leg.L", 14f * sw); Set("leg.R", -14f * sw); Set("neck", 55f);
+                    break;
+                }
                 default:
                     Set("spine", breathe * 1.2f);
                     Set("arm.L", 2f); Set("arm.R", 2f);

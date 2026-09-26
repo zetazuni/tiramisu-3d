@@ -14,7 +14,7 @@ namespace Tiramisu
 
         void Awake()
         {
-            OrbitCamera.IsOverUi = p => panel.Contains(p / scale) || timePanel.Contains(p / scale);
+            OrbitCamera.IsOverUi = p => panel.Contains(p / scale) || timePanel.Contains(p / scale) || (BuyMode.Instance != null && BuyMode.Instance.panel.Contains(p / scale)) || (BuildMode.Instance != null && BuildMode.Instance.panel.Contains(p / scale));
         }
 
         void Styles()
@@ -80,6 +80,11 @@ namespace Tiramisu
                 GUILayout.Label("Furniture", label);
                 if (Button(DecorateMode.Active ? "Decorate mode: on (M)" : "Move furniture (M)", DecorateMode.Active)) dec.Toggle();
                 if (Button("Reset layout", false)) dec.ResetLayout();
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(BuyMode.Active ? "Buy ●" : "Buy (B)", btn)) BuyMode.Toggle();
+                if (GUILayout.Button(BuildMode.Active ? "Build ●" : "Build (V)", btn)) BuildMode.Toggle();
+                GUILayout.EndHorizontal();
+                if (Button("Status (C)", SimUi.StatusOpen)) SimUi.OpenStatus();
             }
 
             GUILayout.EndArea();

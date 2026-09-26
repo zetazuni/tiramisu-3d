@@ -285,3 +285,12 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - The house roof now takes part in the seasons (`SeasonCycle.MakeRoofLayers`, one set per roof piece, 38 in all): **snow** grows into a slab over the winter and melts away after it; **fallen leaves** in autumn and **fallen petals** in spring are cut out sprites laid over the roof that appear a few at a time (each sprite has its own threshold in the alpha, the material's alpha cutoff sweeps from 1 to 0.45 as the season builds) and thin out again when it ends. The city roofs and roof slabs go white in winter (tinted copies of `CityRoof` and `CitySlab`).
 - Checked in the whole house view in winter, autumn and spring. I saw one turquoise flash on the roof right after switching to autumn that I could not reproduce, keep an eye out for it.
 - Only the house has leaves and petals on its roof, the city roofs only get snow.
+
+## Session 31: the eight Sims 4 milestones, first version (2026-09-27) · v0.27.0
+
+- **Backup first:** a copy of v0.26.0 (without Library) is in `S:\Tiramisu Corner by Zetazuni Backups0.26.0 (2026-09-27)`.
+- **Needs and mood** (`Sim/SimData.cs`), **things to do** (`Sim/Interactions.cs`, about 30 interactions on about 40 kinds of object, plus the pool), **autonomy** in `Character` (emptiest need first, chat or pet for friends, jobs at day time, random fun), **money** (`Sim/Household.cs`), **shop** (`Sim/BuyMode.cs`, `Catalog` filled by the builder, `FurnitureFactory` makes pieces at runtime, purchases and sales saved), **build mode** (`Sim/BuildMode.cs`), **status panel and icons** (`UI/SimUi.cs`), **sound** (`Sim/GameAudio.cs`, everything synthesised), **hints** (`UI/Tutorial.cs`).
+- Time now runs by default (`dn.auto = true`).
+- Checked in Play mode by stepping frames: an order to cook took Athirah to the kitchen, hunger rose while she cooked and RM 20 was charged; Amir on his own read a book, cooked, used the toilet, took a bath and went to pet Bedah when his needs were low; a purchase follows the mouse (cancel puts it back free); a room, a doorway and paying for them worked; the status panel and the round menu draw. **Not tested with a real mouse or a full session:** clicking in the shop and the build panel, placing a bought piece with a click, painting, knocking down, selling, the sleep and sunbathe interactions, working for pay, the sounds.
+- **Test leftovers cleaned:** funds, built walls, purchases and hints are reset in the saved settings after the tests.
+- Known gaps are listed in `docs/SIMS4_PLAN.md`.

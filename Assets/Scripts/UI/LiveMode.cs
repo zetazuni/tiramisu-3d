@@ -25,7 +25,8 @@ namespace Tiramisu
         readonly List<Option> options = new List<Option>();
         bool pieOpen;
         Vector2 pieCenter;   // GUI points (already divided by the GUI scale)
-        const float PieRadius = 78f, PieDisc = 92f;
+        const float PieDisc = 92f;
+        float PieRadius => Mathf.Max(78f, options.Count * PieDisc * 1.05f / (2f * Mathf.PI));
         string pieTitle;
 
         Rect portraits, speedPanel;
@@ -63,7 +64,8 @@ namespace Tiramisu
 
             if (pieOpen && (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape))) pieOpen = false;
             var oc = OrbitCamera.Instance;
-            if (oc && oc.ClickedThisFrame) HandleClick(Input.mousePosition);
+            if (oc && oc.ClickedThisFrame) HandleClick(Input.mousePosition, false);
+            else if (oc && oc.RightClickedThisFrame) HandleClick(Input.mousePosition, true);
             UpdatePlumbob();
         }
 
@@ -103,7 +105,7 @@ namespace Tiramisu
             return best;
         }
 
-        void HandleClick(Vector3 mouse)
+        void HandleClick(Vector3 mouse, bool right)
         {
             pieOpen = false;
             if (Selected == null) return;
@@ -126,6 +128,9 @@ namespace Tiramisu
                 if (tv != null) { OpenTvMenu(tv, mouse); return; }
                 var piece = SeatOwner(h.collider.transform);
                 if (piece != null) { OpenFurnitureMenu(piece, h.point, mouse); return; }
+                var pool = PoolAt(h.point);
+                if (pool != null) { OpenThingMenu(pool, h.point, mouse); return; }
+                if (right) { OpenGroundMenu(h.point, mouse); return; }
                 Walk(h.point);
                 return;
             }
@@ -134,7 +139,15 @@ namespace Tiramisu
         static Furniture SeatOwner(Transform t)
         {
             foreach (var f in t.GetComponentsInParent<Furniture>())
-                if (f.GetComponentInChildren<UseSpot>() != null) return f;
+                if (f.GetComponentInChildren<UseSpot>() != null || f.GetComponent<Interactable>() != null) return f;
+            return null;
+        }
+
+        /// <summary>The pool: no collider on the water, so it is found by where the click landed.</summary>
+        static Interactable PoolAt(Vector3 p)
+        {
+            foreach (var it in Interactable.All)
+                if (it && it.hasCustomStand && Mathf.Abs(p.x - it.customFace.x) < 4.2f && Mathf.Abs(p.z - it.customFace.z) < 2.2f) return it;
             return null;
         }
 
@@ -162,6 +175,9 @@ namespace Tiramisu
             if (who.isPet)
             {
                 options.Add(new Option { label = "Pet " + who.displayName, enabled = true, act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Pet, target = who, label = "Going to pet " + who.displayName }) });
+                options.Add(new Option { label = "Play with " + who.displayName, enabled = true, act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Pet, target = who, label = "Going to play with " + who.displayName }) });
+                bool can = Household.CanAfford(5);
+                options.Add(new Option { label = "Feed " + who.displayName + " (RM 5)", enabled = can, act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Feed, target = who, label = "Going to feed " + who.displayName }) });
             }
             else
             {
@@ -169,8 +185,53 @@ namespace Tiramisu
                 options.Add(new Option { label = "Talk to " + who.displayName, enabled = free, act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Talk, target = who, label = "Going to talk to " + who.displayName }) });
                 options.Add(new Option { label = "Play as " + who.displayName, enabled = true, act = () => Select(who) });
             }
+            options.Add(new Option { label = "Status", enabled = true, act = () => { Select(who.isPet ? Selected : who); SimUi.OpenStatus(); } });
             options.Add(new Option { label = "Go there", enabled = true, act = () => Walk(who.transform.position) });
             OpenMenu(mouse, who.displayName);
+        }
+
+        void OpenGroundMenu(Vector3 point, Vector3 mouse)
+        {
+            options.Clear();
+            options.Add(new Option { label = "Go here", enabled = true, act = () => Walk(point) });
+            OpenMenu(mouse, "Here");
+        }
+
+        /// <summary>A pie option for one interaction: the label shows the price, it greys out when it cannot be done.</summary>
+        Option ThingOption(Interactable it, InteractionDef d)
+        {
+            var me = Selected;
+            string label = d.label;
+            bool enabled = true;
+            if (d.cost > 0) { label += $" (RM {d.cost})"; if (!Household.CanAfford(d.cost)) enabled = false; }
+            if (d.job) label += $" (RM {Household.PayPerSecond(me.sim)}/s)";
+            if (d.seat)
+            {
+                bool any = false;
+                foreach (var sp in it.GetComponentsInChildren<UseSpot>())
+                {
+                    if (sp.occupant != null && sp.occupant != me) continue;
+                    if ((d.pose == CharacterRig.Pose.Lie) != (sp.pose == CharacterRig.Pose.Lie)) continue;
+                    if (d.needsTv && TvScreen.Facing(sp) == null) continue;
+                    any = true; break;
+                }
+                if (!any) { enabled = false; if (d.needsTv) label = d.label + " (no TV)"; }
+            }
+            if (it.user != null && it.user != me) { enabled = false; label += " (busy)"; }
+            var def = d;
+            return new Option
+            {
+                label = label, enabled = enabled,
+                act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Interact, thing = it, def = def, label = "Going to: " + def.label.ToLower() })
+            };
+        }
+
+        void OpenThingMenu(Interactable it, Vector3 hit, Vector3 mouse)
+        {
+            options.Clear();
+            foreach (var d in it.defs) options.Add(ThingOption(it, d));
+            options.Add(new Option { label = "Go here", enabled = true, act = () => Walk(hit) });
+            OpenMenu(mouse, it.id == "pool" ? "Pool" : it.id);
         }
 
         void OpenTvMenu(TvScreen tv, Vector3 mouse)
@@ -209,27 +270,42 @@ namespace Tiramisu
         {
             options.Clear();
             var me = Selected;
-            UseSpot best = null; float bestD = float.MaxValue;
-            foreach (var s in piece.GetComponentsInChildren<UseSpot>())
-            {
-                if (s.occupant != null && s.occupant != me) continue;
-                float d = (s.transform.position - hit).sqrMagnitude;
-                if (d < bestD) { bestD = d; best = s; }
-            }
-            string name = piece.name.Replace('_', ' ');
-            if (best != null)
-            {
-                var spot = best;
-                bool lie = spot.pose == CharacterRig.Pose.Lie;
-                options.Add(new Option
+            var it = piece.GetComponent<Interactable>();
+            bool hasSeatDef = false;
+            if (it != null)
+                foreach (var d in it.defs)
                 {
-                    label = lie ? "Lie down" : "Sit down", enabled = true,
-                    act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Use, spot = spot, label = lie ? "Going to lie down" : "Going to sit" })
-                });
+                    if (d.id == "chairsit" && it.GetComponentInChildren<UseSpot>() == null) continue;
+                    options.Add(ThingOption(it, d));
+                    if (d.seat) hasSeatDef = true;
+                }
+            if (!hasSeatDef)
+            {
+                UseSpot best = null; float bestD = float.MaxValue;
+                foreach (var s in piece.GetComponentsInChildren<UseSpot>())
+                {
+                    if (s.occupant != null && s.occupant != me) continue;
+                    float d = (s.transform.position - hit).sqrMagnitude;
+                    if (d < bestD) { bestD = d; best = s; }
+                }
+                if (best != null)
+                {
+                    var spot = best; bool lie = spot.pose == CharacterRig.Pose.Lie;
+                    options.Add(new Option
+                    {
+                        label = lie ? "Lie down" : "Sit down", enabled = true,
+                        act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Use, spot = spot, label = lie ? "Going to lie down" : "Going to sit" })
+                    });
+                }
             }
-            else options.Add(new Option { label = "Somebody is using it", enabled = false, act = null });
             options.Add(new Option { label = "Go here", enabled = true, act = () => Walk(hit) });
-            OpenMenu(mouse, name);
+            if (!piece.pinned)
+            {
+                var pc = piece;
+                options.Add(new Option { label = "Move", enabled = true, act = () => DecorateMode.Instance.StartMove(pc) });
+                options.Add(new Option { label = $"Sell (RM {Household.SellPrice(pc.name):N0})", enabled = true, act = () => DecorateMode.Instance.SellPiece(pc) });
+            }
+            OpenMenu(mouse, piece.Label);
         }
 
         // ---------------------------------------------------------------- the green diamond

@@ -1755,6 +1755,50 @@ namespace Tiramisu.EditorTools
             return m;
         }
 
+        /// <summary>Everything the life sim needs: money, needs and moods, things to do, sound, shop, build mode, hints.</summary>
+        static void SimSystems(GameObject game)
+        {
+            game.AddComponent<Household>();
+            game.AddComponent<GameAudio>();
+            game.AddComponent<InteractionSetup>();
+            game.AddComponent<SimUi>();
+            game.AddComponent<Tutorial>();
+
+            var cat = game.AddComponent<Catalog>();
+            (string id, string name, string category)[] items =
+            {
+                ("sofa", "Sofa", "Living"), ("beanbag", "Bean bag", "Living"), ("marbletable", "Coffee table", "Living"), ("geomrug", "Rug", "Living"),
+                ("tvunit", "TV and console", "Living"), ("uplight", "Floor lamp", "Living"), ("bookcase", "Bookcase", "Living"), ("candles", "Candles", "Living"), ("globe", "Globe", "Living"),
+                ("diningtable", "Dining table", "Kitchen"), ("diningchair", "Dining chair", "Kitchen"), ("barstool", "Bar stool", "Kitchen"), ("longdining", "Long table", "Kitchen"),
+                ("fridge", "Fridge", "Kitchen"), ("espresso", "Coffee machine", "Kitchen"), ("waterdispenser", "Water dispenser", "Kitchen"), ("fruitbowl", "Fruit bowl", "Kitchen"),
+                ("platformbed", "Bed", "Bedroom"), ("platformbed_e", "Bed (dark)", "Bedroom"), ("nightstand", "Nightstand", "Bedroom"), ("wardrobe", "Wardrobe", "Bedroom"), ("bedlamp", "Bedside lamp", "Bedroom"),
+                ("bathtub", "Bathtub", "Bath"), ("vanity", "Vanity", "Bath"), ("towelrack", "Towel rack", "Bath"), ("washer", "Washing machine", "Bath"), ("dryer", "Dryer", "Bath"), ("basket", "Laundry basket", "Bath"),
+                ("officedesk", "Office desk", "Study"), ("officechair", "Office chair", "Study"), ("teacherdesk", "Teacher's desk", "Study"), ("filecabinet", "File cabinet", "Study"),
+                ("printer3d", "3D printer", "Study"), ("robotarm", "Robot arm", "Study"), ("telescope", "Telescope", "Study"),
+                ("treadmill", "Treadmill", "Fitness"), ("weightbench", "Weight bench", "Fitness"), ("spinbike", "Spin bike", "Fitness"), ("punchbag", "Punch bag", "Fitness"), ("yogamat", "Yoga mat", "Fitness"), ("dumbbells", "Dumbbells", "Fitness"),
+                ("gardenbench", "Garden bench", "Garden"), ("lounger", "Sun lounger", "Garden"), ("hammock", "Hammock", "Garden"), ("parasol", "Parasol", "Garden"), ("bbq", "Barbecue", "Garden"),
+                ("bbqcounter", "BBQ counter", "Garden"), ("firepit", "Fire pit", "Garden"), ("lantern", "Lantern", "Garden"), ("outdoorsectional", "Outdoor sofa", "Garden"), ("cooler", "Cooler box", "Garden"),
+                ("planter", "Planter", "Garden"), ("planterbox", "Planter box", "Garden"), ("flowerbed", "Flower bed", "Garden"), ("gnome", "Garden gnome", "Garden"), ("flamingo", "Flamingo", "Garden"),
+                ("mailbox", "Mailbox", "Garden"), ("wheelbarrow", "Wheelbarrow", "Garden"), ("wateringcan", "Watering can", "Garden"), ("hosereel", "Hose reel", "Garden"),
+                ("workbench", "Workbench", "Garage"), ("toolchest", "Tool chest", "Garage"), ("bicycle", "Bicycle", "Garage"), ("beachball", "Beach ball", "Garage"),
+            };
+            foreach (var it in items)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{it.id}.fbx");
+                if (!prefab) continue;
+                cat.entries.Add(new CatalogEntry { id = it.id, name = it.name, category = it.category, prefab = prefab });
+            }
+            game.AddComponent<BuyMode>();
+
+            var bm = game.AddComponent<BuildMode>();
+            bm.floorMaterials = new[] { oak, oakDark, tile, bathTile, garageFloor, gym, deck, stone, slab };
+            bm.floorNames = new[] { "Oak", "Dark oak", "Marble", "Grey tile", "Concrete", "Rubber", "Deck", "Paving", "Slate" };
+            bm.wallMaterials = new[] { wallWhite, wallBrown };
+            bm.wallNames = new[] { "White", "Brown" };
+            bm.previewMaterial = GhostMaterial();
+            bm.glassMaterial = glass;
+        }
+
         /// <summary>The soft round sprite and the four materials for petals, leaves, snow and fireflies.</summary>
         static void SeasonAssets(SeasonCycle sc)
         {
@@ -2192,6 +2236,8 @@ namespace Tiramisu.EditorTools
             dn.moon = moonLight;
             dn.volume = volume;
             dn.hour = 15f;
+            dn.auto = true;                        // time runs by default, like a life sim
+            SimSystems(game);
             game.AddComponent<GraphicsModes>().volume = volume;
             game.AddComponent<FpsBenchmark>();
             return hv;

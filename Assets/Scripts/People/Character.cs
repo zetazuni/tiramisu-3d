@@ -66,7 +66,9 @@ namespace Tiramisu
         /// <summary>Something the player told a person to do (live mode). They are done one after the other before the person goes back to their own plans.</summary>
         public class Order
         {
-            public enum Kind { Go, Use, Talk, Pet }
+            public enum Kind { Go, Use, Talk, Pet, Interact, Feed }
+            public Interactable thing;
+            public InteractionDef def;
             public System.Action after;   // done on arrival (Go) or once seated (Use), for switching the TV and the like
             public Kind kind;
             public Vector3 point;
@@ -75,6 +77,10 @@ namespace Tiramisu
             public string label;
         }
 
+        public Sim sim;
+        InteractionDef active; Interactable activeIt; float activeTime, payAccum, nextGrumble;
+        bool feeding;
+        public string ActiveLabel => active != null ? active.label : null;
         readonly Queue<Order> orders = new Queue<Order>();
         bool onOrder, holdSeat;
         Vector3 approachUsed;
@@ -93,8 +99,9 @@ namespace Tiramisu
                 switch (mode)
                 {
                     case Mode.Waiting: return "Just arrived";
+                    case Mode.Interacting: return active != null ? active.label : "Busy";
                     case Mode.Walk: case Mode.ToSpot: return onOrder && !string.IsNullOrEmpty(doing) ? doing : "Walking";
-                    case Mode.Sitting: case Mode.Using: return spot != null && spot.pose == CharacterRig.Pose.Lie ? "Lying down" : "Sitting";
+                    case Mode.Sitting: case Mode.Using: return active != null ? active.label : spot != null && spot.pose == CharacterRig.Pose.Lie ? "Lying down" : "Sitting";
                     case Mode.Rising: return "Getting up";
                     case Mode.ChatWalk: return "Going to chat";
                     case Mode.Chatting: return "Chatting";
@@ -111,6 +118,7 @@ namespace Tiramisu
             orders.Enqueue(o);
             switch (mode)
             {
+                case Mode.Interacting: FinishInteraction(false); SetIdle(0f); break;
                 case Mode.Using: case Mode.Sitting: timer = 0f; break;          // stands up first, then does the new thing
                 case Mode.Walk: case Mode.ChatWalk: case Mode.PetWalk:
                     if (!onOrder) { partner = null; SetIdle(0f); }
@@ -127,7 +135,8 @@ namespace Tiramisu
         public void CancelOrders()
         {
             orders.Clear();
-            if (mode == Mode.Walk || mode == Mode.ChatWalk || mode == Mode.PetWalk) { partner = null; SetIdle(0.5f); }
+            if (mode == Mode.Interacting) { FinishInteraction(false); SetIdle(0.3f); }
+            else if (mode == Mode.Walk || mode == Mode.ChatWalk || mode == Mode.PetWalk) { partner = null; SetIdle(0.5f); }
             else if (mode == Mode.ToSpot) { if (spot) spot.occupant = null; spot = null; SetIdle(0.5f); }
             else if (mode == Mode.Using) timer = 0f;
             onOrder = false;
@@ -164,13 +173,20 @@ namespace Tiramisu
                     if (o.target != null && o.target.CanChat && GoTo(o.target.transform.position, 1.8f)) { partner = o.target; mode = Mode.ChatWalk; ok = true; }
                     break;
                 case Order.Kind.Pet:
-                    if (o.target != null && GoTo(o.target.transform.position, 1.4f)) { partner = o.target; mode = Mode.PetWalk; ok = true; }
+                    if (o.target != null && GoTo(o.target.transform.position, 1.4f)) { partner = o.target; mode = Mode.PetWalk; ok = true; feeding = false; }
+                    break;
+                case Order.Kind.Feed:
+                    if (o.target != null && Household.CanAfford(5) && GoTo(o.target.transform.position, 1.4f)) { partner = o.target; mode = Mode.PetWalk; ok = true; feeding = true; }
+                    else if (o.target != null) Say("I need RM 5 for the pet food.");
+                    break;
+                case Order.Kind.Interact:
+                    ok = StartInteraction(o.thing, o.def);
                     break;
             }
             if (!ok) { Say("Hmm, I can't get there."); SetIdle(0.05f); }
         }
 
-        enum Mode { Waiting, Idle, Walk, ToSpot, Sitting, Using, Rising, ChatWalk, Chatting, PetWalk, Petting, BeingPetted }
+        enum Mode { Waiting, Idle, Walk, ToSpot, Sitting, Using, Rising, ChatWalk, Chatting, PetWalk, Petting, BeingPetted, Interacting }
 
         NavMeshAgent agent;
         CharacterRig rig;
@@ -200,6 +216,8 @@ namespace Tiramisu
             agent = GetComponent<NavMeshAgent>();
             rig = GetComponent<CharacterRig>();
             agent.enabled = false;
+            sim = GetComponent<Sim>();
+            if (!sim) sim = gameObject.AddComponent<Sim>();
         }
 
         void OnDestroy() => Everyone.Remove(this);
@@ -228,6 +246,7 @@ namespace Tiramisu
                 case Mode.PetWalk: TickPetWalk(); break;
                 case Mode.Petting: TickPetting(); break;
                 case Mode.BeingPetted: TickBeingPetted(); break;
+                case Mode.Interacting: TickInteracting(); break;
             }
             if (agent.enabled && agent.isOnNavMesh)
             {
@@ -265,6 +284,7 @@ namespace Tiramisu
                 transform.position = hit.position;
             agent.enabled = true;
             agent.Warp(transform.position);
+            if (sim.displayName == "") sim.Setup(displayName, isPet);
             SetIdle(Random.Range(0.5f, 3f));
         }
 
@@ -298,6 +318,20 @@ namespace Tiramisu
                 SetIdle(Random.Range(2f, 5f));
                 return;
             }
+            NoteFeelings();
+            // the needs that are running low, the emptiest first: friends come from talking or petting, the rest from things in the house
+            var order = new List<int> { 0, 1, 2, 3, 4, 5 };
+            order.Sort((x, y) => sim.needs[x].CompareTo(sim.needs[y]));
+            foreach (int ni in order)
+            {
+                if (sim.needs[ni] >= 38f) break;
+                var need = (Need)ni;
+                if (need == Need.Social) { if (TryChat() || TryPet()) return; }
+                else if (TryFulfil(need)) return;
+            }
+            if (JobHours() && sim.job != "" && sim.Get(Need.Energy) > 35f && Random.value < 0.4f && TryWork()) return;
+            if (r < 0.30f && TryFun()) return;
+            if (r < 0.42f && TryFeedPet()) return;
             if (r < 0.40f && TryUseSpot()) return;
             if (r < 0.62f && Wander(40f)) return;
             if (r < 0.78f && TryChat()) return;
@@ -309,6 +343,11 @@ namespace Tiramisu
         {
             SetIdle(seconds);
             rig.pose = p;
+            if (isPet && sim)
+            {
+                if (p == CharacterRig.Pose.Sleep) sim.Give(Need.Energy, seconds * 2f);
+                else sim.Give(Need.Fun, seconds * 0.8f);
+            }
         }
 
         bool Wander(float radius)
@@ -367,7 +406,7 @@ namespace Tiramisu
             {
                 var a = arrive; arrive = null;
                 if (a != null) { FaceForward(); a(); }
-                SetIdle(onOrder ? 0.05f : Random.Range(1.5f, 5f));
+                if (mode == Mode.Walk) SetIdle(onOrder ? 0.05f : Random.Range(1.5f, 5f));
             }
         }
 
@@ -453,9 +492,11 @@ namespace Tiramisu
             SeatPose(out var pos, out var rot);
             transform.SetPositionAndRotation(pos, rot);   // follows the piece if it is moved
             timer -= Time.deltaTime;
+            if (active != null) TickActive(Time.deltaTime);
             if (orders.Count > 0) timer = 0f;   // told to do something else
             if (timer <= 0f)
             {
+                FinishInteraction(true);
                 var tvLeft = TvScreen.Facing(spot);
                 if (tvLeft != null && tvLeft.on && tvLeft.autoSwitched && !TvScreen.AnyoneWatching(tvLeft, this)) tvLeft.SetOn(false);
                 fromPos = transform.position; fromRot = transform.rotation;
@@ -480,6 +521,210 @@ namespace Tiramisu
                 agent.Warp(standPos);
                 SetIdle(Random.Range(1f, 3f));
             }
+        }
+
+        // ---------- doing things with objects ----------
+
+        /// <summary>Walks to the object (or its seat) and starts doing what it offers. False if there is no way to get there or no money for it.</summary>
+        public bool StartInteraction(Interactable it, InteractionDef d)
+        {
+            if (it == null || d == null || !it.gameObject.activeInHierarchy) return false;
+            if (d.cost > 0 && !Household.CanAfford(d.cost)) { Say("I can't afford that right now."); return false; }
+            if (d.seat)
+            {
+                UseSpot best = null; float bestD = float.MaxValue;
+                foreach (var sp in it.GetComponentsInChildren<UseSpot>())
+                {
+                    if (sp.occupant != null && sp.occupant != this) continue;
+                    if (d.needsTv && TvScreen.Facing(sp) == null) continue;
+                    if ((d.pose == CharacterRig.Pose.Lie) != (sp.pose == CharacterRig.Pose.Lie)) continue;
+                    float dd = (sp.transform.position - transform.position).sqrMagnitude;
+                    if (dd < bestD) { bestD = dd; best = sp; }
+                }
+                if (best == null || !GoToApproach(best)) return false;
+                spot = best; spot.occupant = this; mode = Mode.ToSpot; holdSeat = true;
+                afterSeat = () => BeginInteraction(it, d);
+                return true;
+            }
+            if (!it.StandPoint(transform.position, out var p) || !GoTo(p, 0.8f)) return false;
+            mode = Mode.Walk;
+            arrive = () => BeginInteraction(it, d);
+            return true;
+        }
+
+        void BeginInteraction(Interactable it, InteractionDef d)
+        {
+            if (d.cost > 0 && !Household.Spend(d.cost, d.label.ToLower())) { Say("I can't afford that right now."); if (spot != null) timer = 0f; return; }
+            active = d; activeIt = it; activeTime = 0f; payAccum = 0f;
+            it.user = this;
+            if (d.needsTv && spot != null) { var tv = TvScreen.Facing(spot); if (tv != null && !tv.on) tv.SetOn(true, true); }
+            if (d.seat) { timer = d.seconds; return; }                    // seated: TickUsing runs it
+            mode = Mode.Interacting; timer = d.seconds; blend = 0f;
+            fromPos = transform.position; fromRot = transform.rotation;
+            rig.pose = d.pose; rig.walkSpeed = 0f;
+            if (agent.enabled && agent.isOnNavMesh) agent.ResetPath();
+            if (d.pose == CharacterRig.Pose.Swim) { standPos = transform.position; agent.enabled = false; GameAudio.Play(GameAudio.Sfx.Splash); }
+        }
+
+        void TickActive(float dt)
+        {
+            activeTime += dt;
+            foreach (var f in active.fills) sim.Give(f.need, f.perSecond * dt);
+            if (active.job)
+            {
+                float mult = 1f; float.TryParse(active.category, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mult);
+                payAccum += Household.PayPerSecond(sim) * (mult <= 0f ? 1f : mult) * dt;
+                sim.jobXp += dt;
+            }
+        }
+
+        void TickInteracting()
+        {
+            if (active == null) { SetIdle(0.2f); return; }
+            TickActive(Time.deltaTime);
+            timer -= Time.deltaTime;
+            var centre = activeIt ? activeIt.Centre : transform.position + transform.forward;
+            if (active.pose == CharacterRig.Pose.Swim)
+            {
+                blend = Mathf.Min(1f, blend + Time.deltaTime / 1.2f);
+                float t = activeTime;
+                var c = centre;
+                var pos = new Vector3(c.x + Mathf.Sin(t * 0.45f) * 3.1f, c.y - 0.1f, c.z + Mathf.Sin(t * 0.9f) * 0.9f);
+                var dir = new Vector3(Mathf.Cos(t * 0.45f) * Mathf.Sign(Mathf.Cos(t * 0.45f)), 0f, 0.1f);
+                float yaw = Mathf.Cos(t * 0.45f) >= 0f ? 90f : -90f;
+                var rot = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(90f, 0f, 0f);
+                var root = pos - rot * new Vector3(0f, rig.RestHip * scale, 0f);
+                float e = Mathf.SmoothStep(0f, 1f, blend);
+                transform.SetPositionAndRotation(Vector3.Lerp(fromPos, root, e), Quaternion.Slerp(fromRot, rot, e));
+            }
+            else
+            {
+                var d = centre - transform.position; d.y = 0f;
+                if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(d), Time.deltaTime * 6f);
+            }
+            if (timer <= 0f)
+            {
+                bool swim = active.pose == CharacterRig.Pose.Swim;
+                var stand = activeIt && activeIt.hasCustomStand ? activeIt.customStand : transform.position;
+                FinishInteraction(true);
+                if (swim)
+                {
+                    fromPos = transform.position; fromRot = transform.rotation; standPos = stand; blend = 0f; mode = Mode.Rising; rig.pose = CharacterRig.Pose.Stand;
+                }
+                else SetIdle(Random.Range(0.4f, 1.5f));
+            }
+        }
+
+        void FinishInteraction(bool completed)
+        {
+            if (active == null) return;
+            var d = active; active = null;
+            if (activeIt) activeIt.user = null;
+            activeIt = null;
+            bool worth = completed || activeTime > d.seconds * 0.5f;
+            if (worth && sim)
+            {
+                if (d.skill.HasValue) sim.AddXp(d.skill.Value, d.xp * Mathf.Clamp01(activeTime / Mathf.Max(d.seconds, 1f)));
+                if (!string.IsNullOrEmpty(d.moodlet)) sim.AddMoodlet(d.moodlet, d.moodValue, d.moodSeconds);
+                sim.Report(d.wish ?? d.id);
+                if (d.job && payAccum >= 1f) { Household.Earn(Mathf.RoundToInt(payAccum), $"{displayName}'s pay"); GameAudio.Play(GameAudio.Sfx.Ding); }
+            }
+            payAccum = 0f;
+        }
+
+        // ---- autonomy: people look after their own needs
+
+        bool JobHours() { var dn = DayNightCycle.Instance; return dn && dn.hour > 9f && dn.hour < 17f; }
+
+        static float Flat(Vector3 a, Vector3 b) { a.y = b.y; return (a - b).sqrMagnitude; }
+
+        bool TryList(List<(Interactable it, InteractionDef d, float score)> list)
+        {
+            list.Sort((a, b) => b.score.CompareTo(a.score));
+            for (int i = 0; i < list.Count && i < 6; i++)
+                if (StartInteraction(list[i].it, list[i].d)) return true;
+            return false;
+        }
+
+        bool TryFulfil(Need need)
+        {
+            var list = new List<(Interactable, InteractionDef, float)>();
+            foreach (var it in Interactable.All)
+            {
+                if (!it || it.user != null || !it.gameObject.activeInHierarchy) continue;
+                foreach (var d in it.defs)
+                {
+                    if (d.job || !d.Fills(need) || d.Total(need) < 12f) continue;
+                    if (d.cost > 0 && !Household.CanAfford(d.cost + 50)) continue;
+                    if (Mathf.Abs(it.transform.position.y - transform.position.y) > 2.5f) continue;    // same floor
+                    float dist = Mathf.Sqrt(Flat(it.transform.position, transform.position));
+                    list.Add((it, d, d.Total(need) * 0.6f - dist * 1.3f + Random.Range(0f, 8f)));
+                }
+            }
+            return TryList(list);
+        }
+
+        bool TryFun()
+        {
+            var list = new List<(Interactable, InteractionDef, float)>();
+            foreach (var it in Interactable.All)
+            {
+                if (!it || it.user != null || !it.gameObject.activeInHierarchy) continue;
+                foreach (var d in it.defs)
+                {
+                    if (d.job || d.cost > 0 || d.id == "toilet" || d.id == "sleep" || d.id == "chairsit") continue;
+                    if (Mathf.Abs(it.transform.position.y - transform.position.y) > 2.5f) continue;
+                    if (d.id == "swim" && DayNightCycle.Instance && DayNightCycle.Instance.Night01 > 0.5f) continue;
+                    float want = 0f;
+                    foreach (var f in d.fills) if (f.perSecond > 0f) want += Mathf.Max(0f, 80f - sim.needs[(int)f.need]) * f.perSecond * d.seconds * 0.02f;
+                    if (d.skill.HasValue) want += 4f;
+                    if (sim.Has("Bookworm") && d.id == "read") want += 15f;
+                    if (sim.Has("Creative") && (d.id == "draw" || d.id == "stargaze")) want += 12f;
+                    if (sim.Has("Foodie") && d.id == "cook") want += 8f;
+                    float dist = Mathf.Sqrt(Flat(it.transform.position, transform.position));
+                    list.Add((it, d, want - dist * 0.4f + Random.Range(0f, 10f)));
+                }
+            }
+            return TryList(list);
+        }
+
+        bool TryWork()
+        {
+            var list = new List<(Interactable, InteractionDef, float)>();
+            foreach (var it in Interactable.All)
+            {
+                if (!it || it.user != null || !it.gameObject.activeInHierarchy) continue;
+                foreach (var d in it.defs)
+                {
+                    if (!d.job) continue;
+                    if (sim.job == "Teacher" && it.id == "officedesk" && d.id == "work") continue;      // she works at the teacher's desk
+                    if (sim.job == "Engineer" && it.id == "teacherdesk") continue;
+                    list.Add((it, d, 10f - Mathf.Sqrt(Flat(it.transform.position, transform.position)) * 0.1f + Random.Range(0f, 3f)));
+                }
+            }
+            return TryList(list);
+        }
+
+        bool TryFeedPet()
+        {
+            foreach (var c in All)
+            {
+                if (!c.isPet || c.sim == null || c.sim.Get(Need.Hunger) > 45f || !Household.CanAfford(5)) continue;
+                if (GoTo(c.transform.position, 1.4f)) { partner = c; mode = Mode.PetWalk; feeding = true; return true; }
+            }
+            return false;
+        }
+
+        /// <summary>A grumble or a sigh when a need is nearly empty, now and then.</summary>
+        void NoteFeelings()
+        {
+            if (Time.time < nextGrumble || sim == null) return;
+            float v; var n = sim.Lowest(out v);
+            if (v > 22f) return;
+            nextGrumble = Time.time + 45f;
+            string[] text = { "I'm so hungry...", "I really need the bathroom!", "I could fall asleep standing up.", "I'm bored, bored, bored.", "I feel a bit lonely.", "I need a wash." };
+            Say(text[(int)n], 3.5f);
+            if (Selected()) { GameAudio.Play(GameAudio.Sfx.Alert); Household.Toast($"{displayName}: {text[(int)n]}"); }
         }
 
         // ---------- talking and petting ----------
@@ -541,8 +786,19 @@ namespace Tiramisu
                 nextLine = 3.4f;
                 if (lineIndex % 2 == 1) { Bubble = Lines[Random.Range(0, Lines.Length)]; bubbleUntil = Time.time + 3.2f; }
             }
-            if (timer <= 0f) { partner = null; SetIdle(Random.Range(1f, 3f)); }
+            if (timer <= 0f)
+            {
+                if (partner && sim && partner.sim)
+                {
+                    sim.Give(Need.Social, 38f); sim.Give(Need.Fun, 8f); sim.Befriend(partner.displayName, 6f);
+                    sim.AddMoodlet("Nice chat", 10f, 300f); sim.Report("chat");
+                    if (Selected()) Household.Toast($"{displayName} had a nice chat with {partner.displayName}.");
+                }
+                partner = null; SetIdle(Random.Range(1f, 3f));
+            }
         }
+
+        bool Selected() => LiveMode.Selected == this;
 
         bool TryPet()
         {
@@ -576,7 +832,21 @@ namespace Tiramisu
             var d = partner.transform.position - transform.position; d.y = 0f;
             if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(d), Time.deltaTime * 6f);
             rig.pose = CharacterRig.Pose.Crouch;
-            if (timer <= 0f) { if (partner) partner.EndPetted(); partner = null; SetIdle(Random.Range(1f, 3f)); }
+            if (timer <= 0f)
+            {
+                if (partner)
+                {
+                    if (sim && partner.sim)
+                    {
+                        sim.Give(Need.Fun, 16f); sim.Befriend(partner.displayName, 5f); sim.Report("pet");
+                        partner.sim.Give(Need.Fun, 32f); partner.sim.Give(Need.Social, 20f); partner.sim.Befriend(displayName, 5f);
+                        if (feeding && Household.Spend(5, "pet food")) { partner.sim.Give(Need.Hunger, 65f); Household.Toast($"{displayName} fed {partner.displayName}."); }
+                    }
+                    partner.EndPetted();
+                }
+                feeding = false;
+                partner = null; SetIdle(Random.Range(1f, 3f));
+            }
         }
 
         void BePetted(Character by)
@@ -584,6 +854,7 @@ namespace Tiramisu
             partner = by;
             if (agent.enabled && agent.isOnNavMesh) agent.ResetPath();
             timer = 6.2f; mode = Mode.BeingPetted;
+            if (sim) sim.AddMoodlet("Loved being petted", 12f, 240f);
             rig.pose = CharacterRig.Pose.Happy;
         }
 
