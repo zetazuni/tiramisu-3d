@@ -53,6 +53,26 @@ namespace Tiramisu.EditorTools
             { "Wax",          (null, new Color(0.93f, 0.9f, 0.82f), new Vector2(0.4f, 0.4f), 0f, false) },
             { "Flame",        (null, new Color(1f, 0.7f, 0.2f), new Vector2(0.5f, 0.5f), 0f, false) },
             { "Coffee",       (null, new Color(0.08f, 0.05f, 0.03f), new Vector2(0.8f, 0.8f), 0f, false) },
+            { "Bedding_main", ("rough_linen", new Color(0.86f, 0.66f, 0.68f), new Vector2(0f, 0.25f), 0f, true) },
+            { "Bedding_dark", ("rough_linen", new Color(0.13f, 0.13f, 0.15f), new Vector2(0f, 0.25f), 0f, true) },
+            { "Beanbag_main", ("rough_linen", new Color(0.22f, 0.34f, 0.36f), new Vector2(0f, 0.25f), 0f, true) },
+            { "Leather",      (null, new Color(0.09f, 0.06f, 0.05f), new Vector2(0.5f, 0.5f), 0f, false) },
+            { "Screen",       (null, new Color(0.15f, 0.3f, 0.5f), new Vector2(0.9f, 0.9f), 0f, false) },
+            { "Chalk",        (null, new Color(0.05f, 0.08f, 0.07f), new Vector2(0.15f, 0.15f), 0f, false) },
+            { "Whiteboard",   (null, new Color(0.94f, 0.94f, 0.95f), new Vector2(0.85f, 0.85f), 0f, false) },
+            { "Rubber",       (null, new Color(0.04f, 0.04f, 0.045f), new Vector2(0.25f, 0.25f), 0f, false) },
+            { "Plastic",      (null, new Color(0.09f, 0.09f, 0.1f), new Vector2(0.45f, 0.45f), 0f, false) },
+            { "PlasticWhite", (null, new Color(0.92f, 0.92f, 0.93f), new Vector2(0.6f, 0.6f), 0f, false) },
+            { "MapSea",       (null, new Color(0.22f, 0.45f, 0.7f), new Vector2(0.4f, 0.4f), 0f, false) },
+            { "MapLand",      (null, new Color(0.33f, 0.55f, 0.28f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "Globe",        (null, new Color(0.18f, 0.38f, 0.7f), new Vector2(0.6f, 0.6f), 0f, false) },
+            { "BookRed",      (null, new Color(0.5f, 0.1f, 0.08f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "BookBlue",     (null, new Color(0.12f, 0.2f, 0.45f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "BookGreen",    (null, new Color(0.12f, 0.35f, 0.2f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "BookCream",    (null, new Color(0.8f, 0.75f, 0.6f), new Vector2(0.25f, 0.25f), 0f, false) },
+            { "BookDark",     (null, new Color(0.13f, 0.1f, 0.09f), new Vector2(0.3f, 0.3f), 0f, false) },
+            { "BlueWater",    (null, new Color(0.3f, 0.6f, 0.9f), new Vector2(0.9f, 0.9f), 0f, false) },
+            { "Mat_main",     (null, new Color(0.22f, 0.5f, 0.5f), new Vector2(0.3f, 0.3f), 0f, false) },
             { "Cushion_main", ("rough_linen", new Color(0.60f, 0.68f, 0.54f), new Vector2(0f, 0.25f), 0f, true) },
         };
 
@@ -107,6 +127,7 @@ namespace Tiramisu.EditorTools
                 var pm = MaterialLibrary.Plain(path, l.tint, l.smooth.y, l.metal);
                 Color? glow = name == "Bulb" ? new Color(1f, 0.78f, 0.45f) * 6f
                     : name == "Headlight" ? new Color(0.9f, 0.95f, 1f) * 1.5f
+                    : name == "Screen" ? new Color(0.3f, 0.55f, 0.95f) * 1.4f
                     : name == "Flame" ? new Color(1f, 0.6f, 0.15f) * 8f
                     : name == "Taillight" ? new Color(1f, 0.04f, 0.02f) * 5f : (Color?)null;
                 if (glow.HasValue) // bulbs and car lights glow

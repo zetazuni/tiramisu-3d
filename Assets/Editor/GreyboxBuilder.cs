@@ -381,6 +381,44 @@ namespace Tiramisu.EditorTools
             ("garageshelf", 23.1f, 0.24f, 0f, 0),
             ("toolchest", 29.5f, 1.4f, 270f, 0),
             ("bicycle", 22.65f, 3.9f, 0f, 0),
+            // upper floor, Teacher's Room (x 0 to 8)
+            ("platformbed", 5f, 1.17f, 0f, 1),
+            ("nightstand", 3.9f, 0.22f, 0f, 1),
+            ("nightstand", 6.1f, 0.22f, 0f, 1),
+            ("wardrobe", 1f, 0.32f, 0f, 1),
+            ("bookcase", 0.22f, 3.3f, 90f, 1),
+            ("geomrug", 5f, 3.6f, 0f, 1),
+            ("teacherdesk", 0.4f, 6f, 90f, 1),
+            ("officechair", 1.2f, 6f, 270f, 1),
+            // Office & Library (x 8 to 14)
+            ("bookcase", 8.75f, 0.22f, 0f, 1),
+            ("bookcase", 10f, 0.22f, 0f, 1),
+            ("officedesk", 10.4f, 4.2f, 0f, 1),
+            ("officechair", 10.4f, 5.05f, 180f, 1),
+            ("officechair", 11.6f, 5f, 170f, 1),
+            ("filecabinet", 13.55f, 2.2f, 270f, 1),
+            ("uplight", 13.3f, 7.3f, 0f, 1),
+            // Engineer's Room (x 16 to 22)
+            ("platformbed_e", 20.2f, 1.17f, 0f, 1),
+            ("nightstand", 18.9f, 0.22f, 0f, 1),
+            ("wardrobe", 17.1f, 0.32f, 0f, 1),
+            ("ebench", 16.45f, 5f, 90f, 1),
+            ("officechair", 17.3f, 5f, 270f, 1),
+            ("robotarm", 18.7f, 3.2f, 0f, 1),
+            ("printer3d", 21f, 6.8f, 0f, 1),
+            ("beanbag", 20.4f, 4.6f, 20f, 1),
+            ("geomrug", 19.6f, 3.9f, 0f, 1),
+            // Gym (x 22 to 30)
+            ("treadmill", 23.3f, 0.93f, 0f, 1),
+            ("treadmill", 25.2f, 0.93f, 0f, 1),
+            ("dumbbells", 27.7f, 0.24f, 0f, 1),
+            ("weightbench", 24f, 4.2f, 0f, 1),
+            ("spinbike", 27.4f, 3.3f, 0f, 1),
+            ("spinbike", 29f, 3.3f, 0f, 1),
+            ("punchbag", 26.4f, 5.8f, 0f, 1),
+            ("yogamat", 23.3f, 6.5f, 0f, 1),
+            ("yogamat", 24.2f, 6.5f, 0f, 1),
+            ("waterdispenser", 28.4f, 7.3f, 180f, 1),
         };
 
         /// <summary>Small things standing on surfaces: model id, x, y (height of the surface in metres), z and rotation.</summary>
@@ -401,6 +439,19 @@ namespace Tiramisu.EditorTools
             ("cardboardboxes", 29.4f, 0.02f, 4.5f, 10f),
             ("paintcans", 23.15f, 0.02f, 1.0f, 0f),
             ("sparetyres", 22.6f, 0.02f, 6.9f, 0f),
+            // upper floor surfaces (floor top is 3.32 m): nightstands 0.52, desks 0.75
+            ("bedlamp", 3.9f, 3.84f, 0.22f, 0f),
+            ("bedlamp", 6.1f, 3.84f, 0.22f, 0f),
+            ("bedlamp", 18.9f, 3.84f, 0.22f, 0f),
+            ("globe", 0.5f, 4.07f, 5.6f, 0f),
+            ("mug", 10.9f, 4.07f, 4.3f, 0f),
+            // things hung on upper walls
+            ("chalkboard", 0.04f, 4.57f, 6f, 90f),
+            ("worldmap", 5f, 4.72f, 0.03f, 0f),
+            ("whiteboard", 12.4f, 4.32f, 0.02f, 0f),
+            ("gymmirror", 23.6f, 4.32f, 0.02f, 0f),
+            ("gymmirror", 25.6f, 4.32f, 0.02f, 0f),
+            ("gymmirror", 27.6f, 4.32f, 0.02f, 0f),
         };
 
         static PropPlacer.Prop Pr(string id, string variant, float x, float y, float z, float rot, float scale,
@@ -423,6 +474,21 @@ namespace Tiramisu.EditorTools
             Pr("potted_plant_04", null, 16.8f, FLOOR_TOP, 5.0f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
         };
 
+        const float UpFloor = UPY + FLOOR_TOP;
+
+        /// <summary>Photoscanned props on the upper floor.</summary>
+        static readonly PropPlacer.Prop[] UpperProps =
+        {
+            Pr("modern_arm_chair_01", null, 6.8f, UpFloor, 5.8f, 220f, 1f, PropPlacer.Body.Dynamic, 18f),
+            Pr("side_table_01", null, 7.5f, UpFloor, 6.6f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
+            Pr("pachira_aquatica_01", "_d", 7.3f, UpFloor, 7.2f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("potted_plant_01", null, 8.6f, UpFloor, 7.3f, 30f, 1f, PropPlacer.Body.Static, 0f, 0.55f),
+            Pr("modern_arm_chair_01", null, 12.5f, UpFloor, 6.5f, 200f, 1f, PropPlacer.Body.Dynamic, 18f),
+            Pr("potted_plant_04", null, 21.3f, UpFloor, 2.6f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+            Pr("potted_plant_01", null, 29.3f, UpFloor, 7.2f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.55f),
+            Pr("potted_plant_04", null, 15f, UpFloor, 0.7f, 0f, 1f, PropPlacer.Body.Static, 0f, 0.5f),
+        };
+
         /// <summary>Real trees and shrubs for the garden (garden ground sits at -SLAB).</summary>
         static readonly PropPlacer.Prop[] GardenProps =
         {
@@ -440,9 +506,16 @@ namespace Tiramisu.EditorTools
             Pr("shrub_04", null, 2.8f, -SLAB, 18.4f, 140f, 1.2f, PropPlacer.Body.None),
         };
 
+        static void AttachTo(string wallPath, GameObject item)
+        {
+            var wall = GameObject.Find(wallPath);
+            if (wall && wall.GetComponent<WallCutaway>()) wall.GetComponent<WallCutaway>().attachments.Add(item);
+        }
+
         static void Furnish(Transform ground, Transform upper)
         {
             foreach (var p in LivingProps) PropPlacer.Place(p, ground);
+            foreach (var p in UpperProps) PropPlacer.Place(p, upper);
 
             // a picture above the sofa, hung on the back wall (hidden while that wall is cut down)
             var pic = PropPlacer.Place(Pr("hanging_picture_frame_02", null, 4f, 1.35f, 0.01f, 0f, 1.4f, PropPlacer.Body.None), ground);
@@ -451,7 +524,7 @@ namespace Tiramisu.EditorTools
 
             var all = new System.Collections.Generic.List<(string id, float x, float y, float z, float rot, int floor)>();
             foreach (var l in Layout) all.Add((l.id, l.x, -1f, l.z, l.rot, l.floor));   // y -1 = on the floor
-            foreach (var t in Tabletop) all.Add((t.id, t.x, t.y, t.z, t.rot, 0));
+            foreach (var t in Tabletop) all.Add((t.id, t.x, t.y, t.z, t.rot, t.y > 2f ? 1 : 0));
             foreach (var f in all)
             {
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{f.id}.fbx");
@@ -463,6 +536,24 @@ namespace Tiramisu.EditorTools
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
+                if (f.id == "worldmap" || f.id == "whiteboard" || f.id == "gymmirror") AttachTo("House/Upper floor/Walls/Back wall", go);
+                if (f.id == "chalkboard") AttachTo("House/Upper floor/Walls/Left wall", go);
+                if (f.id == "uplight")
+                {
+                    var lg = new GameObject("Uplight glow");
+                    lg.transform.SetParent(go.transform, false);
+                    lg.transform.position = go.transform.position + Vector3.up * 1.7f;
+                    var l = lg.AddComponent<Light>();
+                    l.type = LightType.Point;
+                    lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
+                    l.lightUnit = LightUnit.Lumen;
+                    l.intensity = 500f;
+                    l.useColorTemperature = true;
+                    l.colorTemperature = 2400f;
+                    l.color = Color.white;
+                    l.range = 5f;
+                    l.shadows = LightShadows.None;
+                }
                 if (f.id == "sedan" || f.id == "mpv") // red glow behind the tail lights
                 {
                     float rear = f.id == "sedan" ? 2.3f : 2.08f; // metres behind the centre (Blender +Y is Unity -Z)

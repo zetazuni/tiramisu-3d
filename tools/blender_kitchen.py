@@ -25,7 +25,7 @@ _mats = {}
 def mat(name):
     if name not in _mats:
         m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
-        m.diffuse_color = (*COLORS[name], 1)
+        m.diffuse_color = (*COLORS.get(name, (0.7, 0.7, 0.7)), 1)
         _mats[name] = m
     return _mats[name]
 

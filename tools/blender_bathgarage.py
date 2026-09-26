@@ -48,16 +48,18 @@ def lathe(name, parent, profile, material, seg=64, scale=(1, 1, 1), center=(0, 0
     return ob
 
 
-def loft(name, parent, sections, material, second=None, bevel=0.0, subsurf=0, cutters=(), slot=None):
+def loft(name, parent, sections, material, second=None, bevel=0.0, subsurf=0, cutters=(), slot=None, face_slot=None):
     """Skin a list of same-size point rings (each a list of (x, y, z)). Ends are capped.
     second = material for side faces (top faces keep `material`), used for glass cabins."""
     bm = bmesh.new()
     rings = [[bm.verts.new(p) for p in sec] for sec in sections]
     n = len(rings[0])
-    for a, b in zip(rings, rings[1:]):
+    for r, (a, b) in enumerate(zip(rings, rings[1:])):
         for i in range(n):
             j = (i + 1) % n
-            bm.faces.new((a[i], a[j], b[j], b[i]))
+            f = bm.faces.new((a[i], a[j], b[j], b[i]))
+            if face_slot:
+                f.material_index = face_slot(r, i)
     bm.faces.new(rings[0][::-1])
     bm.faces.new(rings[-1])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -349,11 +351,16 @@ def _cross_body(y, zb, zt, hb, ht):
 
 
 def _cross_cabin(y, zb, zr, hb, hr):
-    pts = [(-hb, zb), (-(hr + 0.05), zr - 0.09), (-hr, zr)]
-    return [(x, y, z) for (x, z) in pts + [(-x, z) for (x, z) in reversed(pts)]]
+    """Eight points round the cabin: sill, window base, window top and roof edge on each side.
+    Segments 1 and 5 are the side windows, 2 to 4 the shoulders and roof."""
+    L0, L3 = (-hb, zb), (-hr, zr)
+    lerp = lambda t: (L0[0] + (L3[0] - L0[0]) * t, L0[1] + (L3[1] - L0[1]) * t)
+    left = [L0, lerp(0.12), lerp(0.86), L3]
+    pts = left + [(-x, z) for (x, z) in reversed(left)]
+    return [(x, y, z) for (x, z) in pts]
 
 
-def car(name, body_mat, body_st, cabin_st, wheelbase, track, wr, roof_rails=False, boxy=False):
+def car(name, body_mat, body_st, cabin_st, roles, wheelbase, track, wr, roof_rails=False):
     rt = root(name)
     # wheel arch cutters
     cutters = []
@@ -362,11 +369,13 @@ def car(name, body_mat, body_st, cabin_st, wheelbase, track, wr, roof_rails=Fals
             c = cyl(f"cut {sx}{sy}", rt, (sx * track, sy * wheelbase / 2, wr), wr + 0.06, 0.5, "BlackSteel", 'X', seg=32, bevel=0)
             cutters.append(c)
     loft("body", rt, [_cross_body(*s) for s in body_st], body_mat, subsurf=2, cutters=cutters)
-    belt = cabin_st[0][1]; roof_top = max(c[2] for c in cabin_st)
-    yc0 = min(c[0] for c in cabin_st); yc1 = max(c[0] for c in cabin_st); bpil = (yc0 + yc1) / 2 + 0.1
-    # paint on the roof and pillars, glass in the windows
-    is_paint = lambda c: not (belt + 0.03 < c.z < roof_top - 0.09 and yc0 + 0.12 < c.y < yc1 - 0.08 and abs(c.y - bpil) > 0.045)
-    loft("cabin", rt, [_cross_cabin(*s) for s in cabin_st], body_mat, second="CarGlass", subsurf=3, slot=is_paint)
+    roof_top = max(c[2] for c in cabin_st)
+
+    def face_slot(r, i):
+        """0 = paint, 1 = glass. roles[r] is (side windows glass?, top glass?) for that stretch of the cabin."""
+        side, top = roles[r]
+        return 1 if ((side and i in (1, 5)) or (top and i in (2, 3, 4))) else 0
+    loft("cabin", rt, [_cross_cabin(*s) for s in cabin_st], body_mat, second="CarGlass", subsurf=3, face_slot=face_slot)
     for c in cutters:
         bpy.data.objects.remove(c, do_unlink=True)
     ymin = min(s[0] for s in body_st); ymax = max(s[0] for s in body_st)
@@ -402,17 +411,21 @@ def sedan():
     body = [(2.33, 0.42, 0.92, 0.70, 0.62), (2.28, 0.35, 0.98, 0.84, 0.72), (2.0, 0.32, 1.0, 0.89, 0.78), (1.2, 0.30, 0.98, 0.9, 0.82),
             (0.0, 0.28, 0.96, 0.9, 0.84), (-1.0, 0.28, 0.98, 0.9, 0.82), (-1.6, 0.30, 0.96, 0.89, 0.76), (-2.1, 0.36, 0.84, 0.85, 0.70),
             (-2.3, 0.42, 0.66, 0.72, 0.58), (-2.33, 0.45, 0.6, 0.6, 0.5)]
-    cabin = [(1.28, 0.96, 0.98, 0.80, 0.70), (1.0, 0.96, 1.30, 0.79, 0.66), (0.6, 0.96, 1.42, 0.79, 0.64), (-0.2, 0.96, 1.43, 0.79, 0.64),
-             (-0.7, 0.96, 1.38, 0.80, 0.66), (-1.0, 0.96, 1.15, 0.82, 0.72), (-1.22, 0.96, 0.98, 0.84, 0.78)]
-    return car("sedan", "Car_main", body, cabin, 2.8, 0.83, 0.32)
+    cabin = [(1.28, 0.96, 0.98, 0.80, 0.70), (1.0, 0.96, 1.30, 0.79, 0.66), (0.6, 0.96, 1.42, 0.79, 0.64), (0.25, 0.96, 1.43, 0.79, 0.64),
+             (0.15, 0.96, 1.43, 0.79, 0.64), (-0.2, 0.96, 1.43, 0.79, 0.64), (-0.7, 0.96, 1.38, 0.80, 0.66), (-1.0, 0.96, 1.15, 0.82, 0.72),
+             (-1.22, 0.96, 0.98, 0.84, 0.78)]
+    roles = [(0, 1), (0, 1), (1, 0), (0, 0), (1, 0), (1, 0), (0, 1), (0, 1)]   # per stretch between stations
+    return car("sedan", "Car_main", body, cabin, roles, 2.8, 0.83, 0.32)
 
 
 def mpv():
     body = [(2.10, 0.40, 1.05, 0.68, 0.62), (2.05, 0.34, 1.12, 0.80, 0.72), (1.4, 0.32, 1.12, 0.83, 0.76), (0.0, 0.30, 1.08, 0.84, 0.78),
             (-1.0, 0.30, 1.06, 0.84, 0.78), (-1.45, 0.32, 1.02, 0.82, 0.72), (-1.95, 0.38, 0.86, 0.78, 0.66), (-2.1, 0.42, 0.7, 0.66, 0.56)]
-    cabin = [(1.95, 1.10, 1.12, 0.78, 0.70), (1.85, 1.10, 1.5, 0.78, 0.70), (1.4, 1.10, 1.66, 0.78, 0.70), (-0.6, 1.10, 1.68, 0.78, 0.70),
-             (-1.0, 1.10, 1.62, 0.79, 0.70), (-1.35, 1.08, 1.22, 0.8, 0.76), (-1.5, 1.05, 1.05, 0.82, 0.8)]
-    return car("mpv", "CarSilver", body, cabin, 2.65, 0.78, 0.33, roof_rails=True)
+    cabin = [(1.95, 1.10, 1.12, 0.78, 0.70), (1.85, 1.10, 1.5, 0.78, 0.70), (1.4, 1.10, 1.66, 0.78, 0.70), (0.5, 1.10, 1.68, 0.78, 0.70),
+             (0.4, 1.10, 1.68, 0.78, 0.70), (-0.6, 1.10, 1.68, 0.78, 0.70), (-1.0, 1.10, 1.62, 0.79, 0.70), (-1.35, 1.08, 1.22, 0.8, 0.76),
+             (-1.5, 1.05, 1.05, 0.82, 0.8)]
+    roles = [(0, 1), (0, 1), (1, 0), (0, 0), (1, 0), (1, 0), (0, 1), (0, 1)]
+    return car("mpv", "CarSilver", body, cabin, roles, 2.65, 0.78, 0.33, roof_rails=True)
 
 
 PIECES = [shower, vanity, bathmirror, toilet, bathtub, towelrack, bathmat, washer, dryer, basket,

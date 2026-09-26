@@ -93,6 +93,12 @@
 - **Cars:** much brighter tail lights (emission x5, wrap-around light bar) and a red point light behind each light cluster.
 - **Props pass** (v0.7.0): `tools/blender_props.py` builds 11 small props (fruit bowl, bread on a board, mugs, espresso machine, utensil crock, herb pot, towel stack, candles, cardboard boxes, paint cans, spare tyres). The builder got a `Tabletop` table so things can stand on surfaces at a given height. All are real rigid bodies, so they can be knocked about.
 
+- **Car windows fixed:** the cabin now has real edge loops at the window sill and the top of the glass, and glass or paint is picked per face before subdivision, so the window edges are clean. Also 4 pillar stretches (A, B, C) stay paint.
+- **Upper floor furnished** (v0.8.0), 27 new models from two scripts: Teacher's Room (bed with pillows and throw, nightstands and lamps, wardrobe, bookcase full of books, desk and chair, globe, chalkboard, world map), Office & Library (two bookcases, desk with monitor, two chairs, file cabinet, uplight, whiteboard, Poly Haven armchair and plants), Engineer's Room (charcoal bed, electronics bench with monitors and an oscilloscope, robot arm, 3D printer with filament, beanbag), Gym (two treadmills, dumbbell rack, bench with barbell, two spin bikes, punching bag on chains, yoga mats, water dispenser, three wall mirrors). New materials: bedding, leather, glowing screens, chalk and whiteboard, rubber, plastics, map colours, book colours and more.
+- **Tested in Play mode:** 50 rigid bodies, none moving or fallen after settling, no console errors. Looked at all four upper rooms and the gym from the garden.
+- Unity note: `Tiramisu > Build greybox house` refuses to run while Play mode is on, so stop Play before rebuilding.
+
 **Next**
-- Cleaner car windows (jagged glass edges), and a look at how the physics props settle when Play starts.
-- Then the rest of the "Next" list from session 5.
+- Amir walks through the whole house in Play and says what feels off (scale, colours, placement).
+- Kitchen and garage tweaks he asks for, then decorate mode (moving furniture with the mouse) or the people and pets, from `docs/GAME_DESIGN.md`.
+- Grass that looks like grass up close, hills on the horizon, night lighting and a day and night cycle (session 5 list).
