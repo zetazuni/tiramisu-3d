@@ -120,6 +120,7 @@ namespace Tiramisu
         public void Place(Vector3 pos, Quaternion rot)
         {
             transform.SetPositionAndRotation(pos, rot);
+            foreach (var st in GetComponentsInChildren<StickyProp>()) st.Anchor();   // small things take their new spot as home
             foreach (var rb in GetComponentsInChildren<Rigidbody>())
             {
                 if (rb.isKinematic) continue;

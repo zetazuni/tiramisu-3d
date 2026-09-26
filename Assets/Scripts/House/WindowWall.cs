@@ -20,7 +20,16 @@ namespace Tiramisu
             public float width = 1.2f;
             public float sill = 1f;       // height of the bottom above the floor
             public float top = 2.3f;      // height of the top above the floor
+            public bool curtainClosed;
             [NonSerialized] public float homeCenter, homeWidth;
+        }
+
+        /// <summary>A stretch of the wall with its own interior paint (one per room).</summary>
+        [Serializable]
+        public class Zone
+        {
+            public float from, to;
+            public Material mat;
         }
 
         public WallCutaway.Axis axis;
@@ -32,7 +41,10 @@ namespace Tiramisu
         public Vector2[] doors = new Vector2[0];
         public int interiorSide = 1;                 // which side of the wall the room is on (+1 or -1)
         public List<Win> windows = new List<Win>();
-        public Material wallMat, glassMat, frameMat, sillMat;
+        public Material wallMat, glassMat, frameMat, sillMat, curtainMat;
+        public List<Zone> zones = new List<Zone>();
+
+        readonly List<GameObject> curtainObjects = new List<GameObject>();
 
         public static readonly float[] Widths = { 0.8f, 1.2f, 1.6f, 2.2f };
         const float MinGap = 0.2f;
@@ -45,6 +57,14 @@ namespace Tiramisu
         void Awake()
         {
             foreach (var w in windows) { w.homeCenter = w.center; w.homeWidth = w.width; }
+            // the curtains were built in the editor: pick them up again so clicks can toggle them
+            if (transform.parent)
+                foreach (var c in transform.parent.GetComponentsInChildren<Curtain>(true))
+                {
+                    if (c.wall != this) continue;
+                    while (curtainObjects.Count <= c.index) curtainObjects.Add(null);
+                    curtainObjects[c.index] = c.gameObject;
+                }
             if (LoadSaved()) Rebuild();
         }
 
@@ -113,6 +133,17 @@ namespace Tiramisu
                 if (Application.isPlaying) Destroy(g); else DestroyImmediate(g);
             }
 
+            var cutWall = GetComponent<WallCutaway>();
+            foreach (var c in curtainObjects)
+            {
+                if (!c) continue;
+                if (cutWall) cutWall.attachments.Remove(c);
+                c.SetActive(false);
+                c.transform.SetParent(null, false);
+                if (Application.isPlaying) Destroy(c); else DestroyImmediate(c);
+            }
+            curtainObjects.Clear();
+
             var cuts = new List<(float a, float b, Win w, bool door)>();
             foreach (var d in doors) cuts.Add((d.x, d.y, null, true));
             foreach (var w in windows) cuts.Add((w.center - w.width * 0.5f, w.center + w.width * 0.5f, w, false));
@@ -131,6 +162,7 @@ namespace Tiramisu
                     if (w.sill > 0.01f) Solid($"{name} under window {n++}", c.a, c.b, 0f, w.sill);
                     if (w.top < wallHeight - 0.01f) Solid($"{name} over window {n++}", c.a, c.b, w.top, wallHeight);
                     Glazing(idx, w);
+                    BuildCurtain(idx, w);
                 }
                 cursor = c.b;
             }
@@ -156,7 +188,30 @@ namespace Tiramisu
         Vector3 P(float along, float h, float depth) =>
             axis == WallCutaway.Axis.X ? new Vector3(depth, floorY + h, along) : new Vector3(along, floorY + h, depth);
 
-        void Solid(string nm, float a, float b, float h0, float h1) => Box(nm, P(a, h0, at), P(b, h1, at + thick), wallMat);
+        /// <summary>Concrete wall: a plain outer skin, and on the room side a thicker layer in the room's own paint.</summary>
+        void Solid(string nm, float a, float b, float h0, float h1)
+        {
+            if (zones.Count == 0 || interiorSide < 0)
+            {
+                Box(nm, P(a, h0, at), P(b, h1, at + thick), wallMat);
+                return;
+            }
+            float split = at + thick * 0.55f;
+            int k = 0;
+            float cur = a;
+            while (cur < b - 0.0005f)
+            {
+                Zone z = null;
+                foreach (var zz in zones) if (cur >= zz.from - 0.0005f && cur < zz.to - 0.0005f) { z = zz; break; }
+                float end = z != null ? Mathf.Min(b, z.to) : b;
+                if (z == null) foreach (var zz in zones) if (zz.from > cur) end = Mathf.Min(end, zz.from);
+                if (end <= cur + 0.0005f) break;
+                Box($"{nm} outer {k}", P(cur, h0, at), P(end, h1, split), wallMat);
+                Box($"{nm} paint {k}", P(cur, h0, split), P(end, h1, at + thick), z != null && z.mat ? z.mat : wallMat);
+                cur = end;
+                k++;
+            }
+        }
 
         void Glazing(int idx, Win w)
         {
@@ -180,6 +235,67 @@ namespace Tiramisu
             float inner = interiorSide > 0 ? at + thick : at;
             float sillOut = interiorSide > 0 ? inner + 0.08f : inner - 0.08f;
             Part($"Window {idx} sill", a - 0.04f, w.sill - 0.03f, b + 0.04f, w.sill, Mathf.Min(inner, sillOut), Mathf.Max(inner, sillOut), sillMat);
+        }
+
+        // ---------- curtains ----------
+
+        public void ToggleCurtain(int index)
+        {
+            if (index < 0 || index >= curtainObjects.Count || !curtainObjects[index]) return;
+            var c = curtainObjects[index].GetComponent<Curtain>();
+            if (c) c.Toggle();
+        }
+
+        void BuildCurtain(int idx, Win w)
+        {
+            if (!curtainMat) return;
+            float inner = interiorSide > 0 ? at + thick : at;
+            float depth = inner + interiorSide * 0.13f;
+            float a = w.center - w.width * 0.5f, b = w.center + w.width * 0.5f;
+            float top = w.top + 0.16f, bottom = Mathf.Max(0.04f, w.sill - 0.18f);
+
+            // a rod with two brackets, part of the wall so it hides with it
+            Box($"Curtain rod {idx}", P(a - 0.22f, top + 0.02f, depth - 0.015f), P(b + 0.22f, top + 0.06f, depth + 0.015f), frameMat);
+
+            var root = new GameObject($"Curtain {idx}");
+            root.transform.SetParent(transform.parent, false);
+            bool xWall = axis == WallCutaway.Axis.X;
+            var rot = xWall ? Quaternion.Euler(0f, -90f, 0f) : Quaternion.identity;   // local x runs along the wall, local z into the room
+            float dsign = xWall ? -1f : 1f;                                           // local z sign that points into the room
+            var cur = root.AddComponent<Curtain>();
+            cur.wall = this;
+            cur.index = idx;
+            cur.left = MakePanel(root.transform, $"Left", P(a - 0.12f, 0f, depth), rot, +1f, (b - a) * 0.5f + 0.17f, bottom, top, dsign);
+            cur.right = MakePanel(root.transform, $"Right", P(b + 0.12f, 0f, depth), rot, -1f, (b - a) * 0.5f + 0.17f, bottom, top, dsign);
+            cur.SetInstant(w.curtainClosed);
+            while (curtainObjects.Count <= idx) curtainObjects.Add(null);
+            curtainObjects[idx] = root;
+            var cutW = GetComponent<WallCutaway>();
+            if (cutW) cutW.attachments.Add(root);
+        }
+
+        Transform MakePanel(Transform parent, string nm, Vector3 pivot, Quaternion rot, float dir, float length, float bottom, float top, float dsign)
+        {
+            var p = new GameObject($"Panel {nm}");
+            p.transform.SetParent(parent, false);
+            p.transform.SetPositionAndRotation(pivot, rot);
+            int n = Mathf.Max(4, Mathf.CeilToInt(length / 0.09f));
+            float sw = length / n;
+            for (int i = 0; i < n; i++)
+            {
+                var g = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                g.name = $"Fold {i}";
+                g.transform.SetParent(p.transform, false);
+                float pleat = (i % 2 == 0 ? 1f : -1f) * 0.014f * dsign;
+                g.transform.localPosition = new Vector3(dir * (i + 0.5f) * sw, floorY + (bottom + top) * 0.5f - pivot.y, pleat);
+                g.transform.localScale = new Vector3(sw * 1.08f, top - bottom, 0.03f);
+                g.GetComponent<Renderer>().sharedMaterial = curtainMat;
+                if (Application.isPlaying) Destroy(g.GetComponent<Collider>()); else DestroyImmediate(g.GetComponent<Collider>());
+            }
+            var box = p.AddComponent<BoxCollider>();
+            box.center = new Vector3(dir * length * 0.5f, floorY + (bottom + top) * 0.5f - pivot.y, 0f);
+            box.size = new Vector3(length, top - bottom, 0.08f);
+            return p.transform;
         }
 
         // ---------- saving ----------

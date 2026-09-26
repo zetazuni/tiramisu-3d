@@ -18,7 +18,9 @@ namespace Tiramisu.EditorTools
         const float FLOOR_TOP = 0.02f; // room floor plates are 2 cm thick, furniture stands on top
 
         static Material oak, oakDark, wallWhite, cap, slab, tile, bathTile, garageFloor, gym, lawn, lawnDark,
-            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, doorWood;
+            deck, water, poolTile, stone, glass, steel, roof, trunk, leaf, mailbox, lampGlow, poolGlow, doorWood, asphalt, apron, shutter, shutterDark, lineWhite, lineYellow, curtainFabric,
+            pLiving, pKitchen, pHall, pBath, pGarage, pTeacher, pOffice, pLanding, pEngineer, pGym;
+        static Material sideMinus, sidePlus;   // room paints for the two faces of an interior wall, set just before building it
 
         // ---------- render pipeline ----------
 
@@ -42,6 +44,8 @@ namespace Tiramisu.EditorTools
         static Material Pl(string name, Color c, float smooth, float metal = 0f)
             => MaterialLibrary.Plain($"{MatDir}/{name}.mat", c, smooth, metal);
 
+        static Material Paint(string name, Color c) => Tn(name, "white_plaster_02", MaterialLibrary.Mapping.Triplanar, c, new Vector2(0.02f, 0.22f), 0.3f);
+
         static Material Glowing(string name, Color c, Color emit)
         {
             var m = Pl(name, c, 0.6f);
@@ -63,7 +67,7 @@ namespace Tiramisu.EditorTools
             tile = Tx("KitchenTile", "marble_tiles", P, new Vector2(0.35f, 0.65f));
             bathTile = Tx("BathTile", "large_grey_tiles", P, new Vector2(0.3f, 0.6f));
             garageFloor = Tn("GarageFloor", "concrete_floor", P, new Color(0.62f, 0.62f, 0.63f), new Vector2(0.2f, 0.5f));
-            gym = Tx("GymFloor", "rubber_tiles", P, new Vector2(0.05f, 0.35f));
+            gym = Tn("GymFloor", "rubber_tiles", P, new Color(0.85f, 0.87f, 0.92f), new Vector2(0.05f, 0.32f));
             lawn = Tn("Lawn", "leafy_grass", P, new Color(0.40f, 0.58f, 0.24f), new Vector2(0f, 0.3f));
             lawnDark = Tn("LawnEdge", "leafy_grass", P, new Color(0.33f, 0.48f, 0.21f), new Vector2(0f, 0.25f));
             deck = Tn("Deck", "wood_floor_deck", P, new Color(0.64f, 0.47f, 0.33f), new Vector2(0.15f, 0.5f));
@@ -76,6 +80,23 @@ namespace Tiramisu.EditorTools
             trunk = Tx("Trunk", "bark_brown_02", T, new Vector2(0f, 0.3f));
             leaf = Pl("Leaves", new Color(0.25f, 0.42f, 0.2f), 0.3f);
             mailbox = Pl("Mailbox", new Color(0.04f, 0.04f, 0.045f), 0.6f, 0.8f);
+            asphalt = Tn("Asphalt", "concrete_floor", P, new Color(0.16f, 0.16f, 0.17f), new Vector2(0.1f, 0.3f));
+            apron = Tn("DrivewayApron", "precast_stone_paving", P, new Color(0.62f, 0.62f, 0.62f), new Vector2(0.1f, 0.4f));
+            shutter = Pl("GarageShutter", new Color(0.62f, 0.64f, 0.67f), 0.45f, 0.6f);
+            shutterDark = Pl("GarageShutterDark", new Color(0.04f, 0.045f, 0.05f), 0.5f, 0.3f);
+            lineWhite = Pl("RoadWhite", new Color(0.9f, 0.9f, 0.88f), 0.3f);
+            lineYellow = Pl("RoadYellow", new Color(0.9f, 0.72f, 0.15f), 0.3f);
+            curtainFabric = Tn("CurtainFabric", "rough_linen", T, new Color(0.88f, 0.85f, 0.78f), new Vector2(0f, 0.2f));
+            pLiving = Paint("PaintLiving", new Color(0.90f, 0.83f, 0.72f));      // warm sand
+            pKitchen = Paint("PaintKitchen", new Color(0.70f, 0.80f, 0.72f));    // sage green
+            pHall = Paint("PaintHall", new Color(0.94f, 0.93f, 0.90f));          // soft white
+            pBath = Paint("PaintBath", new Color(0.69f, 0.84f, 0.87f));          // aqua
+            pGarage = Paint("PaintGarage", new Color(0.66f, 0.68f, 0.72f));      // cool grey
+            pTeacher = Paint("PaintTeacher", new Color(0.93f, 0.78f, 0.79f));    // blush
+            pOffice = Paint("PaintOffice", new Color(0.52f, 0.64f, 0.73f));      // blue grey
+            pLanding = Paint("PaintLanding", new Color(0.95f, 0.94f, 0.92f));    // white
+            pEngineer = Paint("PaintEngineer", new Color(0.48f, 0.53f, 0.59f));  // slate
+            pGym = Paint("PaintGym", new Color(0.90f, 0.64f, 0.53f));            // coral
             doorWood = Tn("DoorWood", "american_walnut_veneer", T, new Color(0.62f, 0.42f, 0.27f), new Vector2(0.3f, 0.5f), 1f);
             lampGlow = Glowing("LampGlow", new Color(1f, 0.82f, 0.55f), new Color(1f, 0.7f, 0.35f) * 2.2f);
             poolGlow = Glowing("PoolGlow", new Color(0.5f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 2.5f);
@@ -131,12 +152,16 @@ namespace Tiramisu.EditorTools
             if (to > cursor) Segment(line, $"{name} {i}", axis, at, thick, cursor, to, floorY, floorY + H, m, isGlass);
         }
 
+        static WindowWall.Zone Zone(float from, float to, Material mat) => new WindowWall.Zone { from = from, to = to, mat = mat };
+
+        static void Paint2(Material minus, Material plus) { sideMinus = minus; sidePlus = plus; }
+
         static WindowWall.Win Win(float center, float width, float sill, float top)
             => new WindowWall.Win { center = center, width = width, sill = sill, top = top, homeCenter = center, homeWidth = width };
 
         /// <summary>A concrete wall line whose windows can be moved and resized in decorate mode (see WindowWall).</summary>
         static void WindowedWall(Transform parent, string name, WallCutaway.Axis axis, float at, float thick,
-            float from, float to, float floorY, Material m, params WindowWall.Win[] wins)
+            float from, float to, float floorY, Material m, WindowWall.Zone[] zones, params WindowWall.Win[] wins)
         {
             var line = Group(name, parent);
             var cut = line.gameObject.AddComponent<WallCutaway>();
@@ -149,6 +174,8 @@ namespace Tiramisu.EditorTools
             ww.axis = axis; ww.at = at; ww.thick = thick; ww.from = from; ww.to = to; ww.floorY = floorY;
             ww.wallHeight = H; ww.doorHeight = DOOR_H; ww.interiorSide = 1;
             ww.wallMat = m; ww.glassMat = glass; ww.frameMat = steel; ww.sillMat = oak;
+            ww.curtainMat = curtainFabric;
+            ww.zones.AddRange(zones);
             ww.windows.AddRange(wins);
             ww.Rebuild();
         }
@@ -219,15 +246,114 @@ namespace Tiramisu.EditorTools
             AttachTo(wallPath, root.gameObject);   // hides with its wall when the wall is cut down
         }
 
-        static void BuildDoors(Transform house)
+        /// <summary>A pair of modern walnut doors on hinges in a slim black frame. Swings out to the garden.</summary>
+        static void HingedDoubleDoor(Transform parent, string wallPath, string label, float a, float b)
+        {
+            var root = Group($"Hinged door: {label}", parent);
+            float zc = WD + GLASS * 0.5f;
+            const float f = 0.05f;
+            Box("Frame left", root, new Vector3(a - f, 0.02f, zc - 0.05f), new Vector3(a, DOOR_H + f, zc + 0.05f), steel);
+            Box("Frame right", root, new Vector3(b, 0.02f, zc - 0.05f), new Vector3(b + f, DOOR_H + f, zc + 0.05f), steel);
+            Box("Frame head", root, new Vector3(a - f, DOOR_H, zc - 0.05f), new Vector3(b + f, DOOR_H + f, zc + 0.05f), steel);
+            Box("Threshold", root, new Vector3(a, 0f, zc - 0.07f), new Vector3(b, 0.02f, zc + 0.07f), steel);
+            float half = (b - a) * 0.5f;
+            var leaves = new Transform[2];
+            var angles = new float[2];
+            for (int i = 0; i < 2; i++)
+            {
+                bool leftLeaf = i == 0;
+                var hinge = Group(leftLeaf ? "Leaf left" : "Leaf right", root);
+                float hx = leftLeaf ? a : b, dir = leftLeaf ? 1f : -1f, free = hx + dir * (half - 0.01f);
+                float lo = Mathf.Min(hx, free), hi = Mathf.Max(hx, free);
+                hinge.position = new Vector3(hx, 0f, zc);
+                Box("Slab", hinge, new Vector3(lo, 0.02f, zc - 0.03f), new Vector3(hi, DOOR_H - 0.01f, zc + 0.03f), doorWood);
+                for (int g = 1; g < 5; g++)
+                {
+                    float x = lo + (hi - lo) * g / 5f;
+                    Box($"Groove {g}", hinge, new Vector3(x - 0.004f, 0.1f, zc + 0.029f), new Vector3(x + 0.004f, DOOR_H - 0.1f, zc + 0.032f), steel, false);
+                }
+                float hxp = free - dir * 0.1f;
+                Box("Handle out", hinge, new Vector3(hxp - 0.015f, 0.8f, zc + 0.03f), new Vector3(hxp + 0.015f, 1.7f, zc + 0.065f), steel);
+                Box("Handle in", hinge, new Vector3(hxp - 0.015f, 0.8f, zc - 0.065f), new Vector3(hxp + 0.015f, 1.7f, zc - 0.03f), steel);
+                leaves[i] = hinge;
+                angles[i] = leftLeaf ? -100f : 100f;   // both swing out towards the garden
+            }
+            var door = root.gameObject.AddComponent<HingedDoor>();
+            door.leaves = leaves;
+            door.angles = angles;
+            door.openSeconds = 1.0f;
+            door.sensorCenter = new Vector3((a + b) * 0.5f, 1.1f, zc + 0.2f);
+            door.sensorSize = new Vector3((b - a) + 1.0f, 2.2f, 3.4f);
+            AttachTo(wallPath, root.gameObject);
+        }
+
+        /// <summary>A roller shutter garage door in the end wall: slats that roll up into a housing above the opening.</summary>
+        static void GarageShutter(Transform parent, string wallPath, float a, float b)
+        {
+            var root = Group("Garage shutter door", parent);
+            float xd = WX + GLASS + 0.03f, t = 0.04f, h = DOOR_H;
+            var panel = Group("Panel", root);
+            panel.position = new Vector3(xd, h, 0f);   // the top edge, the slats hang below it and squash towards it when it opens
+            Box("Backing", panel, new Vector3(xd - 0.012f, 0.02f, a - 0.02f), new Vector3(xd, h, b + 0.02f), shutterDark, false);
+            const int n = 11;
+            float sh = (h - 0.02f) / n;
+            for (int i = 0; i < n; i++)
+            {
+                float top = h - i * sh;
+                Box($"Slat {i + 1}", panel, new Vector3(xd, top - sh + 0.004f, a - 0.02f), new Vector3(xd + t, top - 0.004f, b + 0.02f), (i == 2 || i == 3) ? shutterDark : shutter);
+            }
+            Box("Housing", root, new Vector3(xd - 0.03f, h - 0.02f, a - 0.12f), new Vector3(xd + 0.3f, h + 0.34f, b + 0.12f), steel);
+            Box("Guide rail a", root, new Vector3(xd - 0.03f, 0.02f, a - 0.08f), new Vector3(xd + 0.08f, h, a - 0.02f), steel);
+            Box("Guide rail b", root, new Vector3(xd - 0.03f, 0.02f, b + 0.02f), new Vector3(xd + 0.08f, h, b + 0.08f), steel);
+            var door = root.gameObject.AddComponent<ShutterDoor>();
+            door.panel = panel;
+            door.openScale = 0.06f;
+            door.openSeconds = 1.6f;
+            door.stayOpenSeconds = 2.5f;
+            door.sensorCenter = new Vector3(xd + 0.3f, 1.1f, (a + b) * 0.5f);
+            door.sensorSize = new Vector3(3.6f, 2.2f, (b - a) + 0.8f);
+            AttachTo(wallPath, root.gameObject);
+        }
+
+        /// <summary>The road along the garage side, with a driveway apron and a ramp down from the garage floor.</summary>
+        static void Road(Transform g, float gy)
+        {
+            var road = Group("Road", g);
+            float rx0 = 34.6f, rx1 = 41f, top = gy + 0.02f;
+            Box("Driveway apron", road, new Vector3(WX + GLASS, gy, 1.6f), new Vector3(33.2f, -0.03f, 6.4f), apron);
+            // ramp from the apron down to the road
+            float dx = rx0 - 33.2f, dy = top - (-0.03f), len = Mathf.Sqrt(dx * dx + dy * dy);
+            var ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ramp.name = "Driveway ramp";
+            ramp.transform.SetParent(road, false);
+            ramp.transform.position = new Vector3(33.2f + dx * 0.5f, -0.03f + dy * 0.5f - 0.05f, 4f);
+            ramp.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dy, dx) * Mathf.Rad2Deg);
+            ramp.transform.localScale = new Vector3(len, 0.1f, 4.8f);
+            ramp.GetComponent<Renderer>().sharedMaterial = apron;
+            Box("Road", road, new Vector3(rx0, gy, -30f), new Vector3(rx1, top, 50f), asphalt);
+            Box("Kerb near", road, new Vector3(rx0 - 0.18f, gy, -30f), new Vector3(rx0, gy + 0.16f, 50f), stone);
+            Box("Kerb far", road, new Vector3(rx1, gy, -30f), new Vector3(rx1 + 0.18f, gy + 0.16f, 50f), stone);
+            float cx = (rx0 + rx1) * 0.5f;
+            for (float z = -28f; z < 48f; z += 4f)
+                Box("Centre line", road, new Vector3(cx - 0.07f, top, z), new Vector3(cx + 0.07f, top + 0.005f, z + 2f), lineWhite, false);
+            Box("Edge line near", road, new Vector3(rx0 + 0.3f, top, -30f), new Vector3(rx0 + 0.4f, top + 0.005f, 50f), lineWhite, false);
+            Box("Edge line far", road, new Vector3(rx1 - 0.4f, top, -30f), new Vector3(rx1 - 0.3f, top + 0.005f, 50f), lineWhite, false);
+        }
+
+        static void BuildDoors(Transform house, Transform upper)
         {
             var g0 = Group("Doors ground floor", house);
             const string gw = "House/Ground floor/Walls/";
+            // ordinary modern wooden doors in the garden facade, and the garage roller shutter to the road
+            HingedDoubleDoor(g0, gw + "Front glass", "living room to the garden", 3f, 5f);
+            HingedDoubleDoor(g0, gw + "Front glass", "kitchen to the garden", 10f, 12f);
+            HingedDoubleDoor(g0, gw + "Front glass", "bathroom to the garden", 18f, 20f);
+            GarageShutter(g0, gw + "Garage end glass", 2f, 6f);
             SlidingDoorAt(g0, gw + "Living and kitchen glass", "living room and kitchen", WallCutaway.Axis.X, 8f - PART / 2, PART, 3f, 5f, 0f, true, 1, -1);
             SlidingDoorAt(g0, gw + "Kitchen and hall wall", "kitchen and stair hall", WallCutaway.Axis.X, 14f - PART / 2, PART, 6.2f, 7.8f, 0f, false, -1, -1);
             SlidingDoorAt(g0, gw + "Hall and bathroom wall", "stair hall and bathroom", WallCutaway.Axis.X, 16f - PART / 2, PART, 6.2f, 7.8f, 0f, false, 1, -1);
             SlidingDoorAt(g0, gw + "Bathroom and garage glass", "bathroom and garage", WallCutaway.Axis.X, 22f - PART / 2, PART, 3f, 5f, 0f, true, 1, -1);
-            var g1 = Group("Doors upper floor", house);
+            var g1 = Group("Doors upper floor", upper);   // inside the upper floor, so they hide with it
             const string uw = "House/Upper floor/Walls/";
             SlidingDoorAt(g1, uw + "Teacher and office wall", "teacher's room and office", WallCutaway.Axis.X, 8f - PART / 2, PART, 3f, 5f, UPY, false, 1, -1);
             SlidingDoorAt(g1, uw + "Office and landing wall", "office and landing", WallCutaway.Axis.X, 14f - PART / 2, PART, 0.4f, 1.8f, UPY, false, 1, 1);
@@ -240,7 +366,16 @@ namespace Tiramisu.EditorTools
         {
             Vector3 min = axis == WallCutaway.Axis.X ? new Vector3(at, y0, a) : new Vector3(a, y0, at);
             Vector3 max = axis == WallCutaway.Axis.X ? new Vector3(at + thick, y1, b) : new Vector3(b, y1, at + thick);
-            Box(name, line, min, max, m, !isGlass);
+            if (!isGlass && sideMinus && sidePlus)
+            {
+                // an interior wall: each face in the paint of the room it looks into
+                float mid = at + thick * 0.5f;
+                Vector3 maxA = axis == WallCutaway.Axis.X ? new Vector3(mid, y1, b) : new Vector3(b, y1, mid);
+                Vector3 minB = axis == WallCutaway.Axis.X ? new Vector3(mid, y0, a) : new Vector3(a, y0, mid);
+                Box(name + " a", line, min, maxA, sideMinus, true);
+                Box(name + " b", line, minB, max, sidePlus, true);
+            }
+            else Box(name, line, min, max, m, !isGlass);
             if (isGlass) Frames(line, name, axis, at, thick, a, b, y0, y1);
         }
 
@@ -275,7 +410,8 @@ namespace Tiramisu.EditorTools
             if (m) // real rooms get a warm ceiling light and a reflection probe
             {
                 bool crisp = name == "Garage" || name == "Gym" || name == "Bathroom" || name == "Office & Library";
-                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, crisp ? 5200f : 4300f, true);
+                float boost = name == "Gym" ? 3.6f : name == "Garage" ? 1.3f : 1f;   // the gym floor and paint are darker, give it more light
+                CinematicSetup.RoomLightAndProbe(parent, name, mark.transform.position, rm.size, H, crisp ? 5200f : 4300f, true, boost);
             }
         }
 
@@ -297,7 +433,7 @@ namespace Tiramisu.EditorTools
             var roofGroup = Group("Roof", house);
             BuildRoof(roofGroup);
             BuildGarden(Group("Garden", null));
-            BuildDoors(house);
+            BuildDoors(house, upper);
             Furnish(Group("Furniture", house), upper);
             var hv = BuildRig(upper.gameObject, roofGroup.gameObject);
             PhysicsSetup.AssignSurfaces(house);
@@ -326,14 +462,18 @@ namespace Tiramisu.EditorTools
 
             var walls = Group("Walls", g);
             WindowedWall(walls, "Back wall", WallCutaway.Axis.Z, -OUT, OUT, -OUT, WX + GLASS, 0f, wallWhite,
+                new[] { Zone(-1f, 8f, pLiving), Zone(8f, 14f, pKitchen), Zone(14f, 16f, pHall), Zone(16f, 22f, pBath), Zone(22f, 31f, pGarage) },
                 Win(1.9f, 1.2f, 1.0f, 2.3f), Win(6.2f, 1.2f, 1.0f, 2.3f), Win(15f, 0.8f, 0.9f, 2.5f), Win(20.4f, 1.4f, 1.9f, 2.5f), Win(27f, 1.2f, 1.2f, 2.3f));
-            WindowedWall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, 0f, wallWhite, Win(5.2f, 1.6f, 0.9f, 2.3f));
-            Wall(walls, "Garage end glass", WallCutaway.Axis.X, WX, GLASS, 0f, WD, 0f, glass, true);
+            WindowedWall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, 0f, wallWhite, new[] { Zone(-1f, 9f, pLiving) }, Win(5.2f, 1.6f, 0.9f, 2.3f));
+            Wall(walls, "Garage end glass", WallCutaway.Axis.X, WX, GLASS, 0f, WD, 0f, glass, true, new Vector2(2f, 6f));   // the shutter door to the road
             Wall(walls, "Front glass", WallCutaway.Axis.Z, WD, GLASS, 0f, WX + GLASS, 0f, glass, true,
                 new Vector2(3, 5), new Vector2(10, 12), new Vector2(18, 20), new Vector2(24, 28));
             Wall(walls, "Living and kitchen glass", WallCutaway.Axis.X, 8f - PART / 2, PART, 0f, WD, 0f, glass, true, new Vector2(3, 5));
+            Paint2(pKitchen, pHall);
             Wall(walls, "Kitchen and hall wall", WallCutaway.Axis.X, 14f - PART / 2, PART, 0f, WD, 0f, wallWhite, false, new Vector2(6.2f, 7.8f));
+            Paint2(pHall, pBath);
             Wall(walls, "Hall and bathroom wall", WallCutaway.Axis.X, 16f - PART / 2, PART, 0f, WD, 0f, wallWhite, false, new Vector2(6.2f, 7.8f));
+            Paint2(null, null);
             Wall(walls, "Bathroom and garage glass", WallCutaway.Axis.X, 22f - PART / 2, PART, 0f, WD, 0f, glass, true, new Vector2(3, 5));
 
             // floating oak stairs climbing from the front of the hall (z 6) up to the landing (z 2)
@@ -364,13 +504,18 @@ namespace Tiramisu.EditorTools
 
             var walls = Group("Walls", g);
             WindowedWall(walls, "Back wall", WallCutaway.Axis.Z, -OUT, OUT, -OUT, WX + GLASS, UPY, wallWhite,
+                new[] { Zone(-1f, 8f, pTeacher), Zone(8f, 14f, pOffice), Zone(14f, 16f, pLanding), Zone(16f, 22f, pEngineer), Zone(22f, 31f, pGym) },
                 Win(7.3f, 0.9f, 1.0f, 2.2f), Win(15f, 0.8f, 1.0f, 2.4f), Win(29.2f, 1.2f, 1.2f, 2.4f));
-            WindowedWall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, UPY, wallWhite, Win(1.65f, 1.0f, 1.0f, 2.2f));
+            WindowedWall(walls, "Left wall", WallCutaway.Axis.X, -OUT, OUT, 0f, WD + GLASS, UPY, wallWhite, new[] { Zone(-1f, 9f, pTeacher) }, Win(1.65f, 1.0f, 1.0f, 2.2f));
             Wall(walls, "Gym end glass", WallCutaway.Axis.X, WX, GLASS, 0f, WD, UPY, glass, true);
             Wall(walls, "Front glass", WallCutaway.Axis.Z, WD, GLASS, 0f, WX + GLASS, UPY, glass, true);
+            Paint2(pTeacher, pOffice);
             Wall(walls, "Teacher and office wall", WallCutaway.Axis.X, 8f - PART / 2, PART, 0f, WD, UPY, wallWhite, false, new Vector2(3, 5));
+            Paint2(pOffice, pLanding);
             Wall(walls, "Office and landing wall", WallCutaway.Axis.X, 14f - PART / 2, PART, 0f, WD, UPY, wallWhite, false, new Vector2(0.4f, 1.8f));
+            Paint2(pLanding, pEngineer);
             Wall(walls, "Landing and engineer wall", WallCutaway.Axis.X, 16f - PART / 2, PART, 0f, WD, UPY, wallWhite, false, new Vector2(0.4f, 1.8f));
+            Paint2(null, null);
             Wall(walls, "Engineer and gym glass", WallCutaway.Axis.X, 22f - PART / 2, PART, 0f, WD, UPY, glass, true, new Vector2(3, 5));
         }
 
@@ -405,6 +550,8 @@ namespace Tiramisu.EditorTools
             Box("Lawn right", g, new Vector3(px1, gy - 0.02f, pz0), new Vector3(34f, gy, pz1), lawn);
 
             Box("Deck", g, new Vector3(0f, gy, WD + GLASS), new Vector3(WX + GLASS, -0.06f, 10.5f), deck);
+
+            Road(g, gy);
 
             var pool = Group("Pool", g);
             Box("Pool basin", pool, new Vector3(px0, gy - 1.4f, pz0), new Vector3(px1, gy - 1.3f, pz1), poolTile);
@@ -559,8 +706,6 @@ namespace Tiramisu.EditorTools
             ("geomrug", 4f, 4.3f, 0f, 0),
             ("sofa", 4f, 3.1f, 0f, 0),
             ("marbletable", 4f, 4.6f, 0f, 0),
-            ("cushion", 3.35f, 3.05f, 12f, 0),
-            ("cushion", 4.7f, 3.05f, -8f, 0),
             // kitchen (x 8 to 14): counter run on the back wall, fridge beside it, island, stools, dining set
             ("kitchenrun", 11.62f, 0.34f, 0f, 0),
             ("fridge", 8.98f, 0.4f, 0f, 0),
@@ -644,6 +789,9 @@ namespace Tiramisu.EditorTools
         /// <summary>Small things standing on surfaces: model id, x, y (height of the surface in metres), z and rotation.</summary>
         static readonly (string id, float x, float y, float z, float rot)[] Tabletop =
         {
+            // cushions sit on the sofa seat (they no longer drop and settle, they stay put, see StickyProp)
+            ("cushion", 3.39f, 0.71f, 3.11f, 12f),
+            ("cushion", 4.65f, 0.75f, 3.11f, -8f),
             // kitchen island top is 0.94 m, counter top 0.92 m
             ("fruitbowl", 10.55f, 0.94f, 3.6f, 0f),
             ("cuttingboard", 12.4f, 0.94f, 3.55f, 12f),

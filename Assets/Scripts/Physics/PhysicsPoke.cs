@@ -22,6 +22,16 @@ namespace Tiramisu
             if (!orbit || !orbit.ClickedThisFrame || DecorateMode.Active) return;
             var ray = cam.ScreenPointToRay(Input.mousePosition);
             if (!Physics.Raycast(ray, out var hit, 200f)) return;
+            // a click on a curtain, or on a window (through its curtain), draws the curtains
+            var curtain = hit.collider.GetComponentInParent<Curtain>();
+            if (curtain) { curtain.Toggle(); return; }
+            var part = hit.collider.GetComponent<WallWindowPart>();
+            if (part) { part.wall.ToggleCurtain(part.index); return; }
+
+            Vector3 flat = new Vector3(ray.direction.x, 0f, ray.direction.z).normalized;
+            var sticky = hit.collider.GetComponentInParent<StickyProp>();
+            if (sticky) { sticky.Nudge(flat); return; }   // small things only shift a little and settle back
+
             var rb = hit.rigidbody;
             if (!rb || rb.isKinematic) return;
             Vector3 dir = new Vector3(ray.direction.x, 0f, ray.direction.z).normalized;   // sideways only, never lifts or tips

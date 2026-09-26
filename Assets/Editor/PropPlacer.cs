@@ -110,6 +110,7 @@ namespace Tiramisu.EditorTools
                     rb.interpolation = RigidbodyInterpolation.Interpolate;
                     rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
                     PhysicsSetup.Steady(rb);
+                    PhysicsSetup.MakeSticky(rb, p.mass);
                 }
                 return;
             }
@@ -138,6 +139,7 @@ namespace Tiramisu.EditorTools
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = p.mass < 5f ? CollisionDetectionMode.ContinuousDynamic : CollisionDetectionMode.Discrete;
                 PhysicsSetup.Steady(rb);
+                PhysicsSetup.MakeSticky(rb, p.mass);
             }
         }
     }

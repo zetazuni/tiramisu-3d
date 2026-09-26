@@ -89,7 +89,7 @@ namespace Tiramisu.EditorTools
             { "waterdispenser", new FurnitureSpec { mass = 18f, dynamic = true } },
             { "gymmirror", new FurnitureSpec { mass = 12f, dynamic = false } },
             { "planter", new FurnitureSpec { mass = 14f, dynamic = false } },
-            { "cushion",     new FurnitureSpec { mass = 0.8f, dynamic = true, dropHeight = 0.9f } },
+            { "cushion",     new FurnitureSpec { mass = 0.8f, dynamic = true } },
         };
 
         public static FurnitureSpec Spec(string id) =>
@@ -208,6 +208,15 @@ namespace Tiramisu.EditorTools
             Steady(rb);
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = spec.mass < 5f ? CollisionDetectionMode.ContinuousDynamic : CollisionDetectionMode.Discrete;
+            MakeSticky(rb, spec.mass);
+        }
+
+        /// <summary>Anything under 3 kg sits fast on its surface (see StickyProp): it only shifts a little and settles back in 200 ms.</summary>
+        public static void MakeSticky(Rigidbody rb, float mass)
+        {
+            if (mass >= 3f) return;
+            rb.isKinematic = true;
+            if (!rb.GetComponent<StickyProp>()) rb.gameObject.AddComponent<StickyProp>();
         }
     }
 }

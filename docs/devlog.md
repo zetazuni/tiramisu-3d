@@ -126,7 +126,18 @@ Amir's notes on the first night: too glowy and reflective, lights too strong and
 - **Movable windows:** 11 windows in the concrete outer walls (living room, stair hall, bathroom high window, garage, teacher's room, landing, gym). Drag along the wall in decorate mode, R for the width. Tested through the API: it refuses to overlap a neighbour or the wall end, accepts a nudge, cycles the width, and a reset restores everything.
 - Not tested with a real mouse: hovering over doors, dragging windows. Please try both.
 
+## Session 9: curtains, front doors, garage shutter, paint (2026-09-26) · v0.11.0
+
+- **Small things stick to their spot.** Everything under 3 kg (cushions, books, towels, mug, fruit bowl, vases, lamps and so on, 40 pieces) is kinematic and anchored. A click shifts it 3 cm and tilts it 5 degrees and it eases back in 200 ms. Carried by the piece it sits on in decorate mode (the cushions go with the sofa). Tested: a nudged cushion moved 0.030 m and stayed kinematic.
+- **Upper floor sliding doors hid properly:** they were outside the upper floor group. Now inside it.
+- **Curtains** on all 11 windows, click to draw or open. Found by testing that toggling did nothing after Play started (the editor built ones were not known to the script), fixed, then tested again.
+- **Gym light** 3.6x and a lighter floor, garage 1.3x. Compared before and after at night from the same spot.
+- **Front doors:** pairs of walnut hinged doors in a black frame in the garden facade (living room, kitchen, bathroom, no door for the garage), they swing out. Opening tested through the API (both leaves swing 100 degrees).
+- **Garage shutter door** in the end wall opening onto a new driveway (apron, ramp) and a road with kerbs and lane lines along the east side. Rolls up on hover or when something with a `DoorOpener` comes near. Tested through the API: it rolled up to 6 percent of its height.
+- **Room paints:** every room has its own colour, both faces of the interior walls, both the plaster on the outer walls. Looks right from the upper floor view (coral gym, slate engineer, blue office, blush teacher).
+- Not tested with a real mouse: clicking curtains, hovering the new doors. Please try.
+
 **Next**
-- Amir tries doors, windows and the reset button and says what feels off.
+- Amir tries curtains, front doors, the shutter and the colours and says what feels off (colour choices, shutter look).
 - People and pets (they carry `DoorOpener`), wall pieces movable along their wall, buying or unlocking furniture.
-- Grass and hills, weather.
+- A car that can drive out of the shutter door to the road, streetlights, grass and hills, weather.

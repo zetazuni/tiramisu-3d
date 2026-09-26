@@ -75,10 +75,12 @@ Click inside the Scene view first, then:
 | ...turn it | | **R** (Shift+R the other way) | |
 | ...put it back where it was | Right click | **Esc** | |
 | ...free placement without the 5 cm grid | | Hold **Ctrl** | |
-| ...reset the whole house | "Reset furniture and windows" button (always there) | | |
+| ...reset the whole house | "Reset layout" button (always there, puts furniture and windows back) | | |
 | Time of day | Slider and Morning, Noon, Sunset, Night buttons top right, "Let time run" | | |
 | Open a sliding door | Hover the mouse over it (people and pets open them by walking up) | | |
 | Move or resize a window (decorate mode) | Press on the window and drag along its wall, **R** changes the size | | |
+| Draw the curtains shut or open | **Click** a curtain or the window | | |
+| Nudge a cushion, book or mug | **Click** it: it shifts a little and settles back in a fifth of a second | | |
 | Drop a stone in the pool | **Click** the water | | |
 | Graphics mode (Ultra, Quality, Performance) | "Graphics" button | **G** | Button |
 | Run the frame rate benchmark (about a minute) | | **F9** | |

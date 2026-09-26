@@ -235,7 +235,7 @@ namespace Tiramisu.EditorTools
             return l;
         }
 
-        public static void RoomLightAndProbe(Transform parent, string name, Vector3 floorCentre, Vector2 size, float ceiling, float kelvin, bool light)
+        public static void RoomLightAndProbe(Transform parent, string name, Vector3 floorCentre, Vector2 size, float ceiling, float kelvin, bool light, float boost = 1f)
         {
             if (light)
             {
@@ -263,8 +263,8 @@ namespace Tiramisu.EditorTools
                         l.range = Mathf.Max(size.x / nx, size.y / nz) * 1.5f;
                         l.shadows = LightShadows.None;
                         var sw = lg.AddComponent<SwitchableLight>();   // dimmer by day, cool and even at night
-                        sw.day = 420f / n;
-                        sw.night = 1300f / n;
+                        sw.day = 420f * boost / n;
+                        sw.night = 1300f * boost / n;
                     }
             }
 
