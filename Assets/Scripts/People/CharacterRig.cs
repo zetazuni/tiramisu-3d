@@ -15,6 +15,7 @@ namespace Tiramisu
         public bool pet;
         [Tooltip("person, cat or dog: which joint table builds the skeleton")]
         public string kind = "person";
+        public float RestHip { get; private set; } = 0.95f;   // pelvis height above the feet at rest, measured from the model
         public Pose pose = Pose.Stand;
         public float walkSpeed = 1f;       // metres per second, drives the stride
 
@@ -29,6 +30,16 @@ namespace Tiramisu
 
         readonly Dictionary<string, Joint> j = new Dictionary<string, Joint>();
         float phase, clock;
+
+        // some downloaded rigs name their joints differently: our joint name -> the model's bone name
+        static readonly Dictionary<string, string> AmirBones = new Dictionary<string, string>
+        {
+            { "pelvis", "Base HumanPelvis_01" }, { "spine", "Base HumanSpine1_011" }, { "neck", "Base HumanNeck1_054" },
+            { "arm.L", "Base HumanLUpperarm_017" }, { "forearm.L", "Base HumanLForearm_018" },
+            { "arm.R", "Base HumanRUpperarm_036" }, { "forearm.R", "Base HumanRForearm_037" },
+            { "leg.L", "Base HumanLThigh_02" }, { "shin.L", "Base HumanLCalf_00" },
+            { "leg.R", "Base HumanRThigh_06" }, { "shin.R", "Base HumanRCalf_07" },
+        };
 
         static readonly string[] PersonJoints = { "pelvis", "spine", "neck", "arm.L", "forearm.L", "arm.R", "forearm.R", "leg.L", "shin.L", "leg.R", "shin.R" };
         static readonly string[] PetJoints = { "body", "head", "tail", "legFL", "legFR", "legBL", "legBR" };
@@ -77,10 +88,10 @@ namespace Tiramisu
 
         void Awake()
         {
-            BuildSkeleton();
+            if (kind != "amir") BuildSkeleton();
             foreach (var n in pet ? PetJoints : PersonJoints)
             {
-                var t = FindDeep(transform, n);
+                var t = FindDeep(transform, kind == "amir" && AmirBones.TryGetValue(n, out var alias) ? alias : n);
                 if (!t) continue;
                 j[n] = new Joint
                 {
@@ -92,6 +103,9 @@ namespace Tiramisu
                     upInParent = t.parent ? Quaternion.Inverse(t.parent.rotation) * transform.up : Vector3.up,
                 };
             }
+            if (!pet && j.TryGetValue("pelvis", out var pv))
+                RestHip = Mathf.Max(0.4f, (pv.t.position.y - transform.position.y) / Mathf.Max(transform.lossyScale.y, 0.01f));
+            foreach (var r in GetComponentsInChildren<SkinnedMeshRenderer>()) r.updateWhenOffscreen = true;   // the bounds of a posed skin change
         }
 
         static Transform FindDeep(Transform root, string name)
@@ -130,7 +144,8 @@ namespace Tiramisu
                 // positive "forward" swings the joint towards the front of the figure, that is a negative turn about its right axis
                 var q = jt.rest * Quaternion.AngleAxis(-jt.ang, jt.rightLocal) * Quaternion.AngleAxis(jt.yaw, jt.upLocal);
                 jt.t.localRotation = q;
-                jt.t.localPosition = jt.restPos + jt.upInParent * jt.lift;
+                jt.t.localPosition = jt.restPos;
+                if (Mathf.Abs(jt.lift) > 1e-4f) jt.t.position += transform.up * (jt.lift * transform.lossyScale.y);   // world metres, whatever unit the imported skeleton uses
             }
         }
 
@@ -148,7 +163,7 @@ namespace Tiramisu
                     Set("pelvis", 0f, Mathf.Abs(s) * 0.012f);
                     break;
                 case Pose.Sit:
-                    Set("pelvis", 0f, -0.5f);
+                    Set("pelvis", 0f, -(RestHip - 0.45f));
                     Set("leg.L", 90f); Set("leg.R", 90f);
                     Set("shin.L", -90f); Set("shin.R", -90f);
                     Set("arm.L", 18f); Set("arm.R", 18f); Set("forearm.L", 45f); Set("forearm.R", 45f);
@@ -163,7 +178,7 @@ namespace Tiramisu
                     Set("spine", breathe);
                     break;
                 case Pose.Crouch:
-                    Set("pelvis", 0f, -0.42f);
+                    Set("pelvis", 0f, -(RestHip - 0.53f));
                     Set("leg.L", 105f); Set("leg.R", 105f); Set("shin.L", -120f); Set("shin.R", -120f);
                     Set("spine", 22f); Set("arm.L", 50f); Set("arm.R", 50f); Set("forearm.L", 30f + 10f * Mathf.Sin(clock * 3f)); Set("forearm.R", 30f);
                     break;

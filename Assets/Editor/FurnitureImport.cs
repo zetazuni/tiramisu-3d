@@ -117,6 +117,7 @@ namespace Tiramisu.EditorTools
             foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { ModelDir }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path.Contains("/Characters/")) continue;   // downloaded, rigged models with their own textures, see ImportCharacters
                 var imp = AssetImporter.GetAtPath(path) as ModelImporter;
                 if (!imp) continue;
 
@@ -133,7 +134,58 @@ namespace Tiramisu.EditorTools
                     imp.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), slot), Material(slot));
                 imp.SaveAndReimport();
             }
+            ImportCharacters();
             Debug.Log("Tiramisu: furniture models imported and materials linked.");
+        }
+
+        /// <summary>
+        /// The people and the cat come from Sketchfab (credits in Assets/Art/Models/Characters/CREDITS.txt), rigged in Blender by
+        /// tools/blender_rig.py. Each FBX has a .materials.json next to it (material name, texture file, colour): build an HDRP Lit material
+        /// for every entry and link it.
+        /// </summary>
+        static void ImportCharacters()
+        {
+            const string dir = ModelDir + "/Characters";
+            if (!System.IO.Directory.Exists(dir)) return;
+            System.IO.Directory.CreateDirectory("Assets/Art/Materials/Characters");
+            foreach (var fbx in System.IO.Directory.GetFiles(dir, "*.fbx"))
+            {
+                string path = fbx.Replace("\\", "/");
+                var imp = AssetImporter.GetAtPath(path) as ModelImporter;
+                if (!imp) continue;
+                imp.globalScale = 1f;
+                imp.useFileScale = true;
+                imp.importAnimation = false;
+                imp.importCameras = false;
+                imp.importLights = false;
+                imp.animationType = ModelImporterAnimationType.Generic;   // keeps the skin: bones stay ordinary transforms that CharacterRig drives
+                imp.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+                string json = path.Replace(".fbx", ".materials.json");
+                if (!System.IO.File.Exists(json)) { imp.SaveAndReimport(); continue; }
+                string text = System.IO.File.ReadAllText(json);
+                var rx = new System.Text.RegularExpressions.Regex(@"""([^""]+)"":\s*\{\s*""texture"":\s*(null|""[^""]+""),\s*""color"":\s*\[\s*([-\d.eE]+),\s*([-\d.eE]+),\s*([-\d.eE]+)");
+                foreach (System.Text.RegularExpressions.Match m in rx.Matches(text))
+                {
+                    string mname = m.Groups[1].Value;
+                    string tex = m.Groups[2].Value.Trim('"');
+                    var inv = System.Globalization.CultureInfo.InvariantCulture;
+                    var col = new Color(float.Parse(m.Groups[3].Value, inv), float.Parse(m.Groups[4].Value, inv), float.Parse(m.Groups[5].Value, inv));
+                    string mp = $"Assets/Art/Materials/Characters/{System.IO.Path.GetFileNameWithoutExtension(fbx)}_{mname}.mat";
+                    bool fur = mname.Contains("Fur");
+                    if (mname == "NormalFur") col = new Color(0.94f, 0.92f, 0.88f);   // the white of the calico
+                    var mat = MaterialLibrary.Plain(mp, tex == "null" ? col : Color.white, mname.Contains("Eye") ? 0.8f : fur ? 0.25f : 0.35f);
+                    if (tex != "null")
+                    {
+                        var t = AssetDatabase.LoadAssetAtPath<Texture2D>($"{dir}/{tex}");
+                        if (t) { mat.SetTexture("_BaseColorMap", t); mat.SetColor("_BaseColor", Color.white); }
+                    }
+                    if (mname.Contains("EyeColor")) { mat.SetFloat("_UseEmissiveIntensity", 0f); mat.SetColor("_EmissiveColor", new Color(0.1f, 0.6f, 0.15f) * 0.6f); }
+                    UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(mat);
+                    EditorUtility.SetDirty(mat);
+                    imp.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), mname), mat);
+                }
+                imp.SaveAndReimport();
+            }
         }
 
         static IEnumerable<string> SlotNames(string path)

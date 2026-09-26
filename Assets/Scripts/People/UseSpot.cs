@@ -29,7 +29,7 @@ namespace Tiramisu
         {
             var yawRot = Quaternion.Euler(0f, transform.parent.eulerAngles.y + yaw, 0f);
             rot = pose == CharacterRig.Pose.Lie ? yawRot * Quaternion.Euler(-90f, 0f, 0f) : yawRot;
-            float hip = pose == CharacterRig.Pose.Sit ? 0.45f : 0.95f;
+            float hip = pose == CharacterRig.Pose.Sit ? 0.45f : rig.RestHip;
             pos = transform.position - rot * new Vector3(0f, hip * scale, 0f);
         }
 

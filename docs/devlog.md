@@ -190,6 +190,11 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Found on the way:** the joint hierarchy did not survive the FBX export (every limb rotated 90 degrees and the figures looked like hanging sausages), fixed by building the skeleton in Unity. The navigation package from the registry does not compile on this Unity version, so a patched local copy is used. And Unity throttles a background window, so timed tests were run with the window brought to the front.
 - Not done yet: the characters do not use the stairs on purpose (they can, the mesh links the floors), pets do not use furniture, no sounds, no customising their looks, and the chat lines are short and generic.
 
+## Session 17: real character models (2026-09-26) · v0.19.0
+
+- Athirah, Amir and Bedah are now downloaded, rigged models with real faces, replacing the stylised figures. They walk, sit, crouch to pat and chat; the bones deform the skin (checked: petting pose, two of them chatting outside).
+- Not perfect: Athirah's raised-hand mesh was baked into a lowered arm and the hand is slightly distorted on that side, Amir's hair is auburn and Athirah's outfit is pink (their own texture colours), the cat has big cartoon eyes and is more black than white.
+
 **Next**
-- Amir watches them for a while and says what to change (looks, speed, how often they sit, the chat lines).
-- Customise looks and names, pet sounds, more pets, the mailbox and love letters, weather and seasons, a car that drives out of the shutter.
+- Amir looks at them and says what to change, or picks other models.
+- Face expressions, walk cycles from animation clips, customising looks, pet sounds, the mailbox and love letters.

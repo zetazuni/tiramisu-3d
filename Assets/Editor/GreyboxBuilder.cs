@@ -1673,15 +1673,16 @@ namespace Tiramisu.EditorTools
 
         static void MoveIn(Transform parent)
         {
-            Person(parent, "person_athirah", "Athirah", new Vector3(5.6f, 0.02f, 5.6f), 0.95f, 200f);
-            Person(parent, "person_amir", "Amir", new Vector3(11.5f, 0.02f, 6.6f), 1.02f, 20f);
-            Pet(parent, "cat", "Bedah", new Vector3(3.2f, 0.02f, 6.3f));
+            Person(parent, "athirah", "Athirah", new Vector3(5.6f, 0.02f, 5.6f), 1f, 200f);
+            Person(parent, "amir", "Amir", new Vector3(11.5f, 0.02f, 6.6f), 1f, 20f);
+            Pet(parent, "bedah", "Bedah", new Vector3(3.2f, 0.02f, 6.3f));
         }
 
         static void Person(Transform parent, string model, string display, Vector3 at, float scale, float yaw)
         {
             var go = Spawn(parent, model, display, at, scale, yaw);
             if (!go) return;
+            go.GetComponent<CharacterRig>().kind = model;   // "athirah" has our joint names, "amir" is mapped
             var ch = go.AddComponent<Character>();
             ch.displayName = display; ch.isPet = false; ch.scale = scale;
         }
@@ -1692,14 +1693,14 @@ namespace Tiramisu.EditorTools
             if (!go) return;
             var pr = go.GetComponent<CharacterRig>();
             pr.pet = true;
-            pr.kind = model;
+            pr.kind = "cat";
             var ch = go.AddComponent<Character>();
             ch.displayName = display; ch.isPet = true; ch.scale = 1f;
         }
 
         static GameObject Spawn(Transform parent, string model, string objName, Vector3 at, float scale, float yaw)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{model}.fbx");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/Characters/{model}.fbx");
             if (!prefab) { Debug.LogWarning($"Tiramisu: character {model} not found."); return null; }
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             go.name = objName;
