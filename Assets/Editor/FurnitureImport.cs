@@ -58,6 +58,7 @@ namespace Tiramisu.EditorTools
             { "Beanbag_main", ("rough_linen", new Color(0.22f, 0.34f, 0.36f), new Vector2(0f, 0.25f), 0f, true) },
             { "Leather",      (null, new Color(0.09f, 0.06f, 0.05f), new Vector2(0.5f, 0.5f), 0f, false) },
             { "Screen",       (null, new Color(0.15f, 0.3f, 0.5f), new Vector2(0.9f, 0.9f), 0f, false) },
+            { "TVBlack",      (null, new Color(0.02f, 0.02f, 0.022f), new Vector2(0.5f, 0.5f), 0f, false) },
             { "Chalk",        (null, new Color(0.05f, 0.08f, 0.07f), new Vector2(0.15f, 0.15f), 0f, false) },
             { "Whiteboard",   (null, new Color(0.94f, 0.94f, 0.95f), new Vector2(0.85f, 0.85f), 0f, false) },
             { "Rubber",       (null, new Color(0.04f, 0.04f, 0.045f), new Vector2(0.25f, 0.25f), 0f, false) },

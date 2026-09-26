@@ -67,6 +67,7 @@ namespace Tiramisu
         public class Order
         {
             public enum Kind { Go, Use, Talk, Pet }
+            public System.Action after;   // done on arrival (Go) or once seated (Use), for switching the TV and the like
             public Kind kind;
             public Vector3 point;
             public UseSpot spot;
@@ -76,6 +77,8 @@ namespace Tiramisu
 
         readonly Queue<Order> orders = new Queue<Order>();
         bool onOrder, holdSeat;
+        Vector3 approachUsed;
+        System.Action arrive, afterSeat;
         float autoResume;
         string doing = "";
 
@@ -130,6 +133,13 @@ namespace Tiramisu
             onOrder = false;
         }
 
+        void FaceForward()
+        {
+            // after walking up to a thing, turn to face what is straight ahead of the walk
+            var v = agent && agent.enabled ? agent.velocity : Vector3.zero; v.y = 0f;
+            if (v.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(v);
+        }
+
         void Say(string line, float seconds = 2.6f) { Bubble = line; bubbleUntil = Time.time + seconds; }
 
         void StartOrder()
@@ -142,12 +152,12 @@ namespace Tiramisu
             {
                 case Order.Kind.Go:
                     ok = GoTo(o.point, 2.2f);
-                    if (ok) mode = Mode.Walk;
+                    if (ok) { mode = Mode.Walk; arrive = o.after; }
                     break;
                 case Order.Kind.Use:
-                    if (o.spot != null && (o.spot.occupant == null) && GoTo(o.spot.ApproachWorld, 1.4f))
+                    if (o.spot != null && (o.spot.occupant == null) && GoToApproach(o.spot))
                     {
-                        spot = o.spot; spot.occupant = this; mode = Mode.ToSpot; holdSeat = true; ok = true;
+                        spot = o.spot; spot.occupant = this; mode = Mode.ToSpot; holdSeat = true; afterSeat = o.after; ok = true;
                     }
                     break;
                 case Order.Kind.Talk:
@@ -323,11 +333,26 @@ namespace Tiramisu
             return false;
         }
 
+        /// <summary>The nearest navigation point at about the same height: the tops of tables and sofas are walkable islands too, and must not be picked.</summary>
+        static bool SampleFloor(Vector3 p, float maxSnap, NavMeshQueryFilter filter, out NavMeshHit hit)
+        {
+            if (NavMesh.SamplePosition(p, out hit, maxSnap, filter) && Mathf.Abs(hit.position.y - p.y) < 0.3f) return true;
+            for (float r = 0.25f; r <= maxSnap + 0.01f; r += 0.25f)
+                for (int k = 0; k < 12; k++)
+                {
+                    float a = k * 30f * Mathf.Deg2Rad;
+                    var q = p + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r;
+                    if (NavMesh.SamplePosition(q, out hit, 0.2f, filter) && Mathf.Abs(hit.position.y - p.y) < 0.3f) return true;
+                }
+            hit = default;
+            return false;
+        }
+
         bool GoTo(Vector3 p, float maxSnap)
         {
             if (!agent.enabled || !agent.isOnNavMesh) return false;
             var filter = new NavMeshQueryFilter { agentTypeID = TiramisuNav.AgentType, areaMask = agent.areaMask };
-            if (!NavMesh.SamplePosition(p, out var hit, maxSnap, filter)) return false;
+            if (!SampleFloor(p, maxSnap, filter, out var hit)) return false;
             var path = new NavMeshPath();
             if (!agent.CalculatePath(hit.position, path) || path.status != NavMeshPathStatus.PathComplete) return false;
             agent.SetPath(path);
@@ -338,10 +363,36 @@ namespace Tiramisu
 
         void TickWalk()
         {
-            if (Arrived()) SetIdle(Random.Range(1.5f, 5f));
+            if (Arrived())
+            {
+                var a = arrive; arrive = null;
+                if (a != null) { FaceForward(); a(); }
+                SetIdle(onOrder ? 0.05f : Random.Range(1.5f, 5f));
+            }
         }
 
         // ---------- furniture ----------
+
+        /// <summary>
+        /// Walks to the usual spot in front of a seat or bed; when that is blocked (a coffee table close to the sofa) the person
+        /// comes from the side or the front instead, and gets up again at the same place.
+        /// </summary>
+        bool GoToApproach(UseSpot s)
+        {
+            if (GoTo(s.ApproachWorld, 1.2f)) { approachUsed = s.ApproachWorld; return true; }
+            var facing = Quaternion.Euler(0f, (s.transform.parent ? s.transform.parent.eulerAngles.y : 0f) + s.yaw, 0f);
+            var filter = new NavMeshQueryFilter { agentTypeID = TiramisuNav.AgentType, areaMask = agent.areaMask };
+            foreach (float r in new[] { 1.1f, 1.5f, 1.9f, 2.4f })
+                for (int k = 0; k < 8; k++)
+                {
+                    float a = k * 45f;                                                // straight in front first, then round the piece
+                    var p = s.transform.position + facing * (Quaternion.Euler(0f, a, 0f) * Vector3.forward * r);
+                    p.y = transform.position.y;
+                    if (!SampleFloor(p, 0.5f, filter, out var hit)) continue;
+                    if (GoTo(hit.position, 0.3f)) { approachUsed = hit.position; return true; }
+                }
+            return false;
+        }
 
         bool TryUseSpot()
         {
@@ -350,7 +401,7 @@ namespace Tiramisu
             for (int tries = 0; tries < 6 && free.Count > 0; tries++)
             {
                 var s = free[Random.Range(0, free.Count)];
-                if (!GoTo(s.ApproachWorld, 1.2f)) { free.Remove(s); continue; }
+                if (!GoToApproach(s)) { free.Remove(s); continue; }
                 spot = s; s.occupant = this; mode = Mode.ToSpot;
                 return true;
             }
@@ -383,7 +434,18 @@ namespace Tiramisu
             SeatPose(out var pos, out var rot);
             float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(blend));
             transform.SetPositionAndRotation(Vector3.Lerp(fromPos, pos, e), Quaternion.Slerp(fromRot, rot, e));
-            if (blend >= 1f) { mode = Mode.Using; timer = holdSeat ? 150f : Random.Range(spot.seconds.x, spot.seconds.y); holdSeat = false; }
+            if (blend >= 1f)
+            {
+                mode = Mode.Using; timer = holdSeat ? 150f : Random.Range(spot.seconds.x, spot.seconds.y);
+                bool ordered = holdSeat; holdSeat = false;
+                var seated = afterSeat; afterSeat = null;
+                if (seated != null) seated();
+                else if (!ordered)
+                {
+                    var tv = TvScreen.Facing(spot);       // sat down in front of the TV on their own: sometimes puts it on
+                    if (tv != null && !tv.on && Random.value < 0.6f) tv.SetOn(true, true);
+                }
+            }
         }
 
         void TickUsing()
@@ -394,8 +456,10 @@ namespace Tiramisu
             if (orders.Count > 0) timer = 0f;   // told to do something else
             if (timer <= 0f)
             {
+                var tvLeft = TvScreen.Facing(spot);
+                if (tvLeft != null && tvLeft.on && tvLeft.autoSwitched && !TvScreen.AnyoneWatching(tvLeft, this)) tvLeft.SetOn(false);
                 fromPos = transform.position; fromRot = transform.rotation;
-                standPos = spot.ApproachWorld;
+                standPos = approachUsed;
                 blend = 0f; mode = Mode.Rising;
                 rig.pose = CharacterRig.Pose.Stand;
             }

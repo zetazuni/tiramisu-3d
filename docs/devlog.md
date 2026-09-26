@@ -243,3 +243,13 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Side effect handled:** the mirrored left pant leg poked through the back of the tunic (the tunic is a bit flatter on that side), so the top of the pant legs is pulled in and forward under the tunic.
 - Run order in `tools/blender_rig_athirah.py`: fit the layers, skin, hands, copy weights, join, straighten, symmetrize, feet, export. After exporting, copy the edited skin texture back (the export overwrites the PNGs).
 - Checked in Play mode: front view standing and mid stride, hands, legs.
+
+## Session 25: living room, working TV, shed, flower beds (2026-09-27) · v0.22.0
+
+- **Living room:** a walnut TV console (`tools/blender_living.py`, `tvunit.fbx`) faces the sofa, book cases on the west wall, a bean bag, two floor lamps, a second side table, two plants, a globe and candles. The layout keeps the paths open (checked with a NavMesh grid: the two people can reach the sofa and every seat).
+- **Working TV (`TvScreen`):** the "Screen" part of the model shows a made up moving picture (sunset, colour waves, a game show, all invented), glows and lights the room, softer at night. Click it for a pie menu: "Turn on/off" (the person walks to it first) and "Watch TV" (sits on the nearest free seat that faces it, and switches it on). People who sit down in front of it on their own put it on about half the time, and it goes off when the last watcher who switched it on leaves.
+- **Seats:** `Character.GoToApproach` finds another way in when the usual approach spot is blocked (the coffee table), and `SampleFloor` stops people picking the top of a table or sofa as a floor point (that was why "I can't get there" came up).
+- **Atom marker:** the three rings now each spin about their own axis (x, y, z) at different speeds.
+- **Shed:** the floating black square and sticks were the model's window and pegboard with hung tools outside the west wall: removed. Tool rack moved beside the shed door wall.
+- **Flower beds** in the yards are on one line each (z 19.8 at the back, z -2.8 at the front, so they run parallel to the pavement).
+- **Default layout:** the six pieces moved since last time (wheelbarrow, sectional, armchair, two lanterns, beach ball) were added to `Assets/Editor/DefaultLayout.json`.

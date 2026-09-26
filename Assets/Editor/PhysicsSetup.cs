@@ -64,6 +64,7 @@ namespace Tiramisu.EditorTools
             { "platformbed", new FurnitureSpec { mass = 120f, dynamic = false } },
             { "platformbed_e", new FurnitureSpec { mass = 120f, dynamic = false } },
             { "nightstand", new FurnitureSpec { mass = 12f, dynamic = true } },
+            { "tvunit", new FurnitureSpec { mass = 40f, dynamic = true } },
             { "bedlamp", new FurnitureSpec { mass = 1.2f, dynamic = true } },
             { "wardrobe", new FurnitureSpec { mass = 90f, dynamic = false } },
             { "bookcase", new FurnitureSpec { mass = 70f, dynamic = false } },

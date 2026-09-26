@@ -122,6 +122,8 @@ namespace Tiramisu
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (var h in hits)
             {
+                var tv = h.collider.GetComponentInParent<TvScreen>();
+                if (tv != null) { OpenTvMenu(tv, mouse); return; }
                 var piece = SeatOwner(h.collider.transform);
                 if (piece != null) { OpenFurnitureMenu(piece, h.point, mouse); return; }
                 Walk(h.point);
@@ -169,6 +171,38 @@ namespace Tiramisu
             }
             options.Add(new Option { label = "Go there", enabled = true, act = () => Walk(who.transform.position) });
             OpenMenu(mouse, who.displayName);
+        }
+
+        void OpenTvMenu(TvScreen tv, Vector3 mouse)
+        {
+            options.Clear();
+            var me = Selected;
+            options.Add(new Option
+            {
+                label = tv.on ? "Turn off" : "Turn on", enabled = true,
+                act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Go, point = tv.StandPoint, label = "Going to the TV", after = () => tv.Toggle() })
+            });
+            var seat = BestWatchSeat(tv, me);
+            options.Add(new Option
+            {
+                label = seat != null ? "Watch TV" : "No free seat", enabled = seat != null,
+                act = () => me.GiveOrder(new Character.Order { kind = Character.Order.Kind.Use, spot = seat, label = "Going to watch TV", after = () => { if (!tv.on) tv.SetOn(true); } })
+            });
+            OpenMenu(mouse, "TV");
+        }
+
+        /// <summary>The nearest free seat that looks at the TV.</summary>
+        static UseSpot BestWatchSeat(TvScreen tv, Character who)
+        {
+            UseSpot best = null; float bestD = float.MaxValue;
+            foreach (var s in UseSpot.All)
+            {
+                if (!s.gameObject.activeInHierarchy || (s.occupant != null && s.occupant != who)) continue;
+                if (TvScreen.Facing(s) != tv) continue;
+                float d = (s.transform.position - who.transform.position).sqrMagnitude;
+                if (d < bestD) { bestD = d; best = s; }
+            }
+            return best;
         }
 
         void OpenFurnitureMenu(Furniture piece, Vector3 hit, Vector3 mouse)
@@ -272,12 +306,14 @@ namespace Tiramisu
             plumbob.position = head + Vector3.up * (0.22f + 0.04f * Mathf.Sin(t * 2.4f));
             plumbob.rotation = Quaternion.identity;
             if (rings != null)
+            {
+                // three orbits: each ring is tilted differently and tumbles about its own axis at its own pace
+                Vector3[] axis = { Vector3.right, Vector3.up, Vector3.forward };
+                float[] pace = { 130f, 95f, 165f };
+                var start = new[] { Quaternion.Euler(0f, 0f, 0f), Quaternion.Euler(55f, 0f, 0f), Quaternion.Euler(0f, 0f, 90f) };
                 for (int i = 0; i < rings.Length; i++)
-                {
-                    // three orbits at different tilts, each turning at its own pace
-                    var tilt = Quaternion.Euler(0f, i * 60f, 62f);
-                    rings[i].localRotation = tilt * Quaternion.Euler(0f, t * (110f + 35f * i), 0f);
-                }
+                    rings[i].localRotation = Quaternion.AngleAxis(t * pace[i], axis[i]) * start[i];
+            }
         }
 
         // ---------------------------------------------------------------- drawing

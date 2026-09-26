@@ -1362,6 +1362,13 @@ namespace Tiramisu.EditorTools
         static readonly (string id, float x, float z, float rot, int floor)[] Layout =
         {
             ("geomrug", 4f, 4.3f, 0f, 0),
+            // living room, v0.22: a TV console facing the sofa, book cases along the west wall, floor lamps and a bean bag
+            ("tvunit", 4.0f, 6.2f, 180f, 0),
+            ("bookcase", 0.22f, 1.6f, 90f, 0),
+            ("bookcase", 0.22f, 5.6f, 90f, 0),
+            ("uplight", 2.1f, 2.2f, 0f, 0),
+            ("uplight", 7.0f, 3.6f, 0f, 0),
+            ("beanbag", 1.4f, 4.9f, 25f, 0),
             ("sofa", 4f, 3.1f, 0f, 0),
             ("marbletable", 4f, 4.6f, 0f, 0),
             // kitchen (x 8 to 14): counter run on the back wall, fridge beside it, island, stools, dining set
@@ -1458,6 +1465,8 @@ namespace Tiramisu.EditorTools
             // bathroom: vanity top is 0.84 m
             ("towelstack", 21.6f, 0.87f, 6.1f, 90f),
             ("candles", 19.45f, 0.02f, 2.9f, 0f),
+            ("candles", 2.45f, 0.47f, 2.95f, 0f),
+            ("globe", 2.2f, 0.02f, 7.0f, 0f),
             // garage
             ("cardboardboxes", 29.4f, 0.02f, 7.2f, 10f),
             ("paintcans", 23.15f, 0.02f, 1.0f, 0f),
@@ -1479,8 +1488,8 @@ namespace Tiramisu.EditorTools
             ("planterbox", 19.5f, -0.3f, 11.0f, 0f),
             ("planterbox", 24.5f, -0.3f, 11.0f, 0f),
             ("flowerbed", 9.5f, -0.3f, 19.8f, 0f),
-            ("flowerbed", 21.5f, -0.3f, 19.6f, 0f),
-            ("flowerbed", 27.0f, -0.3f, 20.6f, 0f),
+            ("flowerbed", 21.5f, -0.3f, 19.8f, 0f),
+            ("flowerbed", 27.0f, -0.3f, 19.8f, 0f),
             ("hammock", 14.0f, -0.3f, 19.7f, 90f),
             ("lounger", 16.7f, -0.3f, 13.0f, 90f),
             ("lounger", 16.7f, -0.3f, 15.0f, 90f),
@@ -1490,7 +1499,7 @@ namespace Tiramisu.EditorTools
             // back yard: a shed with tools, a path from the back gate, planters, a bench and lanterns
             ("shed", 1.4f, -0.3f, -2.9f, 0f),
             ("wheelbarrow", 4.3f, -0.3f, -2.3f, 25f),
-            ("toolrack", -1.9f, -0.3f, -4.55f, 0f),
+            ("toolrack", -0.5f, -0.3f, -2.9f, 270f),
             ("logpile", -2.5f, -0.3f, -3.0f, 90f),
             ("wateringcan", 2.4f, -0.3f, -1.15f, 30f),
             ("hosereel", 4.3f, -0.3f, -4.5f, 0f),
@@ -1498,8 +1507,8 @@ namespace Tiramisu.EditorTools
             ("planterbox", 12.0f, -0.3f, -4.5f, 0f),
             ("planterbox", 16.0f, -0.3f, -4.5f, 0f),
             ("gardenbench", 10.0f, -0.3f, -3.6f, 0f),
-            ("flowerbed", 15.0f, -0.3f, -2.6f, 0f),
-            ("flowerbed", 21.0f, -0.3f, -3.0f, 0f),
+            ("flowerbed", 15.0f, -0.3f, -2.8f, 0f),
+            ("flowerbed", 21.0f, -0.3f, -2.8f, 0f),
             ("lantern", 23.5f, -0.3f, -1.5f, 0f),
             ("lantern", 6.5f, -0.3f, -1.5f, 0f),
             ("lantern", 27.4f, -0.3f, -3.5f, 0f),
@@ -1537,6 +1546,9 @@ namespace Tiramisu.EditorTools
         {
             Pr("modern_arm_chair_01", null, 6.5f, FLOOR_TOP, 4.5f, 250f, 1f, PropPlacer.Body.Dynamic, 18f),
             Pr("side_table_01", null, 5.55f, FLOOR_TOP, 2.95f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
+            Pr("side_table_01", null, 2.45f, FLOOR_TOP, 2.95f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
+            Pr("potted_plant_04", null, 1.0f, FLOOR_TOP, 7.3f, 20f, 1.2f, PropPlacer.Body.Static, 0f, 0.55f),
+            Pr("calathea_orbifolia_01", null, 7.1f, FLOOR_TOP, 7.3f, 0f, 1.1f, PropPlacer.Body.Static, 0f, 0.5f),
             Pr("desk_lamp_arm_01", null, 5.6f, SideTop + 0.002f, 2.9f, 200f, 1f, PropPlacer.Body.Dynamic, 2.5f),
             Pr("book_encyclopedia_set_01", null, 3.95f, TableTop + 0.004f, 4.6f, 0f, 1f, PropPlacer.Body.DynamicParts, 0.7f),
             Pr("ceramic_vase_03", null, 4.45f, TableTop + 0.002f, 4.62f, 0f, 1f, PropPlacer.Body.Dynamic, 1.2f),
@@ -1811,6 +1823,24 @@ namespace Tiramisu.EditorTools
             Debug.Log($"Tiramisu: {layout.items.Count} pieces put in the layout Amir left them in.");
         }
 
+        /// <summary>The working TV: a soft light in front of the screen (switched by TvScreen) and the screen itself.</summary>
+        static void SetupTv(GameObject tv)
+        {
+            var lg = new GameObject("TV glow");
+            lg.transform.SetParent(tv.transform, false);
+            lg.transform.localPosition = new Vector3(0f, 1.0f, 0.7f);
+            var l = lg.AddComponent<Light>();
+            l.type = LightType.Point;
+            lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
+            l.lightUnit = LightUnit.Lumen;
+            l.color = new Color(0.6f, 0.75f, 1f);
+            l.range = 6f;
+            l.intensity = 700f;
+            l.shadows = LightShadows.None;
+            l.enabled = false;
+            tv.AddComponent<TvScreen>();
+        }
+
         static void PutOnGlasses(GameObject person)
         {
             var glasses = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/Characters/glasses.fbx");
@@ -1923,7 +1953,15 @@ namespace Tiramisu.EditorTools
                     go.AddComponent<RollingBall>();
                 }
                 if (f.id == "fountain") SetupFountain(go.transform.position);
-                if (f.id == "shed") { ShedDoor(go.transform.position, go.transform); ShedLights(go.transform.position); }
+                if (f.id == "shed")
+                {
+                    // the model has a window and a pegboard with hanging tools that float outside the west wall (they were made for a wider
+                    // shed): they looked like a random square and sticks, so they are taken off
+                    foreach (var t in go.GetComponentsInChildren<Transform>(true))
+                        if (t && (t.name == "window frame" || t.name == "window glass" || t.name == "pegboard" || t.name.StartsWith("hung tool"))) Object.DestroyImmediate(t.gameObject);
+                    ShedDoor(go.transform.position, go.transform); ShedLights(go.transform.position);
+                }
+                if (f.id == "tvunit") SetupTv(go);
                 if (f.id == "firepit") // a flickering fire
                 {
                     var fl = new GameObject("Fire light");
