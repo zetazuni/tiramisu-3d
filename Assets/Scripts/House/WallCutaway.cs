@@ -75,6 +75,16 @@ namespace Tiramisu
 
         public void SetCut(bool cut) => targetHeight = cut ? stubHeight : fullHeight;
 
+        float savedHeight;
+
+        /// <summary>Puts the wall fully up for a moment (the navigation bake), and back to how it was afterwards.</summary>
+        public void BakeMode(bool on)
+        {
+            if (!ready) return;
+            if (on) { savedHeight = height; height = fullHeight; Apply(); }
+            else { height = savedHeight; Apply(); }
+        }
+
         void Update()
         {
             if (Mathf.Abs(height - targetHeight) < 0.001f) return;

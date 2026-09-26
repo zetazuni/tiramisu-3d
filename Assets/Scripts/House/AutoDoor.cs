@@ -51,9 +51,9 @@ namespace Tiramisu
             if (Time.time >= nextScan)
             {
                 nextScan = Time.time + 0.15f;
-                int n = Physics.OverlapBoxNonAlloc(sensorCenter, sensorSize * 0.5f, buffer, Quaternion.identity, ~0, QueryTriggerInteraction.Collide);
-                for (int i = 0; i < n; i++)
-                    if (buffer[i].GetComponentInParent<DoorOpener>() != null) { Open(); break; }
+                var zone = new Bounds(sensorCenter, sensorSize);
+                foreach (var o in DoorOpener.All)
+                    if (zone.Contains(o.transform.position + Vector3.up * 0.5f)) { Open(); break; }
             }
 
             float target = Time.time < holdUntil ? 1f : 0f;

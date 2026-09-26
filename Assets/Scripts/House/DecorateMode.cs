@@ -76,6 +76,7 @@ namespace Tiramisu
             DropWindow(true);
             Furniture.ResetAll();
             WindowWall.ResetAll();
+            if (TiramisuNav.Instance) TiramisuNav.Instance.RequestRebuild();
             Say("Everything is back where it started, standing upright.");
         }
 
@@ -338,6 +339,7 @@ namespace Tiramisu
             frozen.Clear();
             Physics.SyncTransforms();
             Furniture.SaveAll();
+            if (TiramisuNav.Instance) TiramisuNav.Instance.RequestRebuild();
         }
 
         // ---------- feedback ----------

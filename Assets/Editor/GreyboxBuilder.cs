@@ -449,6 +449,9 @@ namespace Tiramisu.EditorTools
             BuildWallLights(house, upper);
             Furnish(Group("Furniture", house), upper);
             var hv = BuildRig(upper.gameObject, roofGroup.gameObject);
+            foreach (var door in Object.FindObjectsByType<AutoDoor>(FindObjectsInactive.Include))
+                door.gameObject.AddComponent<Unity.AI.Navigation.NavMeshModifier>().ignoreFromBuild = true;   // they open for whoever walks up
+            MoveIn(Group("People and pets", null));
             PhysicsSetup.AssignSurfaces(house);
             PhysicsSetup.AssignSurfaces(GameObject.Find("Garden").transform);
 
@@ -491,6 +494,9 @@ namespace Tiramisu.EditorTools
 
             // floating oak stairs climbing from the front of the hall (z 6) up to the landing (z 2)
             var stairs = Group("Stairs", g);
+            var stairArea = stairs.gameObject.AddComponent<Unity.AI.Navigation.NavMeshModifier>();
+            stairArea.overrideArea = true;
+            stairArea.area = TiramisuNav.StairsArea;
             const int steps = 14;
             float rise = UPY / (steps + 1), run = 4f / steps;
             for (int i = 0; i < steps; i++)
@@ -1648,6 +1654,93 @@ namespace Tiramisu.EditorTools
             Fall("Middle bowl overflow", 0.58f, 1.21f, 0.5f, 0.2f, 36, basin, 0.55f);
         }
 
+        // ---------- people, pets and the places they use ----------
+
+        static void MoveIn(Transform parent)
+        {
+            Person(parent, "person_athirah", "Athirah", new Vector3(5.6f, 0.02f, 5.6f), 0.95f, 200f);
+            Person(parent, "person_amir", "Amir", new Vector3(11.5f, 0.02f, 6.6f), 1.02f, 20f);
+            Pet(parent, "cat", "Miso", new Vector3(3.2f, 0.02f, 6.3f));
+            Pet(parent, "dog", "Biscuit", new Vector3(12.5f, -0.3f, 15f));
+        }
+
+        static void Person(Transform parent, string model, string display, Vector3 at, float scale, float yaw)
+        {
+            var go = Spawn(parent, model, display, at, scale, yaw);
+            if (!go) return;
+            var ch = go.AddComponent<Character>();
+            ch.displayName = display; ch.isPet = false; ch.scale = scale;
+        }
+
+        static void Pet(Transform parent, string model, string display, Vector3 at)
+        {
+            var go = Spawn(parent, model, model, at, 1f, 0f);
+            if (!go) return;
+            var pr = go.GetComponent<CharacterRig>();
+            pr.pet = true;
+            pr.kind = model;
+            var ch = go.AddComponent<Character>();
+            ch.displayName = display; ch.isPet = true; ch.scale = 1f;
+        }
+
+        static GameObject Spawn(Transform parent, string model, string objName, Vector3 at, float scale, float yaw)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{model}.fbx");
+            if (!prefab) { Debug.LogWarning($"Tiramisu: character {model} not found."); return null; }
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            go.name = objName;
+            go.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, yaw, 0f));
+            go.transform.localScale = Vector3.one * scale;
+            go.AddComponent<CharacterRig>();
+            go.AddComponent<UnityEngine.AI.NavMeshAgent>();
+            go.AddComponent<DoorOpener>();
+            return go;
+        }
+
+        /// <summary>A seat or bed on a piece: where the pelvis goes (piece space), which way to face, and where to stand before getting on.</summary>
+        static void Spot(GameObject piece, string label, CharacterRig.Pose pose, Vector3 pelvis, float yaw, Vector3 approach)
+        {
+            var g = new GameObject("Use: " + label);
+            g.transform.SetParent(piece.transform, false);
+            g.transform.localPosition = pelvis;
+            var sp = g.AddComponent<UseSpot>();
+            sp.label = label; sp.pose = pose; sp.yaw = yaw; sp.approachLocal = approach;
+            sp.seconds = pose == CharacterRig.Pose.Lie ? new Vector2(40f, 90f) : new Vector2(20f, 60f);
+        }
+
+        static void AddSpots(GameObject go, string id)
+        {
+            var sit = CharacterRig.Pose.Sit; var lie = CharacterRig.Pose.Lie;
+            switch (id)
+            {
+                case "sofa":
+                    foreach (float x in new[] { -0.65f, 0f, 0.65f }) Spot(go, "sofa", sit, new Vector3(x, 0.62f, 0.02f), 0f, new Vector3(x, 0f, 1.1f));
+                    break;
+                case "modern_arm_chair_01": Spot(go, "armchair", sit, new Vector3(0f, 0.52f, 0.05f), 180f, new Vector3(0f, 0f, -0.95f)); break;
+                case "diningchair": Spot(go, "dining chair", sit, new Vector3(0f, 0.52f, 0f), 0f, new Vector3(0.75f, 0f, 0f)); break;
+                case "barstool": Spot(go, "bar stool", sit, new Vector3(0f, 0.75f, 0f), 180f, new Vector3(0f, 0f, 0.8f)); break;
+                case "officechair": Spot(go, "office chair", sit, new Vector3(0f, 0.53f, 0.02f), 0f, new Vector3(0.8f, 0f, 0.1f)); break;
+                case "platformbed":
+                case "platformbed_e": Spot(go, "bed", lie, new Vector3(0f, 0.7f, -0.25f), 0f, new Vector3(1.3f, 0f, 0f)); break;
+                case "beanbag": Spot(go, "beanbag", sit, new Vector3(0f, 0.33f, 0f), 0f, new Vector3(0f, 0f, 0.95f)); break;
+                case "lounger": Spot(go, "lounger", lie, new Vector3(0f, 0.5f, -0.05f), 0f, new Vector3(0.9f, 0f, 0f)); break;
+                case "outdoorsectional":
+                    foreach (float x in new[] { -0.8f, 0f, 0.8f }) Spot(go, "outdoor sofa", sit, new Vector3(x, 0.56f, 0.08f), 0f, new Vector3(x, 0f, 1.0f));
+                    break;
+                case "gardenbench":
+                    foreach (float x in new[] { -0.4f, 0.4f }) Spot(go, "bench", sit, new Vector3(x, 0.53f, 0f), 0f, new Vector3(x, 0f, 0.8f));
+                    break;
+                case "longdining":
+                    foreach (float x in new[] { -0.8f, 0f, 0.8f })
+                    {
+                        Spot(go, "long table", sit, new Vector3(x, 0.53f, 0.72f), 180f, new Vector3(x, 0f, 1.4f));
+                        Spot(go, "long table", sit, new Vector3(x, 0.53f, -0.72f), 0f, new Vector3(x, 0f, -1.4f));
+                    }
+                    break;
+                case "hammock": Spot(go, "hammock", lie, new Vector3(0f, 0.85f, 0.2f), 0f, new Vector3(1.3f, 0f, 0f)); break;
+            }
+        }
+
         static void AttachTo(string wallPath, GameObject item)
         {
             var wall = GameObject.Find(wallPath);
@@ -1656,8 +1749,8 @@ namespace Tiramisu.EditorTools
 
         static void Furnish(Transform ground, Transform upper)
         {
-            foreach (var p in LivingProps) MakeMovable(PropPlacer.Place(p, ground), false);
-            foreach (var p in UpperProps) MakeMovable(PropPlacer.Place(p, upper), false);
+            foreach (var p in LivingProps) { var lp = PropPlacer.Place(p, ground); MakeMovable(lp, false); if (lp) AddSpots(lp, p.id); }
+            foreach (var p in UpperProps) { var up = PropPlacer.Place(p, upper); MakeMovable(up, false); if (up) AddSpots(up, p.id); }
 
             // a picture above the sofa, hung on the back wall (hidden while that wall is cut down)
             var pic = PropPlacer.Place(Pr("hanging_picture_frame_02", null, 4f, 1.35f, 0.01f, 0f, 1.4f, PropPlacer.Body.None), ground);
@@ -1679,6 +1772,7 @@ namespace Tiramisu.EditorTools
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
                 MakeMovable(go, false);
+                AddSpots(go, f.id);
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
                 if (f.id == "worldmap" || f.id == "whiteboard" || f.id == "gymmirror") AttachTo("House/Upper floor/Walls/Back wall", go);
                 if (f.id == "chalkboard") AttachTo("House/Upper floor/Walls/Left wall", go);
@@ -1769,6 +1863,8 @@ namespace Tiramisu.EditorTools
             hv.upperFloorY = UPY;
             game.AddComponent<HouseHud>();
             game.AddComponent<DecorateMode>();
+            game.AddComponent<TiramisuNav>();
+            game.AddComponent<CharacterHud>();
             var dn = game.AddComponent<DayNightCycle>();
             dn.sun = sunLight;
             dn.moon = moonLight;

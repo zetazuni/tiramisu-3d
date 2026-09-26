@@ -17,6 +17,14 @@
       },
       "hash": "30d22075093d1d35dfb0091c1c7550e9ad948577"
     },
+    "com.unity.ai.navigation": {
+      "version": "file:com.unity.ai.navigation",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.modules.ai": "1.0.0"
+      }
+    },
     "com.unity.burst": {
       "version": "2.0.0",
       "depth": 1,

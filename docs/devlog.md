@@ -184,6 +184,12 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 
 - Hedges are rectangular. A sidewalk runs round the house with strips to both gates. Turn a piece with hold click plus the wheel (one degree per notch, zoom blocked), the HUD turn buttons are gone. The jacuzzi bubbles are replaced by two real water jets. Checked by looking (the two arcs show clearly in the tub) and from above (hedges, sidewalk and the gate strips). The wheel turning was not tested with a real mouse.
 
+## Session 16: people and pets (2026-09-26) · v0.18.0
+
+- Two people and two pets live in the house now. They wander through the doors (which open for them), sit on the sofa and chairs, lie on beds and loungers, chat with speech bubbles, pat the pets, and the pets sit, groom and sleep. Checked in Play mode: the NavMesh baked (1043 triangles), all four moved and picked activities on their own, and Amir was seen lying on a lounger by the pool.
+- **Found on the way:** the joint hierarchy did not survive the FBX export (every limb rotated 90 degrees and the figures looked like hanging sausages), fixed by building the skeleton in Unity. The navigation package from the registry does not compile on this Unity version, so a patched local copy is used. And Unity throttles a background window, so timed tests were run with the window brought to the front.
+- Not done yet: the characters do not use the stairs on purpose (they can, the mesh links the floors), pets do not use furniture, no sounds, no customising their looks, and the chat lines are short and generic.
+
 **Next**
-- Amir walks the outside and says what to change.
-- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.
+- Amir watches them for a while and says what to change (looks, speed, how often they sit, the chat lines).
+- Customise looks and names, pet sounds, more pets, the mailbox and love letters, weather and seasons, a car that drives out of the shutter.
