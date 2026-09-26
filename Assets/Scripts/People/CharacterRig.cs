@@ -16,6 +16,8 @@ namespace Tiramisu
         [Tooltip("person, cat or dog: which joint table builds the skeleton")]
         public string kind = "person";
         public float RestHip { get; private set; } = 0.95f;   // pelvis height above the feet at rest, measured from the model
+        [Tooltip("parts whose material name contains this are not drawn (Athirah's glasses)")]
+        public string hideMaterial = "";
         public Pose pose = Pose.Stand;
         public float walkSpeed = 1f;       // metres per second, drives the stride
 
@@ -29,7 +31,8 @@ namespace Tiramisu
         }
 
         readonly Dictionary<string, Joint> j = new Dictionary<string, Joint>();
-        float phase, clock;
+        float phase, clock, amp = 1f, speedSmooth;
+        Vector3 lastPos;
 
         // some downloaded rigs name their joints differently: our joint name -> the model's bone name
         static readonly Dictionary<string, string> AmirBones = new Dictionary<string, string>
@@ -88,6 +91,7 @@ namespace Tiramisu
 
         void Awake()
         {
+            lastPos = transform.position;
             if (kind != "amir") BuildSkeleton();
             foreach (var n in pet ? PetJoints : PersonJoints)
             {
@@ -105,7 +109,19 @@ namespace Tiramisu
             }
             if (!pet && j.TryGetValue("pelvis", out var pv))
                 RestHip = Mathf.Max(0.4f, (pv.t.position.y - transform.position.y) / Mathf.Max(transform.lossyScale.y, 0.01f));
-            foreach (var r in GetComponentsInChildren<SkinnedMeshRenderer>()) r.updateWhenOffscreen = true;   // the bounds of a posed skin change
+            foreach (var r in GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                r.updateWhenOffscreen = true;
+                if (string.IsNullOrEmpty(hideMaterial) || !r.sharedMesh) continue;
+                var mats = r.sharedMaterials;
+                Mesh copy = null;
+                for (int m = 0; m < mats.Length && m < r.sharedMesh.subMeshCount; m++)
+                {
+                    if (!mats[m] || mats[m].name.IndexOf(hideMaterial, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    if (!copy) { copy = Instantiate(r.sharedMesh); r.sharedMesh = copy; }
+                    copy.SetIndices(new int[0], MeshTopology.Triangles, m);
+                }
+            }   // the bounds of a posed skin change
         }
 
         static Transform FindDeep(Transform root, string name)
@@ -129,7 +145,15 @@ namespace Tiramisu
         {
             clock += Time.deltaTime;
             float stride = Mathf.Clamp(walkSpeed, 0f, 3f);
-            phase += Time.deltaTime * (pet ? 7f : 5.2f) * Mathf.Max(0.35f, stride / (pet ? 1.2f : 1.4f));
+            // the stride follows the ground actually covered, so the feet do not slide
+            var here = transform.position;
+            float moved = Time.deltaTime > 0f ? new Vector2(here.x - lastPos.x, here.z - lastPos.z).magnitude : 0f;
+            lastPos = here;
+            float speed = Time.deltaTime > 0f ? moved / Time.deltaTime : 0f;
+            speedSmooth = Mathf.Lerp(speedSmooth, Mathf.Min(speed, 3f), 1f - Mathf.Exp(-10f * Time.deltaTime));
+            phase += moved / Mathf.Max(transform.lossyScale.y, 0.01f) * (pet ? 7.5f : 4.3f);
+            amp = Mathf.Clamp01(speedSmooth / (pet ? 0.9f : 1.2f)) * 0.5f + 0.5f;
+            if (pose == Pose.Walk && speedSmooth < 0.05f) amp = 0.35f;
             foreach (var jt in j.Values) { jt.tgt = 0f; jt.liftTgt = 0f; jt.yawTgt = 0f; }
             if (pet) PetTargets(); else PersonTargets();
 
@@ -155,13 +179,20 @@ namespace Tiramisu
             switch (pose)
             {
                 case Pose.Walk:
-                    Set("leg.L", 30f * s); Set("leg.R", -30f * s);
-                    Set("shin.L", -Mathf.Max(0f, -s) * 45f); Set("shin.R", -Mathf.Max(0f, s) * 45f);   // shins bend backwards (negative forward)
-                    Set("arm.L", -26f * s); Set("arm.R", 26f * s);
-                    Set("forearm.L", 12f + Mathf.Max(0f, s) * 12f); Set("forearm.R", 12f + Mathf.Max(0f, -s) * 12f);
-                    Set("spine", 2f, 0f, 3f * s);
-                    Set("pelvis", 0f, Mathf.Abs(s) * 0.012f);
+                {
+                    float sl = Mathf.Sin(phase), sr = -sl;
+                    float cl = Mathf.Cos(phase), cr = -cl;
+                    // thigh swings about 28 degrees, the knee bends most while the leg swings forward (foot leaves the ground)
+                    Set("leg.L", 28f * amp * sl + 3f); Set("leg.R", 28f * amp * sr + 3f);
+                    Set("shin.L", -(6f + Mathf.Max(0f, cl) * 50f * amp)); Set("shin.R", -(6f + Mathf.Max(0f, cr) * 50f * amp));
+                    // arms swing against the legs, elbows soft
+                    Set("arm.L", -22f * amp * sl, 0f, 0f); Set("arm.R", -22f * amp * sr);
+                    Set("forearm.L", 14f + 12f * amp * Mathf.Max(0f, -sl)); Set("forearm.R", 14f + 12f * amp * Mathf.Max(0f, -sr));
+                    Set("spine", 3f, 0f, 5f * amp * sl);
+                    // the hips rise and fall twice per stride, lowest when both feet are down
+                    Set("pelvis", 0f, -0.018f * amp + Mathf.Abs(Mathf.Cos(phase)) * 0.02f * amp, -4f * amp * sl);
                     break;
+                }
                 case Pose.Sit:
                     Set("pelvis", 0f, -(RestHip - 0.45f));
                     Set("leg.L", 90f); Set("leg.R", 90f);

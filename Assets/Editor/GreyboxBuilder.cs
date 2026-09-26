@@ -1706,11 +1706,29 @@ namespace Tiramisu.EditorTools
             go.name = objName;
             go.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, yaw, 0f));
             go.transform.localScale = Vector3.one * scale;
-            go.AddComponent<CharacterRig>();
+            var rig = go.AddComponent<CharacterRig>();
+            if (model == "athirah") rig.hideMaterial = "Eyeglasses";   // she goes without glasses
+            if (model == "amir") PutOnGlasses(go);
             go.AddComponent<UnityEngine.AI.NavMeshAgent>();
             go.AddComponent<DoorOpener>();
             return go;
         }
+
+        static void PutOnGlasses(GameObject person)
+        {
+            var glasses = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/Characters/glasses.fbx");
+            Transform head = null;
+            foreach (var t in person.GetComponentsInChildren<Transform>(true)) if (t.name == "Base HumanHead_056") head = t;
+            if (!glasses || !head) { Debug.LogWarning("Tiramisu: glasses or head bone not found."); return; }
+            var g = (GameObject)PrefabUtility.InstantiatePrefab(glasses);
+            g.name = "Glasses";
+            var up = person.transform.up; var fwd = person.transform.forward;
+            g.transform.SetPositionAndRotation(head.position + up * GlassesUp + fwd * GlassesForward, person.transform.rotation);
+            g.transform.localScale = Vector3.one * GlassesScale;
+            g.transform.SetParent(head, true);
+        }
+
+        public static float GlassesUp = 0.1f, GlassesForward = 0.09f, GlassesScale = 1.2f;
 
         /// <summary>A seat or bed on a piece: where the pelvis goes (piece space), which way to face, and where to stand before getting on.</summary>
         static void Spot(GameObject piece, string label, CharacterRig.Pose pose, Vector3 pelvis, float yaw, Vector3 approach)

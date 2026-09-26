@@ -198,3 +198,9 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 **Next**
 - Amir looks at them and says what to change, or picks other models.
 - Face expressions, walk cycles from animation clips, customising looks, pet sounds, the mailbox and love letters.
+
+## Session 18: looks, walking, night sky (2026-09-26) · v0.19.1
+
+- Athirah: fairer skin, glasses hidden (`CharacterRig.hideMaterial`). Amir: black hair, glasses (`glasses.fbx`, parented to his head bone by `GreyboxBuilder.PutOnGlasses`, fitted by looking at a close-up).
+- Walking: the stride phase follows the distance actually travelled (no more feet sliding), with knee lift, arm swing, hip bob and a small torso twist; pets too. Not checked frame by frame, only that the code runs.
+- Night sky: atmosphere multiplier and clouds fade out at night, 2200 stars per cubemap face, a moon disk with a generated texture (HDRP celestial body), less bloom. **Found:** the depth of field blurred the sky (infinitely far) into fuzzy blobs, so the far blur is off at night (`CinematicFocus`). The moon still glows a lot, the disk detail is not visible.

@@ -24,6 +24,8 @@ namespace Tiramisu
         Exposure exposure;
         Bloom bloom;
         PhysicallyBasedSky sky;
+        CloudLayer clouds;
+        HDAdditionalLightData moonData;
         HDAdditionalReflectionData[] probes;
         float nightAmount;
 
@@ -48,7 +50,22 @@ namespace Tiramisu
                     exposure.adaptationSpeedLightToDark.Override(6f);
                 }
                 if (volume.profile.TryGet(out sky)) sky.spaceEmissionTexture.Override(MakeStars());
-                if (sky != null) { sky.spaceEmissionMultiplier.Override(60f); }
+                if (sky != null) { sky.spaceEmissionMultiplier.Override(600f); }
+                volume.profile.TryGet(out clouds);
+            }
+            if (moon)
+            {
+                // a visible moon disk in the sky (HDRP celestial body), bigger than the real one so it reads
+                moonData = moon.GetComponent<HDAdditionalLightData>();
+                if (moonData)
+                {
+                    moonData.interactsWithSky = true;
+                    moonData.angularDiameter = 2.5f;
+                    moonData.surfaceTexture = MakeMoon();
+                    moonData.surfaceTint = new Color(0.012f, 0.012f, 0.011f);   // the disk is very bright at night exposure
+                    moonData.distance = 384400000f;
+                    moonData.earthshine = 0.4f;
+                }
             }
             if (volume && volume.profile) volume.profile.TryGet(out bloom);
             probes = FindObjectsByType<HDAdditionalReflectionData>(FindObjectsInactive.Include);
@@ -124,7 +141,9 @@ namespace Tiramisu
                 exposure.limitMax.Override(Mathf.Lerp(9f, 13.8f, day));
                 exposure.compensation.Override(Mathf.Lerp(-0.2f, 0f, day));
             }
-            if (bloom != null) bloom.intensity.Override(Mathf.Lerp(0.07f, 0.18f, day));   // less glow at night
+            if (sky != null) sky.multiplier.Override(Mathf.Lerp(0.01f, 1f, day));      // the atmosphere goes dark, only stars and the moon are left
+            if (clouds != null) clouds.opacity.Override(Mathf.Lerp(0.1f, 0.85f, day));
+            if (bloom != null) bloom.intensity.Override(Mathf.Lerp(0.02f, 0.18f, day));   // less glow at night
             if (probes != null)
                 {
                     // the probes were baked in full daylight (thousands of nits), so at night they must almost vanish,
@@ -136,27 +155,48 @@ namespace Tiramisu
             foreach (var g in NightGlow.All) g.Apply(nightAmount);
         }
 
-        // ---------- stars ----------
+        // ---------- stars and moon ----------
+
+        static Texture2D MakeMoon()
+        {
+            const int n = 256;
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp };
+            var px = new Color[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    float mare = Mathf.PerlinNoise(x * 0.03f + 7f, y * 0.03f) * 0.6f + Mathf.PerlinNoise(x * 0.09f, y * 0.09f + 3f) * 0.3f;
+                    float crater = Mathf.PerlinNoise(x * 0.4f, y * 0.4f) * 0.12f;
+                    float g = Mathf.Clamp01(0.95f - Mathf.Max(0f, mare - 0.35f) * 0.9f - crater);
+                    px[y * n + x] = new Color(g, g * 0.98f, g * 0.93f, 1f);
+                }
+            t.SetPixels(px);
+            t.Apply(true, true);
+            return t;
+        }
+
 
         static Cubemap MakeStars()
         {
-            const int size = 512;
+            const int size = 1024;
             var cm = new Cubemap(size, TextureFormat.RGBA32, false);
             var rnd = new System.Random(42);
             var pix = new Color[size * size];
             for (int face = 0; face < 6; face++)
             {
                 for (int i = 0; i < pix.Length; i++) pix[i] = Color.black;
-                int stars = 260;
+                int stars = 2200;
                 for (int s = 0; s < stars; s++)
                 {
                     int x = rnd.Next(2, size - 2), y = rnd.Next(2, size - 2);
-                    float b = Mathf.Pow((float)rnd.NextDouble(), 3f) * 0.9f + 0.1f;
+                    float b = Mathf.Pow((float)rnd.NextDouble(), 4f) * 0.9f + 0.12f;
                     var tint = Color.Lerp(new Color(1f, 0.85f, 0.7f), new Color(0.75f, 0.85f, 1f), (float)rnd.NextDouble());
                     var c = tint * b;
                     c.a = 1f;
                     pix[y * size + x] = c;
-                    if (b > 0.55f)
+                    if (b > 0.8f)
                     {
                         var d = c * 0.45f; d.a = 1f;
                         pix[y * size + x + 1] = d; pix[y * size + x - 1] = d; pix[(y + 1) * size + x] = d; pix[(y - 1) * size + x] = d;

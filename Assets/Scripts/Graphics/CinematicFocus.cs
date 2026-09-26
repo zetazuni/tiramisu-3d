@@ -25,8 +25,10 @@ namespace Tiramisu
             float d = cam.distance;
             dof.nearFocusStart.value = 0f;
             dof.nearFocusEnd.value = d * 0.35f;
-            dof.farFocusStart.value = d * 1.6f;
-            dof.farFocusEnd.value = d * 5f;
+            // the sky counts as infinitely far, so its far blur would smear the stars and moon into blobs: no far blur at night
+            bool night = DayNightCycle.Instance && DayNightCycle.Instance.Night01 > 0.5f;
+            dof.farFocusStart.value = night ? 100000f : d * 1.6f;
+            dof.farFocusEnd.value = night ? 200000f : d * 5f;
         }
     }
 }
