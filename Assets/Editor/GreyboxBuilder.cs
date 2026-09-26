@@ -1756,8 +1756,8 @@ namespace Tiramisu.EditorTools
                 m = new Material(Shader.Find("HDRP/Unlit"));
                 AssetDatabase.CreateAsset(m, path);
             }
-            m.SetColor("_UnlitColor", new Color(0.25f, 0.95f, 0.4f, 1f));
-            m.SetColor("_EmissiveColor", new Color(0.25f, 0.95f, 0.4f, 1f) * 2f);
+            m.SetColor("_UnlitColor", new Color(0.45f, 0.8f, 1f, 1f));
+            m.SetColor("_EmissiveColor", new Color(0.3f, 0.65f, 1f, 1f) * 3f);
             UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
             EditorUtility.SetDirty(m);
             return m;
@@ -1855,7 +1855,7 @@ namespace Tiramisu.EditorTools
                 case "platformbed":
                 case "platformbed_e": Spot(go, "bed", lie, new Vector3(0f, 0.7f, -0.25f), 0f, new Vector3(1.3f, 0f, 0f), knee: 5f); break;
                 case "beanbag": Spot(go, "beanbag", sit, new Vector3(0f, 0.33f, 0f), 0f, new Vector3(0f, 0f, 0.95f), recline: 38f, shin: 22f); break;
-                case "lounger": Spot(go, "lounger", lie, new Vector3(0f, 0.5f, -0.2f), 0f, new Vector3(0.9f, 0f, 0f), raise: 58f, knee: 4f); break;
+                case "lounger": Spot(go, "lounger", lie, new Vector3(0f, 0.55f, -0.16f), 0f, new Vector3(0.9f, 0f, 0f), raise: 58f, knee: 4f); break;
                 case "outdoorsectional":
                     foreach (float x in new[] { -0.8f, 0f, 0.8f }) Spot(go, "outdoor sofa", sit, new Vector3(x, 0.56f, 0.08f), 0f, new Vector3(x, 0f, 1.0f), recline: 12f, shin: 10f);
                     break;

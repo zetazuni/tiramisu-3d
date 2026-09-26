@@ -230,3 +230,9 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - First Sims 4 milestone (see `docs/SIMS4_PLAN.md`): `LiveMode` (pick a person, plumbob, click to walk, round menu on furniture and people, speed controls) and an order queue in `Character` (`GiveOrder`, `Order`, `StartOrder`, `CancelOrders`). People and pets are picked by screen distance, not colliders.
 - Checked in Play mode by stepping frames: an order to walk took Amir across the house to the spot, a "Sit down" order from the pie menu made him walk to the sofa and sit, the menu and the green diamond draw correctly. **Not tested with a real mouse**, so clicking, hover colours and the right click to close the menu need a try.
 - Key changes: 1, 2, 3 are speeds now (floors moved to Page Up, Page Down, Home), the middle mouse turns the camera and the right mouse only moves it.
+
+## Session 23: face, hand, feet, lounger, atom marker (2026-09-27) · v0.21.1
+
+- **Athirah's face** had been flattened by the outfit fitting (the face skin was sunk under the hijab while the eyes stayed put): the fitting now leaves the head and feet alone. **Her pinky** stuck straight up because part of that hand was weighted to the upper arm: hands are now one rigid piece on the forearm (radius 0.2 beyond the width of the body). **Her feet** were stretched because there were no foot bones: `foot.L` and `foot.R` are added at the ankles and `CharacterRig.FeetTargets` keeps them flat (with toe-off and heel strike when walking). All in `tools/blender_rig_athirah.py`. Checked in Play mode: face, hand, walking feet.
+- **Lounger:** the seat point is lifted out of the pad (0.55 up, 0.16 back) so she lies on it, not in it.
+- **Picked person marker:** an atom (glowing ball with three spinning rings) replaces the green diamond, and follows the head (`CharacterRig.HeadTop`), also when sitting or lying.

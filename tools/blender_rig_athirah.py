@@ -10,6 +10,9 @@ for n in [o.name for o in bpy.data.objects if o.type == 'EMPTY']:
     bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
 
 
+HANDS = [Vector((0.28, -0.07, 1.52)), Vector((-0.31, -0.10, 0.72))]   # where the two hands are in the original greeting pose
+
+
 def fit_layers(objs):
     """The outfit is a separate shell over the body. When a joint bends the body can poke through the cloth ("skin pops out"),
     so the body is sunk 8 mm under everything the clothes cover and the cloth and hijab are pushed out 5 mm."""
@@ -30,7 +33,9 @@ def fit_layers(objs):
     moved = 0
     for v in body.data.vertices:
         co = body.matrix_world @ v.co
-        if co.z < 0.05:
+        if co.z < 0.05 or co.z > 1.38:      # feet and the head (the face must keep its shape) stay as they are
+            continue
+        if any((co - h).length < 0.13 for h in HANDS):
             continue
         found = kd.find(co)
         if found[2] < 0.06:
@@ -84,6 +89,21 @@ def copy_body_weights(objs):
                 groups[n].add([v.index], w, 'REPLACE')
 
 
+
+
+def rigid_hands(body):
+    """A hand is one rigid piece on the forearm bone, so the fingers (the pinky above all) cannot be stretched towards other bones."""
+    names = {vg.index: vg.name for vg in body.vertex_groups}
+    for hand, side in zip(HANDS, ("forearm.L", "forearm.R")):
+        for v in body.data.vertices:
+            co = body.matrix_world @ v.co
+            if (co - hand).length < 0.2 and abs(co.x) > 0.19:      # beyond the width of the body, so not the head or the hip
+                for gi in [g.group for g in v.groups]:
+                    body.vertex_groups[gi].remove([v.index])
+                body.vertex_groups[side].add([v.index], 1.0, 'REPLACE')
+
+
+rigid_hands(objs["Object_2"])
 copy_body_weights(objs)
 mesh = join_meshes(list(objs.values()), "athirah_mesh")
 mesh.parent = arm
@@ -93,4 +113,40 @@ N = {"arm.L": (0.15,0,-1), "forearm.L": (0.05,0,-1), "arm.R": (-0.12,0,-1), "for
      "leg.L": (0,0,-1), "shin.L": (0,0.05,-1), "leg.R": (0,0,-1), "shin.R": (0,-0.05,-1)}
 pose_neutral(mesh, arm, N)
 
+
+
+def add_feet(mesh, arm):
+    """Foot bones at the ankles, so the shoes can stay flat while the leg bends. Everything below 11 cm follows the foot,
+    blending into the shin over the next 5 cm."""
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode='EDIT')
+    eb = arm.data.edit_bones
+    ankle = {}
+    for side in ("L", "R"):
+        sh = eb["shin." + side]
+        a = sh.tail.copy()
+        ankle[side] = a
+        f = eb.new("foot." + side)
+        f.head = Vector((a.x, a.y, 0.08))
+        f.tail = Vector((a.x, a.y - 0.14, 0.03))
+        f.parent = sh
+    bpy.ops.object.mode_set(mode='OBJECT')
+    groups = {side: mesh.vertex_groups.new(name="foot." + side) for side in ("L", "R")}
+    n = 0
+    for v in mesh.data.vertices:
+        z = (mesh.matrix_world @ v.co).z
+        if z >= 0.11:
+            continue
+        t = min(1.0, (0.11 - z) / 0.05)
+        side = "L" if v.co.x > 0 else "R"
+        old = [(g.group, g.weight) for g in v.groups if mesh.vertex_groups[g.group].name not in ("foot.L", "foot.R")]
+        for gi, w in old:
+            mesh.vertex_groups[gi].add([v.index], w * (1.0 - t), 'REPLACE')
+        groups[side].add([v.index], t, 'REPLACE')
+        n += 1
+    print("foot vertices:", n)
+
+
+add_feet(mesh, arm)
 info = export_character("athirah", mesh, arm)

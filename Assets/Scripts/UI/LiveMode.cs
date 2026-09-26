@@ -200,37 +200,84 @@ namespace Tiramisu
 
         // ---------------------------------------------------------------- the green diamond
 
+        Transform[] rings;
+
+        static Mesh Torus(float radius, float tube, int seg, int sides)
+        {
+            var v = new List<Vector3>(); var t = new List<int>();
+            for (int i = 0; i <= seg; i++)
+            {
+                float a = i * Mathf.PI * 2f / seg;
+                var c = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius;
+                for (int k = 0; k < sides; k++)
+                {
+                    float b = k * Mathf.PI * 2f / sides;
+                    var n = new Vector3(Mathf.Cos(a) * Mathf.Cos(b), Mathf.Sin(b), Mathf.Sin(a) * Mathf.Cos(b));
+                    v.Add(c + n * tube);
+                }
+            }
+            for (int i = 0; i < seg; i++)
+                for (int k = 0; k < sides; k++)
+                {
+                    int a = i * sides + k, b = i * sides + (k + 1) % sides, c = (i + 1) * sides + k, d = (i + 1) * sides + (k + 1) % sides;
+                    t.Add(a); t.Add(c); t.Add(b); t.Add(b); t.Add(c); t.Add(d);
+                }
+            var m = new Mesh { name = "Ring" };
+            m.SetVertices(v); m.SetTriangles(t, 0); m.RecalculateNormals(); m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>A small glowing atom: a ball with three rings that spin, over the person you are playing.</summary>
         void MakePlumbob()
         {
-            var go = new GameObject("Plumbob");
-            go.transform.SetParent(transform, false);
-            var mf = go.AddComponent<MeshFilter>();
-            var mr = go.AddComponent<MeshRenderer>();
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-            if (plumbobMaterial) mr.sharedMaterial = plumbobMaterial;
-            var mesh = new Mesh { name = "Plumbob" };
-            const float w = 0.11f, h = 0.2f;
-            var v = new[] { new Vector3(0, h, 0), new Vector3(0, -h, 0), new Vector3(w, 0, 0), new Vector3(0, 0, w), new Vector3(-w, 0, 0), new Vector3(0, 0, -w) };
-            var t = new[] { 0, 3, 2, 0, 4, 3, 0, 5, 4, 0, 2, 5, 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 2 };
-            mesh.vertices = v; mesh.triangles = t; mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            mf.sharedMesh = mesh;
-            plumbob = go.transform;
+            var root = new GameObject("Plumbob");
+            root.transform.SetParent(transform, false);
+            void Setup(GameObject go)
+            {
+                var mr = go.GetComponent<MeshRenderer>();
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+                if (plumbobMaterial) mr.sharedMaterial = plumbobMaterial;
+            }
+            var core = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(core.GetComponent<Collider>());
+            core.transform.SetParent(root.transform, false);
+            core.transform.localScale = Vector3.one * 0.085f;
+            Setup(core);
+            var ringMesh = Torus(0.13f, 0.005f, 48, 6);
+            rings = new Transform[3];
+            for (int i = 0; i < 3; i++)
+            {
+                var g = new GameObject("Ring " + i);
+                g.transform.SetParent(root.transform, false);
+                g.AddComponent<MeshFilter>().sharedMesh = ringMesh;
+                g.AddComponent<MeshRenderer>();
+                Setup(g);
+                rings[i] = g.transform;
+            }
+            plumbob = root.transform;
         }
 
         void UpdatePlumbob()
         {
             if (!plumbob) return;
             bool show = Selected != null && Selected && !DecorateMode.Active;
-            var r = plumbob.GetComponent<Renderer>();
-            if (r) r.enabled = show && (Selected.GetComponentInChildren<Renderer>() == null || Selected.GetComponentInChildren<Renderer>().enabled);
+            var body = Selected != null && Selected ? Selected.GetComponentInChildren<Renderer>() : null;
+            show = show && (body == null || body.enabled);
+            if (plumbob.gameObject.activeSelf != show) plumbob.gameObject.SetActive(show);
             if (!show) return;
             float t = Time.unscaledTime;
-            float top = Selected.transform.position.y + 1.7f * Selected.scale;
-            foreach (var rr in Selected.GetComponentsInChildren<Renderer>()) if (rr.enabled) top = Mathf.Max(top, rr.bounds.max.y);
-            top = Selected.Activity == "Lying down" ? Selected.transform.position.y + 1.2f : Mathf.Min(top, Selected.transform.position.y + 2.2f * Selected.scale);
-            plumbob.position = new Vector3(Selected.transform.position.x, top + 0.3f + 0.06f * Mathf.Sin(t * 2.4f), Selected.transform.position.z);
-            plumbob.rotation = Quaternion.Euler(0f, t * 70f, 0f);
+            var rg = Selected.GetComponent<CharacterRig>();
+            var head = rg ? rg.HeadTop : Selected.transform.position + Vector3.up * (1.75f * Selected.scale);
+            plumbob.position = head + Vector3.up * (0.22f + 0.04f * Mathf.Sin(t * 2.4f));
+            plumbob.rotation = Quaternion.identity;
+            if (rings != null)
+                for (int i = 0; i < rings.Length; i++)
+                {
+                    // three orbits at different tilts, each turning at its own pace
+                    var tilt = Quaternion.Euler(0f, i * 60f, 62f);
+                    rings[i].localRotation = tilt * Quaternion.Euler(0f, t * (110f + 35f * i), 0f);
+                }
         }
 
         // ---------------------------------------------------------------- drawing

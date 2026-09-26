@@ -45,7 +45,7 @@ namespace Tiramisu
             { "leg.R", "Base HumanRThigh_06" }, { "shin.R", "Base HumanRCalf_07" },
         };
 
-        static readonly string[] PersonJoints = { "pelvis", "spine", "neck", "arm.L", "forearm.L", "arm.R", "forearm.R", "leg.L", "shin.L", "leg.R", "shin.R" };
+        static readonly string[] PersonJoints = { "pelvis", "spine", "neck", "arm.L", "forearm.L", "arm.R", "forearm.R", "leg.L", "shin.L", "leg.R", "shin.R", "foot.L", "foot.R" };
         static readonly string[] PetJoints = { "body", "head", "tail", "legFL", "legFR", "legBL", "legBR" };
 
         // Joint positions in Blender space (x, y, z), as in tools/blender_characters.py. The FBX is flat: every part is named
@@ -123,6 +123,16 @@ namespace Tiramisu
                     copy.SetIndices(new int[0], MeshTopology.Triangles, m);
                 }
             }   // the bounds of a posed skin change
+        }
+
+        /// <summary>The top of the head, from the neck joint (works sitting and lying too).</summary>
+        public Vector3 HeadTop
+        {
+            get
+            {
+                if (j.TryGetValue("neck", out var n) && n.t) return n.t.position + Vector3.up * (0.33f * transform.lossyScale.y);
+                return transform.position + Vector3.up * (1.75f * transform.lossyScale.y);
+            }
         }
 
         static Transform FindDeep(Transform root, string name)
@@ -210,6 +220,22 @@ namespace Tiramisu
                     Set("arm.L", 2f); Set("arm.R", 2f);
                     break;
             }
+            FeetTargets(s);
+        }
+
+        float Target(string n) => j.TryGetValue(n, out var x) ? x.tgt : 0f;
+
+        /// <summary>The feet stay flat whatever the leg does (the thigh and shin angles are taken back off), with a little toe-off and heel strike when walking.</summary>
+        void FeetTargets(float s)
+        {
+            float toeL = 0f, toeR = 0f;
+            if (pose == Pose.Walk)
+            {
+                toeL = -18f * amp * Mathf.Max(0f, -s) + 8f * amp * Mathf.Max(0f, s);
+                toeR = -18f * amp * Mathf.Max(0f, s) + 8f * amp * Mathf.Max(0f, -s);
+            }
+            Set("foot.L", -(Target("leg.L") + Target("shin.L")) + toeL);
+            Set("foot.R", -(Target("leg.R") + Target("shin.R")) + toeR);
         }
 
         /// <summary>
