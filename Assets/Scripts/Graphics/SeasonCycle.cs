@@ -21,7 +21,9 @@ namespace Tiramisu
         public Season season = Season.Spring;
         public int daysPerSeason = 3;
         [Tooltip("soft round texture for the falling things")] public Texture2D soft;
-        public Material petalMaterial, leafMaterial, snowMaterial, fireflyMaterial;
+        public Material petalMaterial, snowMaterial, fireflyMaterial;
+        [Tooltip("three colours of falling leaf (each a leaf shaped sprite, HDRP unlit has no vertex colours)")] public Material[] leafMaterials;
+        [Tooltip("two shades of blossom petal")] public Material[] petalMaterials;
 
         const string PrefKey = "tiramisu.season";
 
@@ -61,7 +63,11 @@ namespace Tiramisu
         readonly List<Material> leafMats = new List<Material>(), flowerMats = new List<Material>();
         Material lawnM, lawnEdgeM, hedgeM;
         int lastDay = -1;
-        ParticleSystem petals, fallLeaves, snow, fireflies;
+        ParticleSystem snow, fireflies;
+        readonly List<ParticleSystem> petalSystems = new List<ParticleSystem>(), leafSystems = new List<ParticleSystem>();
+        readonly List<Material> cityLeaf = new List<Material>();
+        static ParticleSystem.Particle[] buffer = new ParticleSystem.Particle[16000];
+        static Mesh quad;
         float snowStrength, leafStrength, petalStrength, fireflyStrength;
 
         public string Label => season.ToString();
@@ -109,7 +115,7 @@ namespace Tiramisu
                     var m = shared[i];
                     if (!m) continue;
                     string n = m.name;
-                    if (n == "Lawn" || n == "LawnEdge" || n == "Hedge") { shared[i] = Copy(m); changed = true; }
+                    if (n == "Lawn" || n == "LawnEdge" || n == "Hedge" || n == "CityLeaf") { shared[i] = Copy(m); changed = true; }
                     else if (n.StartsWith("HedgeFlower")) { shared[i] = Copy(m); changed = true; if (!flowers.Contains(r)) flowers.Add(r); }
                     else if (IsOutdoorLeaf(r, n))
                     {
@@ -125,6 +131,7 @@ namespace Tiramisu
                 if (n == "Lawn") lawnM = kv.Value;
                 else if (n == "LawnEdge") lawnEdgeM = kv.Value;
                 else if (n == "Hedge") hedgeM = kv.Value;
+                else if (n == "CityLeaf") cityLeaf.Add(kv.Value);
                 else if (n.StartsWith("HedgeFlower")) flowerMats.Add(kv.Value);
                 else leafMats.Add(kv.Value);
             }
@@ -196,6 +203,7 @@ namespace Tiramisu
             Tint(lawnM, l.lawn);
             Tint(lawnEdgeM, Color.Lerp(l.lawn, Color.black, 0.15f));
             Tint(hedgeM, l.hedge);
+            foreach (var m in cityLeaf) Tint(m, Color.Lerp(l.hedge, l.leaf * 0.45f, 0.5f));
             foreach (var m in leafMats) Tint(m, l.leaf);
             foreach (var m in flowerMats) Tint(m, l.flower);
             bool leavesShown = l.leafOn > 0.35f;
@@ -207,11 +215,22 @@ namespace Tiramisu
 
         // ------------------------------------------------------------ falling things
 
+        static Mesh Quad()
+        {
+            if (quad) return quad;
+            quad = new Mesh { name = "Leaf quad" };
+            quad.vertices = new[] { new Vector3(-0.5f, -0.5f, 0), new Vector3(0.5f, -0.5f, 0), new Vector3(0.5f, 0.5f, 0), new Vector3(-0.5f, 0.5f, 0) };
+            quad.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+            quad.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            quad.RecalculateNormals(); quad.RecalculateBounds();
+            return quad;
+        }
+
         void MakeParticles()
         {
             var root = new GameObject("Season weather").transform;
             root.SetParent(transform, false);
-            ParticleSystem Make(string name, Material mat, float size, float life, float rate, float gravity, Vector2 startSize, Color color, float spinDeg)
+            ParticleSystem Make(string name, Material mat, float life, float gravity, Vector2 startSize, Color color, bool tumble, float sway, float fallSpeed)
             {
                 var go = new GameObject(name);
                 go.transform.SetParent(root, false);
@@ -229,21 +248,32 @@ namespace Tiramisu
                 main.gravityModifier = gravity;
                 main.simulationSpace = ParticleSystemSimulationSpace.World;
                 main.maxParticles = 12000;
-                if (spinDeg > 0f) { main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.28f); }
-                var em = ps.emission; em.rateOverTime = rate; em.enabled = false;
+                if (tumble)
+                {
+                    rr.renderMode = ParticleSystemRenderMode.Mesh;
+                    rr.mesh = Quad();
+                    rr.alignment = ParticleSystemRenderSpace.World;
+                    main.startRotation3D = true;
+                    main.startRotationX = new ParticleSystem.MinMaxCurve(0f, 6.28f);
+                    main.startRotationY = new ParticleSystem.MinMaxCurve(0f, 6.28f);
+                    main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, 6.28f);
+                    var rot = ps.rotationOverLifetime; rot.enabled = true; rot.separateAxes = true;
+                    rot.x = new ParticleSystem.MinMaxCurve(-2.2f, 2.2f); rot.y = new ParticleSystem.MinMaxCurve(-2.6f, 2.6f); rot.z = new ParticleSystem.MinMaxCurve(-1.6f, 1.6f);
+                }
+                var em = ps.emission; em.rateOverTime = 0f; em.enabled = false;
                 var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(52f, 0.5f, 42f);
-                var noise = ps.noise; noise.enabled = true; noise.strength = 0.6f; noise.frequency = 0.15f; noise.scrollSpeed = 0.3f;
-                var vel = ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World; vel.x = new ParticleSystem.MinMaxCurve(-0.4f, 0.8f); vel.z = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);
-                var lim = ps.limitVelocityOverLifetime; lim.enabled = true; lim.limitY = new ParticleSystem.MinMaxCurve(size); lim.dampen = 0.5f;
-                if (spinDeg > 0f) { var rot = ps.rotationOverLifetime; rot.enabled = true; rot.z = new ParticleSystem.MinMaxCurve(-spinDeg * Mathf.Deg2Rad, spinDeg * Mathf.Deg2Rad); }
-                var col = ps.collision; col.enabled = false;
+                var noise = ps.noise; noise.enabled = true; noise.strength = sway; noise.frequency = 0.22f; noise.scrollSpeed = 0.35f;
+                var vel = ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World; vel.x = new ParticleSystem.MinMaxCurve(-0.3f, 0.9f); vel.z = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f); vel.y = new ParticleSystem.MinMaxCurve(0f, 0f);
+                var lim = ps.limitVelocityOverLifetime; lim.enabled = true; lim.limitY = new ParticleSystem.MinMaxCurve(fallSpeed); lim.dampen = 0.6f;
                 ps.Play();
                 return ps;
             }
-            petals = Make("Petals", petalMaterial, 1.2f, 18f, 60f, 0.04f, new Vector2(0.06f, 0.11f), new Color(1f, 0.78f, 0.86f, 0.95f), 220f);
-            fallLeaves = Make("Falling leaves", leafMaterial, 1.5f, 18f, 55f, 0.05f, new Vector2(0.1f, 0.2f), new Color(1f, 0.62f, 0.2f, 1f), 260f);
-            snow = Make("Snow", snowMaterial, 1.8f, 12f, 1100f, 0.05f, new Vector2(0.035f, 0.08f), new Color(1f, 1f, 1f, 0.9f), 0f);
-            fireflies = Make("Fireflies", fireflyMaterial, 0.35f, 8f, 25f, 0f, new Vector2(0.06f, 0.09f), new Color(1f, 0.95f, 0.5f, 1f), 0f);
+            var pm = petalMaterials != null && petalMaterials.Length > 0 ? petalMaterials : new[] { petalMaterial };
+            foreach (var m in pm) petalSystems.Add(Make("Petals", m, 18f, 0.04f, new Vector2(0.06f, 0.11f), Color.white, false, 0.6f, 1.2f));
+            var lm = leafMaterials != null && leafMaterials.Length > 0 ? leafMaterials : new[] { petalMaterial };
+            foreach (var m in lm) leafSystems.Add(Make("Falling leaves", m, 16f, 0.06f, new Vector2(0.24f, 0.4f), Color.white, true, 1.3f, 1.05f));
+            snow = Make("Snow", snowMaterial, 12f, 0.05f, new Vector2(0.035f, 0.08f), Color.white, false, 0.6f, 1.8f);
+            fireflies = Make("Fireflies", fireflyMaterial, 8f, 0f, new Vector2(0.06f, 0.09f), Color.white, false, 0.6f, 0.35f);
             var fs = fireflies.shape; fs.scale = new Vector3(40f, 1f, 30f); fireflies.transform.position = new Vector3(15f, 1.2f, 9f);
         }
 
@@ -261,10 +291,29 @@ namespace Tiramisu
             snowStrength = Mathf.Lerp(snowStrength, season == Season.Winter ? 1f : 0f, k);
             float night = DayNightCycle.Instance ? DayNightCycle.Instance.Night01 : 0f;
             fireflyStrength = Mathf.Lerp(fireflyStrength, season == Season.Summer ? night : 0f, k);
-            Rate(petals, 70f * petalStrength);
-            Rate(fallLeaves, 60f * leafStrength);
-            Rate(snow, 1100f * snowStrength);
-            Rate(fireflies, 26f * fireflyStrength);
+            foreach (var ps in petalSystems) { Rate(ps, 36f * petalStrength); Fade(ps, season == Season.Spring); }
+            foreach (var ps in leafSystems) { Rate(ps, 70f * leafStrength); Fade(ps, season == Season.Autumn); }
+            Rate(snow, 1100f * snowStrength); Fade(snow, season == Season.Winter);
+            Rate(fireflies, 26f * fireflyStrength); Fade(fireflies, season == Season.Summer);
+        }
+
+        /// <summary>When a season ends, whatever is still in the air fades away within about a second instead of drifting on for ten.</summary>
+        static void Fade(ParticleSystem ps, bool active)
+        {
+            if (!ps || active) return;
+            int n = ps.particleCount;
+            if (n == 0) return;
+            n = ps.GetParticles(buffer);
+            float f = Mathf.Exp(-4f * Time.unscaledDeltaTime);
+            for (int i = 0; i < n; i++)
+            {
+                var c = buffer[i].startColor;
+                c.a = (byte)(c.a * f);
+                buffer[i].startColor = c;
+                buffer[i].startSize *= 1f - (1f - f) * 0.5f;
+                if (c.a < 8) buffer[i].remainingLifetime = 0f;
+            }
+            ps.SetParticles(buffer, n);
         }
 
         static void Rate(ParticleSystem ps, float r)

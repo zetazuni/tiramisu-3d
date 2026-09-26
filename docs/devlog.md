@@ -260,3 +260,11 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Petting pose:** the crouch is now solved from the leg length so the feet are on the floor and the hip is at 0.5 m, with a forward lean. **Found:** Amir's spine and neck bones are turned the other way round to Athirah's, so the sign is flipped for him in `CharacterRig.Set` (this also changes how he leans when sitting: back against the sofa now).
 - **Atom marker:** higher, and each part has its own colour that drifts round the rainbow.
 - **Removed** from the living room: potted plant 4, the calathea and the globe. Default layout updated again.
+
+## Session 27: the city around the plot, leaves, season fade (2026-09-27) · v0.24.0
+
+- **City** (`Assets/Editor/CityBuilder.cs`, run from the greybox build): a grid of streets (six north-south and four east-west, the road past the garage is one of them), sidewalks, lane lines, street lamps and street trees, lots filled with modern flat-roofed houses near the plot (2 to 3 floors), apartment blocks further out (4 to 9) and glass towers on the horizon (up to about 110 m). About 130 meshes (one per block and material, saved in `Assets/Art/Meshes/City`, cast shadows only near the plot, ray tracing off). Facades come from a generated window texture (world space triplanar) with lit windows that come on at dusk together with the lamps (`CityNight`, works on material copies). The plot, fence and its road are untouched; buildings are cut down to strips around the plot's rectangle. **The greybox build now takes about 5 to 10 minutes** because of the meshes, do not think it hung.
+- **Seasons in the city:** street trees follow the season colour (`CityLeaf`).
+- **Falling leaves** are now real leaf shapes in three colours (rust, gold, brown) that tumble on all axes, instead of glowing dots that looked like ash. **Found:** HDRP unlit particles ignore the particle start colour, so each colour needs its own material and system.
+- **Season change:** what is still in the air of the old season fades away in about a second (`SeasonCycle.Fade`).
+- Not done: shops or people in the city, traffic, city sounds; the windows on far towers repeat the same pattern.

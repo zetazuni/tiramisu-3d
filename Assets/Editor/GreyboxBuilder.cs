@@ -444,6 +444,7 @@ namespace Tiramisu.EditorTools
             BuildRoof(roofGroup);
             roofRoot = roofGroup; upperRoot = upper;
             BuildGarden(Group("Garden", null));
+            CityBuilder.Build(asphalt, stone, lineWhite, lawnDark);
             BuildDoors(house, upper);
             BuildBeams(house, upper);
             BuildWallLights(house, upper);
@@ -1793,9 +1794,53 @@ namespace Tiramisu.EditorTools
                 EditorUtility.SetDirty(m);
                 return m;
             }
+            // a leaf shaped sprite: a pointed ellipse with a centre vein and a short stem
+            const string lp = "Assets/Art/Textures/LeafShape.png";
+            if (!System.IO.File.Exists(lp))
+            {
+                const int N = 128;
+                var t = new Texture2D(N, N, TextureFormat.RGBA32, false);
+                for (int y = 0; y < N; y++)
+                    for (int x = 0; x < N; x++)
+                    {
+                        float u = (x + 0.5f) / N * 2f - 1f, v = (y + 0.5f) / N * 2f - 1f;     // -1..1, the leaf runs along v
+                        float w = 0.62f * Mathf.Pow(Mathf.Max(0f, 1f - Mathf.Abs(v * 0.86f - 0.05f)), 0.75f) * Mathf.Sin(Mathf.PI * Mathf.Clamp01((v + 0.85f) / 1.7f));
+                        float a = Mathf.Abs(u) < w ? 1f : 0f;
+                        if (Mathf.Abs(u) < 0.03f && v < -0.8f && v > -1f) a = 1f;             // stem
+                        float vein = Mathf.Abs(u) < 0.035f || (Mathf.Abs(Mathf.Abs(u) - (v + 0.7f) * 0.28f) < 0.02f && v > -0.6f && v < 0.6f) ? 0.72f : 1f;
+                        float edge = Mathf.Clamp01((w - Mathf.Abs(u)) * 30f);
+                        t.SetPixel(x, y, new Color(vein, vein, vein, a > 0f ? Mathf.Max(edge, Mathf.Abs(u) < 0.03f ? 1f : 0f) : 0f));
+                    }
+                t.Apply();
+                System.IO.File.WriteAllBytes(lp, t.EncodeToPNG());
+                AssetDatabase.ImportAsset(lp);
+                var li = (TextureImporter)AssetImporter.GetAtPath(lp);
+                li.alphaIsTransparency = true; li.mipmapEnabled = true;
+                li.SaveAndReimport();
+            }
+            var leafTex = AssetDatabase.LoadAssetAtPath<Texture2D>(lp);
+            Material Leaf(string name, Color col)
+            {
+                string path = $"Assets/Art/Materials/{name}.mat";
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (!m) { m = new Material(Shader.Find("HDRP/Unlit")); AssetDatabase.CreateAsset(m, path); }
+                m.SetFloat("_SurfaceType", 1f);
+                m.SetFloat("_BlendMode", 0f);
+                m.SetFloat("_ZWrite", 0f);
+                m.SetFloat("_DoubleSidedEnable", 1f);
+                m.SetFloat("_AlphaCutoffEnable", 1f);
+                m.SetFloat("_AlphaCutoff", 0.35f);
+                m.SetTexture("_UnlitColorMap", leafTex);
+                m.SetColor("_UnlitColor", col);
+                m.SetColor("_EmissiveColor", Color.black);
+                UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
+                EditorUtility.SetDirty(m);
+                return m;
+            }
             sc.soft = soft;
-            sc.petalMaterial = Dot("SeasonPetal", new Color(1f, 0.8f, 0.88f, 1f), 0.6f);
-            sc.leafMaterial = Dot("SeasonLeaf", new Color(1f, 0.6f, 0.2f, 1f), 0.15f);
+            sc.petalMaterials = new[] { Dot("SeasonPetal", new Color(1f, 0.8f, 0.88f, 1f), 0.6f), Dot("SeasonPetalWhite", new Color(1f, 0.96f, 0.96f, 1f), 0.6f) };
+            sc.petalMaterial = sc.petalMaterials[0];
+            sc.leafMaterials = new[] { Leaf("SeasonLeafRust", new Color(0.72f, 0.28f, 0.08f, 1f)), Leaf("SeasonLeafGold", new Color(0.92f, 0.66f, 0.12f, 1f)), Leaf("SeasonLeafBrown", new Color(0.5f, 0.3f, 0.12f, 1f)) };
             sc.snowMaterial = Dot("SeasonSnow", new Color(1f, 1f, 1f, 1f), 0.8f);
             sc.fireflyMaterial = Dot("SeasonFirefly", new Color(1f, 0.95f, 0.5f, 1f), 6f);
         }

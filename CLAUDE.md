@@ -15,7 +15,7 @@ If you are a new conversation or a new account, read these in order before doing
 - Repo: https://github.com/zetazuni/tiramisu-3d (public, branch `main`, Git LFS for models, textures and audio).
 - Unity 6000.6.3f1 with **HDRP 17.6** on DirectX 12, Blender 5.2.2 LTS, both driven by Claude through MCP. Target: Windows PC (dev PC has an RTX 4050 laptop GPU).
 - The original 2D game is at `S:\Tiramisu App by Zetazuni`. Its `CLAUDE.md` is the detailed feature reference.
-- Current version: **0.23.0** (four seasons, a working TV and a fuller living room, live mode with a pie menu, fairer Athirah without glasses, Amir with black hair and glasses, distance-driven walk, dark starry night with a moon, decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
+- Current version: **0.24.0** (a modern city all round, four seasons, a working TV and a fuller living room, live mode with a pie menu, fairer Athirah without glasses, Amir with black hair and glasses, distance-driven walk, dark starry night with a moon, decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
 - New to Unity? `docs/UNITY_GUIDE.md` explains the panes, controls, testing and troubleshooting.
 - Main scene: `Assets/Scenes/Main.unity`. It is generated, see "Greybox builder" below.
 
