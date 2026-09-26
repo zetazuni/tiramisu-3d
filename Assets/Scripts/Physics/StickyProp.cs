@@ -30,38 +30,40 @@ namespace Tiramisu
             t = 1f;
         }
 
-        /// <summary>Drops the prop straight down onto the surface under it (or lifts it out of one), then makes that its home.</summary>
+        /// <summary>
+        /// Drops the prop straight down until it touches the highest surface under its footprint (five sample points),
+        /// so it rests with real contact: no gap under it and nothing sunk into the piece below. Then that is its home.
+        /// </summary>
         public void Settle()
         {
             var rs = GetComponentsInChildren<Renderer>();
             if (rs.Length == 0) return;
             var b = rs[0].bounds;
             foreach (var r in rs) b.Encapsulate(r.bounds);
-            var from = new Vector3(b.center.x, b.min.y + 0.35f, b.center.z);
-            var hits = Physics.RaycastAll(from, Vector3.down, 2f, ~0, QueryTriggerInteraction.Ignore);
-            System.Array.Sort(hits, (p, q) => p.distance.CompareTo(q.distance));
-            foreach (var h in hits)
+            var offs = new[] { Vector2.zero, new Vector2(0.35f, 0.35f), new Vector2(-0.35f, 0.35f), new Vector2(0.35f, -0.35f), new Vector2(-0.35f, -0.35f) };
+            float best = float.NegativeInfinity;
+            foreach (var o in offs)
             {
-                if (h.collider.transform.IsChildOf(transform)) continue;
-                float delta = h.point.y - b.min.y;
-                if (Mathf.Abs(delta) > 0.004f && Mathf.Abs(delta) < 0.5f) transform.position += Vector3.up * delta;
-                break;
+                var from = new Vector3(b.center.x + o.x * b.extents.x, b.min.y + 0.35f, b.center.z + o.y * b.extents.z);
+                var hits = Physics.RaycastAll(from, Vector3.down, 2f, ~0, QueryTriggerInteraction.Ignore);
+                System.Array.Sort(hits, (p, q) => p.distance.CompareTo(q.distance));
+                foreach (var h in hits)
+                {
+                    if (h.collider.transform.IsChildOf(transform)) continue;
+                    best = Mathf.Max(best, h.point.y);
+                    break;
+                }
+            }
+            if (!float.IsNegativeInfinity(best))
+            {
+                float delta = best - b.min.y;
+                if (Mathf.Abs(delta) > 0.001f && Mathf.Abs(delta) < 0.5f) transform.position += Vector3.up * delta;
             }
             Anchor();
         }
 
-        /// <summary>Shifts the prop a little along dir (horizontal) and lets it return.</summary>
-        public void Nudge(Vector3 dir)
-        {
-            dir.y = 0f;
-            if (dir.sqrMagnitude < 1e-4f) return;
-            dir.Normalize();
-            fromPos = restPos + dir * nudgeDistance + Vector3.up * 0.004f;
-            var axis = Vector3.Cross(Vector3.up, dir);            // tips a little in the direction of the shove
-            fromRot = Quaternion.AngleAxis(nudgeTilt, axis) * restRot;
-            transform.SetPositionAndRotation(fromPos, fromRot);
-            t = 0f;
-        }
+        /// <summary>Small things are fixed to what they sit on now, a shove does nothing to them.</summary>
+        public void Nudge(Vector3 dir) { }
 
         void Update()
         {

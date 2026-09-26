@@ -17,6 +17,9 @@ namespace Tiramisu
         [Tooltip("Built in pieces (kitchen run, shower, lamps hung from the ceiling) cannot be moved.")]
         public bool pinned;
 
+        [Tooltip("A small thing (cushion, book, mug, lamp): it becomes part of the piece it rests on.")]
+        public bool small;
+        [NonSerialized] public Furniture attachedTo;
         [NonSerialized] public Vector3 homePos;
         [NonSerialized] public Quaternion homeRot;
         Bounds local;
@@ -76,13 +79,13 @@ namespace Tiramisu
         [Serializable] class Layout { public int version = 1; public List<Entry> items = new List<Entry>(); }
 
         /// <summary>The piece a small thing rests on (a cushion on a sofa), or null.</summary>
-        static Furniture HostOf(Furniture f)
+        static Furniture HostOf(Furniture f, bool includePinned = false)
         {
             Furniture best = null;
             float bestTop = -1f;
             foreach (var h in All)
             {
-                if (h == f || h.pinned || h.GetComponent<StickyProp>()) continue;
+                if (h == f || (h.pinned && !includePinned) || h.small || h.attachedTo) continue;
                 var lb = h.LocalBounds;
                 var l = h.transform.InverseTransformPoint(f.transform.position);
                 if (Mathf.Abs(l.x - lb.center.x) > lb.extents.x || Mathf.Abs(l.z - lb.center.z) > lb.extents.z) continue;
@@ -97,7 +100,7 @@ namespace Tiramisu
             var l = new Layout();
             foreach (var f in All)
             {
-                if (f.pinned) continue;
+                if (f.pinned || f.attachedTo) continue;
                 if ((f.transform.position - f.homePos).sqrMagnitude < 1e-4f && Quaternion.Angle(f.transform.rotation, f.homeRot) < 0.1f) continue;
                 var e = new Entry { key = f.key, pos = f.transform.position, yaw = f.transform.eulerAngles.y };
                 if (f.GetComponent<StickyProp>())
@@ -147,7 +150,6 @@ namespace Tiramisu
                 }
             }
             Physics.SyncTransforms();
-            SettleSmallThings();
             return n;
         }
 
@@ -158,10 +160,30 @@ namespace Tiramisu
             foreach (var st in UnityEngine.Object.FindObjectsByType<StickyProp>(FindObjectsInactive.Exclude)) st.Settle();
         }
 
+        /// <summary>
+        /// Makes every small thing part of the piece under it: it is parented to it and loses its own body, so its
+        /// colliders join the piece's. From then on it can never move relative to the sofa, table or counter.
+        /// </summary>
+        public static void AttachSmallThings()
+        {
+            foreach (var f in new System.Collections.Generic.List<Furniture>(All))
+            {
+                if (f.attachedTo) continue;
+                bool small = f.small || f.GetComponentInChildren<StickyProp>() != null;
+                if (!small) continue;
+                var host = HostOf(f, true);
+                if (!host) continue;
+                foreach (var st in f.GetComponentsInChildren<StickyProp>()) Destroy(st);
+                foreach (var rb in f.GetComponentsInChildren<Rigidbody>()) Destroy(rb);
+                f.transform.SetParent(host.transform, true);
+                f.attachedTo = host;
+            }
+        }
+
         public static void ResetAll()
         {
             PlayerPrefs.DeleteKey(PrefKey);
-            foreach (var f in All) if (!f.pinned) f.Place(f.homePos, f.homeRot);
+            foreach (var f in All) if (!f.pinned && !f.attachedTo) f.Place(f.homePos, f.homeRot);
             Physics.SyncTransforms();
         }
 

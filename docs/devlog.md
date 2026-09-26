@@ -156,6 +156,15 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Weeds:** the scanned shrub has stem tips above its lowest leaf, so it hung in the air. Sunk into the lawn.
 - Not tested by hand: dragging the yard furniture, hovering the folding door, clicking the water.
 
+## Session 12: fence, gates, attached small things (2026-09-26) · v0.14.0
+
+- Weeds removed, hammock away from the pavement, bathtub moved to the side of the garage door.
+- **Small things are now one piece with what they sit on.** First attempt attached them at the start of Play and left a 1.5 cm gap under the cushions, because the sofa pushes itself out of the floor in the first moments. Now it waits 1.2 s, settles on the highest surface, then attaches. Also found on the way: a host with a small thing already attached to it was refused as a host for the next one (destroying a component only takes effect at the end of the frame), so only 7 of 20 attached at first.
+- **Turn buttons** in the HUD.
+- **Lawn under and behind the house, fence with wall lights, front gate on the pavement axis, back gate, open garage lane.** Checked from above by day, the gates' swing direction by script (both inward).
+- **Testing note:** when the Unity window is in the background it renders only when asked, so game time barely advances. Timed things (the 1.2 s wait, door opening) were checked by calling the code directly.
+- Not tested by hand: gates opening by hover, the turn buttons with a mouse.
+
 **Next**
-- Amir walks the yard by day and night and says what feels off (moonlight strength, fountain look, bubbles).
-- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights, weather.
+- Amir walks round the fence by day and night and says what feels off (height, light spacing, gate style).
+- People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.

@@ -579,6 +579,8 @@ namespace Tiramisu.EditorTools
             Box("Fascia right", g, new Vector3(hi.x, y - 0.02f, lo.z), new Vector3(hi.x + f, hi.y + 0.08f, hi.z), steel);
         }
 
+        const float FX0 = -3f, FX1 = 34.25f, FZ0 = -5f, FZ1 = 23f;   // the plot the fence stands on
+
         static void BuildGarden(Transform g)
         {
             const float gy = -SLAB;
@@ -594,12 +596,9 @@ namespace Tiramisu.EditorTools
             Box("Ground left", g, new Vector3(-200f, gb, pz0), new Vector3(px0, gt, pz1), lawnDark);
             Box("Ground right", g, new Vector3(px1, gb, pz0), new Vector3(230f, gt, pz1), lawnDark);
 
-            Box("Lawn front", g, new Vector3(-2f, gy - 0.02f, 10.5f), new Vector3(34f, gy, pz0), lawn);
-            Box("Lawn back a", g, new Vector3(-2f, gy - 0.02f, pz1), new Vector3(jx0, gy, 22f), lawn);
-            Box("Lawn back b", g, new Vector3(jx1, gy - 0.02f, pz1), new Vector3(34f, gy, 22f), lawn);
-            Box("Lawn back c", g, new Vector3(jx0, gy - 0.02f, jz1), new Vector3(jx1, gy, 22f), lawn);
-            Box("Lawn left", g, new Vector3(-2f, gy - 0.02f, pz0), new Vector3(px0, gy, pz1), lawn);
-            Box("Lawn right", g, new Vector3(px1, gy - 0.02f, pz0), new Vector3(34f, gy, pz1), lawn);
+            // the whole plot (from the back of the house to the front fence) is lawn, with holes for the pool and the tub
+            SlabWithHoles("Lawn", g, new Vector3(FX0, gy - 0.02f, FZ0), new Vector3(FX1, gy, FZ1), lawn,
+                new System.Collections.Generic.List<Vector4> { new Vector4(px0, pz0, px1, pz1), new Vector4(jx0, pz1, jx1, jz1) });
 
             Box("Deck", g, new Vector3(0f, gy, WD + GLASS), new Vector3(WX + GLASS, -0.06f, 10.5f), deck);
 
@@ -677,7 +676,7 @@ namespace Tiramisu.EditorTools
             sheet.streak = new Vector2(0.022f, 0.16f);
 
             var path = Group("Stepping stones", g);
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < 10; i++)
             {
                 float z = 11f + i * 1.2f;
                 Box($"Stone {i + 1}", path, new Vector3(3.5f, gy, z), new Vector3(4.5f, gy + 0.04f, z + 0.7f), stone);
@@ -686,6 +685,7 @@ namespace Tiramisu.EditorTools
             foreach (var p in GardenProps) PropPlacer.Place(p, g);
             NightLights(g, gy, px0, px1, pz0, pz1);
             StringLights(g, gy);
+            BuildFence(g, gy);
             LedStrips(g, gy, px0, px1, pz0, pz1);
 
             Room(g, "Garden & pool", 0, 5, 0, WX, 10.5f, 22f, gy, null);
@@ -796,6 +796,118 @@ namespace Tiramisu.EditorTools
             var st = Box(nm, parent, mid - size * 0.5f, mid + size * 0.5f, m, false);
             Object.DestroyImmediate(st.GetComponent<Collider>());
             Glow(st, emit);
+        }
+
+        // ---------- fence and gates ----------
+
+        /// <summary>
+        /// Modern fence round the plot: black steel posts, walnut panels on a low concrete plinth, a steel cap, and a warm
+        /// wall light on every post (a soft area light on every third). Each side is a WallCutaway, so the side between the
+        /// camera and the house drops out of the way. Gaps: the front gate (aligned with the paving), the back gate and the
+        /// open lane to the garage.
+        /// </summary>
+        static void BuildFence(Transform g, float gy)
+        {
+            var root = Group("Fence", g);
+            // side, axis, fixed coordinate, from, to, gaps (from, to), inward sign, name
+            FenceSide(root, gy, "Front fence", WallCutaway.Axis.Z, FZ1, FX0, FX1, new[] { new Vector2(3.2f, 4.8f) }, -1f);
+            FenceSide(root, gy, "Back fence", WallCutaway.Axis.Z, FZ0, FX0, FX1, new[] { new Vector2(25.2f, 27.0f) }, +1f);
+            FenceSide(root, gy, "West fence", WallCutaway.Axis.X, FX0, FZ0, FZ1, new Vector2[0], +1f);
+            FenceSide(root, gy, "East fence", WallCutaway.Axis.X, FX1, FZ0, FZ1, new[] { new Vector2(1.3f, 6.9f) }, -1f);
+        }
+
+        static void FenceSide(Transform root, float gy, string name, WallCutaway.Axis axis, float fixedC, float a, float b, Vector2[] gaps, float inward)
+        {
+            var line = Group(name, root);
+            var cut = line.gameObject.AddComponent<WallCutaway>();
+            cut.axis = axis; cut.plane = fixedC; cut.floor = 0; cut.floorY = gy; cut.fullHeight = 2.4f;
+            var lights = Group(name + " lights", root);
+            cut.attachments.Add(lights.gameObject);
+            Vector3 P(float along, float y, float depth) => axis == WallCutaway.Axis.Z ? new Vector3(along, y, depth) : new Vector3(depth, y, along);
+            var segs = new System.Collections.Generic.List<Vector2>();
+            float cur = a;
+            System.Array.Sort(gaps, (p, q) => p.x.CompareTo(q.x));
+            foreach (var gp in gaps) { segs.Add(new Vector2(cur, gp.x)); cur = gp.y; }
+            segs.Add(new Vector2(cur, b));
+            int postCount = 0;
+            foreach (var sg in segs)
+            {
+                int n = Mathf.Max(1, Mathf.CeilToInt((sg.y - sg.x) / 2.5f));
+                float step = (sg.y - sg.x) / n;
+                for (int i = 0; i <= n; i++)
+                {
+                    float u = sg.x + i * step;
+                    bool end = i == 0 || i == n;
+                    float h = end ? 2.15f : 1.95f;
+                    Box("Post", line, P(u - 0.07f, gy, fixedC - 0.07f), P(u + 0.07f, gy + h, fixedC + 0.07f), steel);
+                    // wall light on the inner face
+                    float dInner = fixedC + inward * 0.075f;
+                    var lamp = Box("Wall light", line, P(u - 0.06f, gy + 1.5f, Mathf.Min(dInner, dInner + inward * 0.06f)), P(u + 0.06f, gy + 1.58f, Mathf.Max(dInner, dInner + inward * 0.06f)), ledWarm, false);
+                    Object.DestroyImmediate(lamp.GetComponent<Collider>());
+                    Glow(lamp, new Color(1f, 0.72f, 0.4f) * 16f);
+                    if (postCount++ % 3 == 0)
+                        AddNightLight(lights.gameObject, P(u, gy + 1.45f, fixedC + inward * 0.35f), new Color(1f, 0.75f, 0.45f), 260f, 5f, 0f, new Vector2(0.3f, 0.3f), 90f);
+                    if (i == n) break;
+                    float u0 = u + 0.07f, u1 = u + step - 0.07f;
+                    Box("Plinth", line, P(u0, gy, fixedC - 0.1f), P(u1, gy + 0.2f, fixedC + 0.1f), slab);
+                    Box("Panel", line, P(u0, gy + 0.2f, fixedC - 0.03f), P(u1, gy + 1.9f, fixedC + 0.03f), doorWood);
+                    Box("Rail low", line, P(u0, gy + 0.7f, fixedC - 0.045f), P(u1, gy + 0.73f, fixedC + 0.045f), steel);
+                    Box("Rail high", line, P(u0, gy + 1.3f, fixedC - 0.045f), P(u1, gy + 1.33f, fixedC + 0.045f), steel);
+                    Box("Cap", line, P(u0, gy + 1.9f, fixedC - 0.06f), P(u1, gy + 1.94f, fixedC + 0.06f), steel);
+                }
+            }
+            // gates and the lane
+            foreach (var gp in gaps)
+            {
+                bool lane = axis == WallCutaway.Axis.X && fixedC > 20f;
+                if (lane) continue;   // open lane to the garage, the posts on both sides are the frame
+                FenceGate(root, cut, name.Replace("fence", "gate"), axis, fixedC, gp.x, gp.y, gy, inward);
+            }
+        }
+
+        /// <summary>A double swing gate in walnut and black steel, swinging inwards, that opens like the doors (hover, people, pets).</summary>
+        static void FenceGate(Transform root, WallCutaway cut, string name, WallCutaway.Axis axis, float fixedC, float a, float b, float gy, float inward)
+        {
+            var gate = Group(name, root);
+            Vector3 P(float along, float y, float depth) => axis == WallCutaway.Axis.Z ? new Vector3(along, y, depth) : new Vector3(depth, y, along);
+            float half = (b - a) * 0.5f;
+            var leaves = new Transform[2];
+            var angles = new float[2];
+            for (int i = 0; i < 2; i++)
+            {
+                bool first = i == 0;
+                var hinge = Group(first ? "Leaf a" : "Leaf b", gate);
+                float hu = first ? a : b, dir = first ? 1f : -1f;
+                float lo = Mathf.Min(hu, hu + dir * (half - 0.01f)), hi = Mathf.Max(hu, hu + dir * (half - 0.01f));
+                hinge.position = P(hu, gy, fixedC);
+                Box("Slab", hinge, P(lo, gy + 0.12f, fixedC - 0.03f), P(hi, gy + 1.85f, fixedC + 0.03f), doorWood);
+                Box("Frame bottom", hinge, P(lo, gy + 0.1f, fixedC - 0.05f), P(hi, gy + 0.16f, fixedC + 0.05f), steel);
+                Box("Frame top", hinge, P(lo, gy + 1.82f, fixedC - 0.05f), P(hi, gy + 1.88f, fixedC + 0.05f), steel);
+                Box("Frame near", hinge, P(lo, gy + 0.1f, fixedC - 0.05f), P(lo + 0.06f, gy + 1.88f, fixedC + 0.05f), steel);
+                Box("Frame far", hinge, P(hi - 0.06f, gy + 0.1f, fixedC - 0.05f), P(hi, gy + 1.88f, fixedC + 0.05f), steel);
+                float hx = hu + dir * (half - 0.2f);
+                Box("Handle", hinge, P(hx - 0.015f, gy + 0.85f, fixedC - 0.07f), P(hx + 0.015f, gy + 1.35f, fixedC + 0.07f), steel);
+                leaves[i] = hinge;
+                // both leaves swing inwards (towards the plot)
+                angles[i] = (first ? -1f : 1f) * inward * 100f;   // front gate (inward -1): left +100, right -100
+            }
+            // wider posts with a glowing cap either side
+            foreach (float u in new[] { a - 0.16f, b + 0.16f })
+            {
+                Box("Gate post", gate, P(u - 0.13f, gy, fixedC - 0.13f), P(u + 0.13f, gy + 2.3f, fixedC + 0.13f), steel);
+                var cap = Box("Gate lamp", gate, P(u - 0.1f, gy + 2.3f, fixedC - 0.1f), P(u + 0.1f, gy + 2.36f, fixedC + 0.1f), ledWarm, false);
+                Object.DestroyImmediate(cap.GetComponent<Collider>());
+                Glow(cap, new Color(1f, 0.72f, 0.4f) * 18f);
+                AddNightLight(gate.gameObject, P(u, gy + 2.2f, fixedC + inward * 0.4f), new Color(1f, 0.75f, 0.45f), 320f, 5f, 0f, new Vector2(0.3f, 0.3f), 90f);
+            }
+            var door = gate.gameObject.AddComponent<HingedDoor>();
+            door.leaves = leaves;
+            door.angles = angles;
+            door.openSeconds = 1.2f;
+            door.stayOpenSeconds = 2.5f;
+            door.sensorCenter = P((a + b) * 0.5f, gy + 1.1f, fixedC);
+            door.sensorSize = axis == WallCutaway.Axis.Z ? new Vector3((b - a) + 1.2f, 2.2f, 5f) : new Vector3(5f, 2.2f, (b - a) + 1.2f);
+            cut.attachments.Add(gate.gameObject);
         }
 
         static void Glow(GameObject g, Color emission)
@@ -1011,7 +1123,7 @@ namespace Tiramisu.EditorTools
             ("toilet", 20.1f, 0.33f, 0f, 0),
             ("towelrack", 21.35f, 0.08f, 0f, 0),
             ("bathmat", 18.75f, 1.05f, 0f, 0),
-            ("bathtub", 20.75f, 3.3f, 0f, 0),
+            ("bathtub", 20.4f, 2.0f, 0f, 0),
             ("washer", 21.6f, 5.4f, 270f, 0),
             ("dryer", 21.6f, 6.1f, 270f, 0),
             ("basket", 20.8f, 6.9f, 0f, 0),
@@ -1109,7 +1221,7 @@ namespace Tiramisu.EditorTools
             ("flowerbed", 9.5f, -0.3f, 19.8f, 0f),
             ("flowerbed", 21.5f, -0.3f, 19.6f, 0f),
             ("flowerbed", 27.0f, -0.3f, 20.6f, 0f),
-            ("hammock", 3.0f, -0.3f, 19.2f, 90f),
+            ("hammock", 14.0f, -0.3f, 19.7f, 90f),
             ("lounger", 16.7f, -0.3f, 13.0f, 90f),
             ("lounger", 16.7f, -0.3f, 15.0f, 90f),
             ("parasol", 15.4f, -0.3f, 14.0f, 0f),
@@ -1184,9 +1296,6 @@ namespace Tiramisu.EditorTools
             Pr("shrub_02", "_d", 13.5f, -SLAB, 11.5f, 90f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
             Pr("shrub_02", "_a", 28.5f, -SLAB, 11.4f, 45f, 0.55f, PropPlacer.Body.Static, 0f, 0.6f),
             Pr("shrub_02", "_c", 17f, -SLAB, 19.5f, 0f, 0.5f, PropPlacer.Body.Static, 0f, 0.6f),
-            Pr("shrub_04", null, 2.6f, -SLAB - 0.16f, 12.8f, 0f, 1.2f, PropPlacer.Body.None),
-            Pr("shrub_04", null, 5.3f, -SLAB - 0.16f, 15.2f, 70f, 1.2f, PropPlacer.Body.None),
-            Pr("shrub_04", null, 2.8f, -SLAB - 0.16f, 18.4f, 140f, 1.2f, PropPlacer.Body.None),
         };
 
         static readonly System.Collections.Generic.Dictionary<string, int> keyCount = new System.Collections.Generic.Dictionary<string, int>();
@@ -1199,6 +1308,12 @@ namespace Tiramisu.EditorTools
             "fountain", "mailbox", "bbqcounter", "flowerbed", "hammock",
         };
 
+        static readonly System.Collections.Generic.HashSet<string> SmallIds = new System.Collections.Generic.HashSet<string>
+        {
+            "cushion", "fruitbowl", "cuttingboard", "mug", "espresso", "utensils", "herbs", "towelstack", "candles", "bedlamp", "globe",
+            "book_encyclopedia_set_01", "ceramic_vase_03", "desk_lamp_arm_01",
+        };
+
         static void MakeMovable(GameObject go, bool pinned)
         {
             if (!go) return;
@@ -1208,6 +1323,7 @@ namespace Tiramisu.EditorTools
             var f = go.AddComponent<Furniture>();
             f.key = $"{id}#{n}";
             f.pinned = pinned || Pinned.Contains(id);
+            f.small = SmallIds.Contains(id.Split(' ')[0]);
         }
 
         /// <summary>Round fountain with real moving water: ripple surfaces in the basin and the two bowls, a crown of spray and two overflows.</summary>

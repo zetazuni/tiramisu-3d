@@ -79,6 +79,14 @@ namespace Tiramisu
                 GUILayout.Space(10);
                 GUILayout.Label("Furniture", label);
                 if (Button(DecorateMode.Active ? "Decorate mode: on (M)" : "Move furniture (M)", DecorateMode.Active)) dec.Toggle();
+                if (DecorateMode.Active && dec.Selected != null)
+                {
+                    GUILayout.Label(dec.Selected.Label, label);
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Turn left", btn)) dec.RotateSelected(-15f);
+                    if (GUILayout.Button("Turn right", btn)) dec.RotateSelected(15f);
+                    GUILayout.EndHorizontal();
+                }
                 if (Button("Reset layout", false)) dec.ResetLayout();
             }
 

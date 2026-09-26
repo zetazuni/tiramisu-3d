@@ -50,8 +50,17 @@ namespace Tiramisu
 
         void Start()
         {
+            StartCoroutine(SettleWhenQuiet());
             int n = Furniture.LoadAll();
             if (n > 0) Say($"Welcome back, {n} piece{(n == 1 ? "" : "s")} of furniture are where you left them.");
+        }
+
+        /// <summary>Waits until the heavy pieces have come to rest (they push out of the floor a little at the start), then fixes the small things to them.</summary>
+        System.Collections.IEnumerator SettleWhenQuiet()
+        {
+            yield return new WaitForSeconds(1.2f);
+            Furniture.SettleSmallThings();
+            Furniture.AttachSmallThings();
         }
 
         public void Toggle()
@@ -114,16 +123,35 @@ namespace Tiramisu
                 if (part) { StartWindow(part); return; }
                 if (IsArchitecture(h.collider)) continue;   // walls cut down or glass never block the pick
                 var f = h.collider.GetComponentInParent<Furniture>();
-                if (!f) return;                              // something solid that is not furniture is in front
+                if (!f) return;
+                while (f.attachedTo) f = f.attachedTo;   // small things are part of what they sit on                              // something solid that is not furniture is in front
                 if (f.pinned) { Say($"The {f.Label.ToLower()} is built in, it cannot be moved."); return; }
                 Grab(f, h.point);
                 return;
             }
         }
 
+        public Furniture Selected { get; private set; }
+
+        /// <summary>Turns the last piece you picked up by the given angle (the HUD buttons). Refuses if it would hit something.</summary>
+        public void RotateSelected(float deg)
+        {
+            if (Selected == null || held != null || winWall != null) return;
+            Grab(Selected, Selected.transform.position);
+            held.transform.Rotate(0f, deg, 0f, Space.World);
+            MoveRiders();
+            Physics.SyncTransforms();
+            valid = IsFree(held.transform.position);
+            lastValidPos = held.transform.position;
+            lastValidRot = held.transform.rotation;
+            if (!valid) Say("There is no room to turn it here.");
+            Drop(!valid);
+        }
+
         void Grab(Furniture f, Vector3 point)
         {
             held = f;
+            Selected = f;
             OrbitCamera.Blocked = true;
             startPos = lastValidPos = f.transform.position;
             startRot = lastValidRot = f.transform.rotation;
@@ -135,7 +163,7 @@ namespace Tiramisu
             var lb = f.LocalBounds;
             foreach (var o in Furniture.All)
             {
-                if (o == f || o.pinned) continue;
+                if (o == f || o.pinned || o.attachedTo) continue;
                 var l = f.transform.InverseTransformPoint(o.transform.position);
                 bool on = Mathf.Abs(l.x - lb.center.x) < lb.extents.x && Mathf.Abs(l.z - lb.center.z) < lb.extents.z && l.y > 0.05f && l.y < lb.max.y + 0.06f;
                 if (!on) continue;
