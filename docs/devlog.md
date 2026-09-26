@@ -165,6 +165,15 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Testing note:** when the Unity window is in the background it renders only when asked, so game time barely advances. Timed things (the 1.2 s wait, door opening) were checked by calling the code directly.
 - Not tested by hand: gates opening by hover, the turn buttons with a mouse.
 
+## Session 13: back yard, gate, beams, colours (2026-09-26) · v0.15.0
+
+- **The flickering lights were a real limit:** HDRP draws at most 64 area lights on screen unless told otherwise. We have about 105. Raised to 512.
+- **Cushions are part of the sofa model now** (remodelled in Blender, exported again). Checked: two cushion parts inside the sofa, no separate cushion pieces left.
+- **Carrying a piece freezes all others.** Checked by counting: 43 moving bodies, 0 while carrying, 43 again after.
+- **Back yard** with a shed (door opens on hover), tools, logs, planters, bench, path from the back gate.
+- **Sliding lane gate,** bulbs on the fountain, pastel brown outer walls, dark brown slab edges, vertical beam screens. Found by looking: the upper floor beam sets first floated in the sky in the ground floor view, they now belong to the upper floor.
+- Not tested by hand: the gate and shed door opening on hover, dragging things near others.
+
 **Next**
-- Amir walks round the fence by day and night and says what feels off (height, light spacing, gate style).
+- Amir looks at the outside (colours, beams, lights on the fence) and says what to change.
 - People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.

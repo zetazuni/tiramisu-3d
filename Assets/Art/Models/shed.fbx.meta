@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 8ee8d1b16107a8c4bbedf135bb13106c
+guid: 88872483ae22aaa4891087cfb913c1d4
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
@@ -12,13 +12,53 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Cushion_main
-    second: {fileID: 2100000, guid: 1a456b2208cfb4b41b548cfd1a848828, type: 2}
+      name: BookBlue
+    second: {fileID: 2100000, guid: b404f565f4fe7fb4c93a39ea866b1577, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Fabric_main
-    second: {fileID: 2100000, guid: 53c6db3ef9c955e4f9d0bfd42878c70d, type: 2}
+      name: Bulb
+    second: {fileID: 2100000, guid: a58275117dda58747a6db93d1592a825, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cabinet_main
+    second: {fileID: 2100000, guid: 2cea01d4371305340a2ff2fc84be638f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cardboard
+    second: {fileID: 2100000, guid: e715bf137ec9fd746bf57f061b0b9125, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ClearGlass
+    second: {fileID: 2100000, guid: 04e49c8580404de4fb762cc64fe68188, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: PaintRed
+    second: {fileID: 2100000, guid: 81392a1b99d775b4dba3280fb896d850, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Stainless
+    second: {fileID: 2100000, guid: 32343cce523bae940894ae6b243d148c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: StoneGrey
+    second: {fileID: 2100000, guid: 0ce48d37aeb4fa7469ae17f22ef29aca, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Teak
+    second: {fileID: 2100000, guid: a2a4f0f6f373dce48bbcb722527fcca6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Terracotta
+    second: {fileID: 2100000, guid: 867917409ea459047abb4cfdd43399b5, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 8ee8d1b16107a8c4bbedf135bb13106c
+guid: 4f67229954be98842929d67c2020550f
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
@@ -9,21 +9,6 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: BlackSteel
     second: {fileID: 2100000, guid: 270037144c7d5fb4fa9dc651db5f64cb, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Cushion_main
-    second: {fileID: 2100000, guid: 1a456b2208cfb4b41b548cfd1a848828, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Fabric_main
-    second: {fileID: 2100000, guid: 53c6db3ef9c955e4f9d0bfd42878c70d, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Walnut
-    second: {fileID: 2100000, guid: 71c731464b54ce84e93ff96229960419, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

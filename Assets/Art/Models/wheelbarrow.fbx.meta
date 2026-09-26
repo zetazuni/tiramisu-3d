@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 8ee8d1b16107a8c4bbedf135bb13106c
+guid: 1524d480e82993345854e58162af40ad
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
@@ -12,18 +12,23 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Cushion_main
-    second: {fileID: 2100000, guid: 1a456b2208cfb4b41b548cfd1a848828, type: 2}
+      name: PaintRed
+    second: {fileID: 2100000, guid: 81392a1b99d775b4dba3280fb896d850, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Fabric_main
-    second: {fileID: 2100000, guid: 53c6db3ef9c955e4f9d0bfd42878c70d, type: 2}
+      name: Rubber
+    second: {fileID: 2100000, guid: 0feedfa62c1dc964f977aec04f637fb4, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Walnut
-    second: {fileID: 2100000, guid: 71c731464b54ce84e93ff96229960419, type: 2}
+      name: Stainless
+    second: {fileID: 2100000, guid: 32343cce523bae940894ae6b243d148c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Teak
+    second: {fileID: 2100000, guid: a2a4f0f6f373dce48bbcb722527fcca6, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

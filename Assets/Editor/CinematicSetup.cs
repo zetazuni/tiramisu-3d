@@ -42,6 +42,8 @@ namespace Tiramisu.EditorTools
             Set(so, s + "supportDistortion", true);
             Set(so, s + "supportTransparentBackface", true);
             Set(so, s + "supportMotionVectors", true);
+            Set(so, s + "lightLoopSettings.maxAreaLightsOnScreen", 512);        // default 64: more area lights than that on screen flicker
+            Set(so, s + "lightLoopSettings.maxPunctualLightsOnScreen", 2048);
             Set(so, s + "supportRayTracing", true);                     // for the Ultra mode later, needs DX12
             Set(so, s + "hdShadowInitParams.maxDirectionalShadowMapResolution", 4096);
             Set(so, s + "hdShadowInitParams.directionalShadowFilteringQuality", 2); // high (PCSS soft shadows)

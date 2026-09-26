@@ -109,6 +109,12 @@ namespace Tiramisu.EditorTools
             { "planterbox", new FurnitureSpec { mass = 25f, dynamic = true } },
             { "flowerbed", new FurnitureSpec { mass = 200f, dynamic = false } },
             { "gardenbench", new FurnitureSpec { mass = 20f, dynamic = true } },
+            { "shed", new FurnitureSpec { mass = 900f, dynamic = false } },
+            { "wheelbarrow", new FurnitureSpec { mass = 12f, dynamic = true } },
+            { "toolrack", new FurnitureSpec { mass = 10f, dynamic = true } },
+            { "logpile", new FurnitureSpec { mass = 60f, dynamic = true } },
+            { "wateringcan", new FurnitureSpec { mass = 3.5f, dynamic = true } },
+            { "hosereel", new FurnitureSpec { mass = 6f, dynamic = true } },
             { "cushion",     new FurnitureSpec { mass = 0.8f, dynamic = true } },
         };
 

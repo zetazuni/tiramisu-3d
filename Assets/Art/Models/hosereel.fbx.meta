@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 8ee8d1b16107a8c4bbedf135bb13106c
+guid: a3f8270e24ef44d43a617d79af2fc1af
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
@@ -12,18 +12,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Cushion_main
-    second: {fileID: 2100000, guid: 1a456b2208cfb4b41b548cfd1a848828, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Fabric_main
-    second: {fileID: 2100000, guid: 53c6db3ef9c955e4f9d0bfd42878c70d, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Walnut
-    second: {fileID: 2100000, guid: 71c731464b54ce84e93ff96229960419, type: 2}
+      name: Leaf
+    second: {fileID: 2100000, guid: e11a8552baae25a4c8a27ebf5670dff9, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

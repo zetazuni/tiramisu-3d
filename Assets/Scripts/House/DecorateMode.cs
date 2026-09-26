@@ -159,6 +159,15 @@ namespace Tiramisu
             valid = true;
             frozen.Clear();
             riders.Clear();
+            // everything else is fixed while this piece is carried, so nothing gets pushed when it touches other things
+            foreach (var other in UnityEngine.Object.FindObjectsByType<Rigidbody>(FindObjectsInactive.Exclude))
+            {
+                if (other.transform.IsChildOf(f.transform) || other.isKinematic) continue;
+                frozen.Add((other, other.isKinematic));
+                other.linearVelocity = Vector3.zero;
+                other.angularVelocity = Vector3.zero;
+                other.isKinematic = true;
+            }
             Freeze(f);
             var lb = f.LocalBounds;
             foreach (var o in Furniture.All)
