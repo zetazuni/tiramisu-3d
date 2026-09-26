@@ -273,12 +273,13 @@ namespace Tiramisu
             Tint(lawnEdgeM, Color.Lerp(l.lawn, Color.black, 0.15f));
             Tint(hedgeM, l.hedge);
             foreach (var m in cityLeaf) Tint(m, Color.Lerp(l.hedge, l.leaf * 0.45f, 0.5f));
-            foreach (var m in leafMats) Tint(m, l.leaf);
+            // bare in winter: the leaf cards are cut out completely (the trunk and branches share a renderer with them, so it cannot just be switched off)
+            var leafColour = l.leaf; leafColour.a = l.leafOn > 0.35f ? 1f : 0f;
+            foreach (var m in leafMats) Tint(m, leafColour);
             foreach (var m in shrubMats) Tint(m, Color.Lerp(l.leaf, new Color(2.2f, 2.3f, 2.4f), l.snow));
             foreach (var m in woodMats) Tint(m, Color.Lerp(Color.white, new Color(2.6f, 2.6f, 2.8f), l.snow * 0.9f));
             foreach (var m in flowerMats) Tint(m, l.flower);
             bool leavesShown = l.leafOn > 0.35f;
-            foreach (var r in leaves) if (r && r.enabled != leavesShown) r.enabled = leavesShown;
             bool flowersShown = l.snow < 0.5f;
             foreach (var r in flowers) if (r && r.enabled != flowersShown) r.enabled = flowersShown;
             SunPeak = l.sunPeak; Sunrise = l.sunrise; Sunset = l.sunset; SunPower = l.sunPower; Warm = l.warm; CloudScale = l.cloud; HazeScale = l.haze;

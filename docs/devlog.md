@@ -275,3 +275,7 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Traffic** (`CityTraffic.cs`, built from boxes at start): 14 cars in six colours (saloon, hatchback, van) drive on the LEFT on the road grid at 7 to 13 m/s, wrapping round at the edge, headlights and tail lights on at night. **An aeroplane** crosses the sky at 260 to 340 m every 2 to 4 minutes (about 95 m/s), with a blinking beacon and wing strobes. Cars do not react to each other at crossings, they can pass through each other there (rare).
 - **Particles halved** (petals 18/s, leaves 35/s per colour, snow 550/s, fireflies 13/s).
 - **Yard trees follow the seasons:** the leaf cards are recoloured on the GPU (`Assets/Shaders/Recolor.shader`, done once per tree texture): cherry blossom pink in spring, orange, gold and rust in autumn, original green in summer, bare in winter with white snow on the branches and trunk. The shrubs stay all year (white in winter). **No online tree import was needed.**
+
+## Session 29: winter trees (2026-09-27) · v0.25.1
+
+- **Bug:** the yard trees vanished in winter. The trunk and branches share one renderer with the leaf cards, and winter switched that renderer off. Now the leaf cards are cut out (alpha 0 on their material copy) and the renderer stays on, so bare branches with snow show. Checked by looking at the yard in winter.
