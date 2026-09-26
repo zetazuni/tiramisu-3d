@@ -208,7 +208,7 @@ namespace Tiramisu.EditorTools
             hdMoon.normalBias = 1.6f;
             hdMoon.slopeBias = 1.0f;
             l.lightUnit = LightUnit.Lux;
-            l.intensity = 110f;
+            l.intensity = 55f;
             l.useColorTemperature = true;
             l.colorTemperature = 8500f;
             l.color = Color.white;

@@ -75,6 +75,7 @@ namespace Tiramisu.EditorTools
             { "Mat_main",     (null, new Color(0.22f, 0.5f, 0.5f), new Vector2(0.3f, 0.3f), 0f, false) },
             { "Planter_main", ("white_plaster_02", new Color(0.86f, 0.84f, 0.8f), new Vector2(0.15f, 0.4f), 0f, true) },
             { "Soil",         ("forest_ground_06", new Color(0.5f, 0.38f, 0.27f), new Vector2(0f, 0.1f), 0f, true) },
+            { "RoofMetal",    ("box_profile_metal_sheet", new Color(0.30f, 0.32f, 0.35f), new Vector2(0.35f, 0.7f), 0.6f, true) },
             { "Teak",         ("wood_floor_deck", new Color(0.62f, 0.44f, 0.28f), new Vector2(0.15f, 0.42f), 0f, true) },
             { "Umbrella",     ("rough_linen", new Color(0.93f, 0.55f, 0.42f), new Vector2(0f, 0.25f), 0f, true) },
             { "StoneGrey",    ("precast_stone_paving", new Color(0.72f, 0.72f, 0.7f), new Vector2(0.1f, 0.45f), 0f, true) },

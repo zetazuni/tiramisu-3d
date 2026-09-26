@@ -174,6 +174,12 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Sliding lane gate,** bulbs on the fountain, pastel brown outer walls, dark brown slab edges, vertical beam screens. Found by looking: the upper floor beam sets first floated in the sky in the ground floor view, they now belong to the upper floor.
 - Not tested by hand: the gate and shed door opening on hover, dragging things near others.
 
+## Session 14: hedges, sidewalk, wall lights (2026-09-26) · v0.16.0
+
+- Beams: the upper floor ones were still visible because the scene had been built by the older code (the build ran while Unity was still recompiling). Rebuilt, and checked by looking up the group by name in the ground view: hidden.
+- Placeable area, leaning cushions, shed roof and bulbs, string light fix, moon 50 percent dimmer, hedges, sidewalk and moved road, wall lights: see CLAUDE.md. Checked by day and night screenshots from the back, the road side and the sofa.
+- Lesson: after changing code, call the refresh and wait for it before the build menu, then look at the result, do not trust the last screenshot.
+
 **Next**
-- Amir looks at the outside (colours, beams, lights on the fence) and says what to change.
+- Amir walks the outside again and says what to change.
 - People and pets (they carry `DoorOpener`), wall pieces movable along their wall, a car that drives out of the shutter, streetlights along the road, weather.

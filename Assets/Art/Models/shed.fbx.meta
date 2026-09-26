@@ -42,6 +42,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: RoofMetal
+    second: {fileID: 2100000, guid: 360b8064f413a8144ab88fee4a40c256, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Stainless
     second: {fileID: 2100000, guid: 32343cce523bae940894ae6b243d148c, type: 2}
   - first:

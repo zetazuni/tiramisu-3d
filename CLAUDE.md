@@ -15,7 +15,7 @@ If you are a new conversation or a new account, read these in order before doing
 - Repo: https://github.com/zetazuni/tiramisu-3d (public, branch `main`, Git LFS for models, textures and audio).
 - Unity 6000.6.3f1 with **HDRP 17.6** on DirectX 12, Blender 5.2.2 LTS, both driven by Claude through MCP. Target: Windows PC (dev PC has an RTX 4050 laptop GPU).
 - The original 2D game is at `S:\Tiramisu App by Zetazuni`. Its `CLAUDE.md` is the detailed feature reference.
-- Current version: **0.15.0** (decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
+- Current version: **0.16.0** (decorate mode, day and night, pool ripples, upper floor furnished, cleaner car windows, small props on every surface, kitchen, bathroom and garage furnished, plus real trees and plants, photoscanned props, window frames, roof, graphics modes with DLSS, benchmark).
 - New to Unity? `docs/UNITY_GUIDE.md` explains the panes, controls, testing and troubleshooting.
 - Main scene: `Assets/Scenes/Main.unity`. It is generated, see "Greybox builder" below.
 
@@ -83,3 +83,10 @@ One short paragraph per system. Keep these accurate as the code changes. All run
 - **Fountain bulbs:** ten strings of bulbs from a point above the fountain to a ring of 30 rim bulbs (`BulbLine`, `SetupFountain`).
 - **Lane sliding gate** (`LaneSlidingGate`): a walnut slat gate in a steel frame across the garage lane, runs 5.9 m along the inside of the east fence, opens on hover or for anything with `DoorOpener`, hides with that fence side.
 - **Colours:** outer walls are pastel brown (`wallBrown`), the edges of the floors (`slab`) and the fence plinths are dark brown. Vertical walnut beam screens (`VerticalBeams`, `BuildBeams`) sit 14 cm off the outer back and left walls in sets of 2 to 4 m where there are no windows, on both floors. Upper floor ones are inside the upper floor group.
+- **Placeable area** in decorate mode is the whole plot inside the fence (x -2.7 to 33.9, z -4.7 to 22.7, `DecorateMode.Drag`).
+- **Sofa cushions lean** 14 degrees against the back cushions (Blender, top edge rests 1.5 cm off the back cushion, bottom on the seat top), still part of the sofa mesh.
+- **Shed** now has the house's roof (metal sheet on top, dark oak soffit, black steel fascia, `RoofMetal` look) and a string of bulbs along its four roof edges (`ShedLights`, `BulbLine`).
+- **String light to the roof:** the far cable goes to the roof's corner (x 30.6) since the roof ends at x 30.7.
+- **Hedges** (`Hedges`): a row of round bushes 0.55 m outside the fence on all four sides, open at the front gate (x 2.4 to 5.6), the back gate (24.5 to 27.7) and the garage lane (z 0.7 to 7.5). The **road moved out** to x 37.4 to 43.8 to make room for a **public sidewalk** (x 35.5 to 37.2) between the hedges and the road. The driveway apron runs to x 36.4 and a ramp drops to the road.
+- **Outer wall lights** (`WallSconce`, `BuildWallLights`): modern black plates with two glowing slits and a soft light, 7 per floor on the back wall and 2 or 3 on the left wall. Upper floor ones live inside the upper floor, ground ones are always there, all hide with their wall.
+- **Moon** is 55 lux (was 110). **Upper floor beams** were built by an older build in Amir's scene, a rebuild fixed it (checked that the group is hidden in the ground view).

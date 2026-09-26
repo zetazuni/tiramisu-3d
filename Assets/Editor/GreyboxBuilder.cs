@@ -326,14 +326,16 @@ namespace Tiramisu.EditorTools
         static void Road(Transform g, float gy)
         {
             var road = Group("Road", g);
-            float rx0 = 34.6f, rx1 = 41f, top = gy + 0.02f;
-            Box("Driveway apron", road, new Vector3(WX + GLASS, gy, 1.6f), new Vector3(33.2f, -0.03f, 6.4f), apron);
+            float rx0 = 37.4f, rx1 = 43.8f, top = gy + 0.02f, ax = 36.4f;
+            Box("Driveway apron", road, new Vector3(WX + GLASS, gy, 1.6f), new Vector3(ax, -0.03f, 6.4f), apron);
+            // public sidewalk between the hedges and the road
+            Box("Sidewalk", road, new Vector3(35.5f, gy, -30f), new Vector3(rx0 - 0.18f, gy + 0.1f, 50f), stone);
             // ramp from the apron down to the road
-            float dx = rx0 - 33.2f, dy = top - (-0.03f), len = Mathf.Sqrt(dx * dx + dy * dy);
+            float dx = rx0 - ax, dy = top - (-0.03f), len = Mathf.Sqrt(dx * dx + dy * dy);
             var ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ramp.name = "Driveway ramp";
             ramp.transform.SetParent(road, false);
-            ramp.transform.position = new Vector3(33.2f + dx * 0.5f, -0.03f + dy * 0.5f - 0.05f, 4f);
+            ramp.transform.position = new Vector3(ax + dx * 0.5f, -0.03f + dy * 0.5f - 0.05f, 4f);
             ramp.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dy, dx) * Mathf.Rad2Deg);
             ramp.transform.localScale = new Vector3(len, 0.1f, 4.8f);
             ramp.GetComponent<Renderer>().sharedMaterial = apron;
@@ -444,6 +446,7 @@ namespace Tiramisu.EditorTools
             BuildGarden(Group("Garden", null));
             BuildDoors(house, upper);
             BuildBeams(house, upper);
+            BuildWallLights(house, upper);
             Furnish(Group("Furniture", house), upper);
             var hv = BuildRig(upper.gameObject, roofGroup.gameObject);
             PhysicsSetup.AssignSurfaces(house);
@@ -688,6 +691,7 @@ namespace Tiramisu.EditorTools
             NightLights(g, gy, px0, px1, pz0, pz1);
             StringLights(g, gy);
             BuildFence(g, gy);
+            Hedges(g, gy);
             LaneSlidingGate(g, gy);
             BackPath(g, gy);
             LedStrips(g, gy, px0, px1, pz0, pz1);
@@ -928,6 +932,94 @@ namespace Tiramisu.EditorTools
 
         static int bulbCounter;
 
+        /// <summary>Bushes all round the outside of the fence, left open at the gates and the garage lane.</summary>
+        static void Hedges(Transform g, float gy)
+        {
+            var root = Group("Hedges", g);
+            var rnd = new System.Random(17);
+            var flowers = new[] { Pl("HedgeFlowerPink", new Color(0.95f, 0.5f, 0.65f), 0.35f), Pl("HedgeFlowerWhite", new Color(0.96f, 0.96f, 0.93f), 0.35f) };
+            var leafMat = Tn("Hedge", "leafy_grass", MaterialLibrary.Mapping.Triplanar, new Color(0.18f, 0.36f, 0.14f), new Vector2(0f, 0.3f), 1f, 0f, 0.5f);
+            void Row(bool alongX, float fixedC, float a, float b, Vector2[] gaps)
+            {
+                for (float u = a; u <= b; u += 0.8f)
+                {
+                    bool skip = false;
+                    foreach (var gp in gaps) if (u > gp.x && u < gp.y) skip = true;
+                    if (skip) continue;
+                    var bush = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    bush.name = "Bush";
+                    bush.transform.SetParent(root, false);
+                    float sc = 0.85f + (float)rnd.NextDouble() * 0.3f;
+                    float jitter = ((float)rnd.NextDouble() - 0.5f) * 0.15f;
+                    bush.transform.position = alongX ? new Vector3(u, gy + 0.4f * sc, fixedC + jitter) : new Vector3(fixedC + jitter, gy + 0.4f * sc, u);
+                    bush.transform.localScale = new Vector3(0.95f * sc, 0.85f * sc, 0.95f * sc);
+                    bush.GetComponent<Renderer>().sharedMaterial = leafMat;
+                    Object.DestroyImmediate(bush.GetComponent<Collider>());
+                    if (rnd.NextDouble() < 0.28)
+                    {
+                        var fl = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        fl.name = "Bush flower";
+                        fl.transform.SetParent(root, false);
+                        fl.transform.position = bush.transform.position + new Vector3(((float)rnd.NextDouble() - 0.5f) * 0.4f, 0.32f * sc, ((float)rnd.NextDouble() - 0.5f) * 0.4f);
+                        fl.transform.localScale = Vector3.one * 0.13f;
+                        fl.GetComponent<Renderer>().sharedMaterial = flowers[rnd.Next(2)];
+                        Object.DestroyImmediate(fl.GetComponent<Collider>());
+                    }
+                }
+            }
+            Row(true, FZ1 + 0.55f, FX0 - 0.5f, FX1 + 0.6f, new[] { new Vector2(2.4f, 5.6f) });
+            Row(true, FZ0 - 0.55f, FX0 - 0.5f, FX1 + 0.6f, new[] { new Vector2(24.5f, 27.7f) });
+            Row(false, FX0 - 0.55f, FZ0 - 0.5f, FZ1 + 0.55f, new Vector2[0]);
+            Row(false, FX1 + 0.55f, FZ0 - 0.5f, FZ1 + 0.55f, new[] { new Vector2(0.7f, 7.5f) });
+        }
+
+        /// <summary>A modern wall light: black plate with two slits that glow up and down, and a soft light. Hangs on the outer wall.</summary>
+        static void WallSconce(Transform parent, string wallPath, WallCutaway.Axis axis, float faceC, float outward, float along, float y)
+        {
+            var gr = Group("Wall light", parent);
+            Vector3 P(float a, float yy, float d) => axis == WallCutaway.Axis.Z ? new Vector3(a, yy, d) : new Vector3(d, yy, a);
+            float d0 = faceC, d1 = faceC + outward * 0.09f;
+            float lo = Mathf.Min(d0, d1), hi = Mathf.Max(d0, d1);
+            Box("Plate", gr, P(along - 0.07f, y - 0.16f, lo), P(along + 0.07f, y + 0.16f, hi), steel);
+            foreach (float dy in new[] { 0.135f, -0.155f })
+            {
+                float o1 = faceC + outward * 0.093f, lo2 = Mathf.Min(d0 + (o1 - d0) * 0.6f, o1), hi2 = Mathf.Max(d0 + (o1 - d0) * 0.6f, o1);
+                var slit = Box("Glow", gr, P(along - 0.05f, y + dy, lo2), P(along + 0.05f, y + dy + 0.02f, hi2), ledWarm, false);
+                Object.DestroyImmediate(slit.GetComponent<Collider>());
+                Glow(slit, new Color(1f, 0.72f, 0.4f) * 18f);
+            }
+            AddNightLight(gr.gameObject, P(along, y - 0.2f, faceC + outward * 0.25f), new Color(1f, 0.75f, 0.45f), 240f, 4f, 0f, new Vector2(0.25f, 0.25f), 90f);
+            AttachTo(wallPath, gr.gameObject);
+        }
+
+        static void BuildWallLights(Transform house, Transform upperFloor)
+        {
+            var gg = Group("Outer wall lights", house);
+            var gu = Group("Outer wall lights upper", upperFloor);   // inside the upper floor, so they show with it
+            const string gw = "House/Ground floor/Walls/", uw = "House/Upper floor/Walls/";
+            foreach (float x in new[] { 0.7f, 7.6f, 14.0f, 17.2f, 22.0f, 25.6f, 29.0f })
+                WallSconce(gg, gw + "Back wall", WallCutaway.Axis.Z, -OUT, -1f, x, 1.8f);
+            foreach (float x in new[] { 0.7f, 5.8f, 8.2f, 13.6f, 16.5f, 21.9f, 27.8f })
+                WallSconce(gu, uw + "Back wall", WallCutaway.Axis.Z, -OUT, -1f, x, UPY + 1.8f);
+            foreach (float z in new[] { 4.0f, 7.2f })
+                WallSconce(gg, gw + "Left wall", WallCutaway.Axis.X, -OUT, -1f, z, 1.8f);
+            foreach (float z in new[] { 0.5f, 3.2f, 7.6f })
+                WallSconce(gu, uw + "Left wall", WallCutaway.Axis.X, -OUT, -1f, z, UPY + 1.8f);
+        }
+
+        /// <summary>Bulb style vibe lights along the shed roof edges.</summary>
+        static void ShedLights(Vector3 at)
+        {
+            var root = new GameObject("Shed string lights").transform;
+            var furn = GameObject.Find("Furniture");
+            if (furn) root.SetParent(furn.transform, false);
+            float y = at.y + 2.4f, xl = at.x - 1.78f, xr = at.x + 1.78f, zf = at.z + 1.5f, zb = at.z - 1.35f;
+            BulbLine(root, new Vector3(xl, y, zf), new Vector3(xr, y, zf), 0.14f, 5);
+            BulbLine(root, new Vector3(xl, y, zb), new Vector3(xl, y, zf), 0.12f, 6);
+            BulbLine(root, new Vector3(xr, y, zb), new Vector3(xr, y, zf), 0.12f, 6);
+            BulbLine(root, new Vector3(xl, y, zb), new Vector3(xr, y, zb), 0.14f, 6);
+        }
+
         /// <summary>A sagging cable of small warm bulbs; every lightEvery-th bulb also throws a little real light.</summary>
         static void BulbLine(Transform root, Vector3 a, Vector3 b, float sag, int lightEvery)
         {
@@ -1115,7 +1207,7 @@ namespace Tiramisu.EditorTools
             var groundRoot = root;
             root = Group("Strings to the roof edge", roofRoot);   // these hang from the roof, so they hide with it
             Cable(new Vector3(27.2f, roofY, WD + 1.55f), Top(posts[0]), 0.9f);
-            Cable(new Vector3(33.4f, roofY, WD + 1.55f), Top(posts[1]), 0.9f);
+            Cable(new Vector3(WX + 0.55f, roofY, WD + 1.55f), Top(posts[1]), 0.9f);   // the roof ends at x 30.7, so this one angles to its corner
             root = groundRoot;
         }
 
@@ -1586,7 +1678,7 @@ namespace Tiramisu.EditorTools
                     go.AddComponent<RollingBall>();
                 }
                 if (f.id == "fountain") SetupFountain(go.transform.position);
-                if (f.id == "shed") ShedDoor(go.transform.position, go.transform);
+                if (f.id == "shed") { ShedDoor(go.transform.position, go.transform); ShedLights(go.transform.position); }
                 if (f.id == "firepit") // a flickering fire
                 {
                     var fl = new GameObject("Fire light");

@@ -10,7 +10,7 @@ _u = open(os.path.join(_root, "tools", "blender_upper1.py"), encoding="utf-8").r
 exec(_u[:_u.index("# ---------------------------------------------------------------- Teacher's Room")])
 _g = open(os.path.join(_root, "tools", "blender_garden.py"), encoding="utf-8").read()
 exec(_g[_g.index("def tilt_box("):_g.index("# ---------------------------------------------------------------- loungers and shade")])
-COLORS.update({"Teak": (0.55, 0.38, 0.24), "StoneGrey": (0.6, 0.6, 0.58), "Soil": (0.25, 0.17, 0.1)})
+COLORS.update({"RoofMetal": (0.3, 0.32, 0.35), "Teak": (0.55, 0.38, 0.24), "StoneGrey": (0.6, 0.6, 0.58), "Soil": (0.25, 0.17, 0.1)})
 
 
 def shed():
@@ -41,9 +41,15 @@ def shed():
     # window on the right of the front wall
     box("window frame", rt, (1.7, y0 - 0.03, 1.0), (2.5, y0 + 0.02, 1.85), "BlackSteel", 0.003)
     box("window glass", rt, (1.75, y0 - 0.005, 1.05), (2.45, y0 + 0.01, 1.8), "ClearGlass", 0.001)
-    # flat roof with a small overhang and a fascia
-    box("roof", rt, (x0 - 0.25, y0 - 0.3, H), (x1 + 0.25, y1 + 0.15, H + 0.12), "BlackSteel", 0.01)
-    box("roof cap", rt, (x0 - 0.3, y0 - 0.35, H + 0.12), (x1 + 0.3, y1 + 0.2, H + 0.16), "StoneGrey", 0.006)
+    # flat roof in the same design as the house: metal sheet on top, dark oak soffit underneath, black steel fascia
+    lo, hi = (x0 - 0.25, y0 - 0.3), (x1 + 0.25, y1 + 0.15)
+    box("roof soffit", rt, (lo[0], lo[1], H), (hi[0], hi[1], H + 0.03), "Walnut", 0.004)
+    box("roof", rt, (lo[0], lo[1], H + 0.03), (hi[0], hi[1], H + 0.16), "RoofMetal", 0.006)
+    f = 0.05
+    box("fascia front", rt, (lo[0] - f, lo[1] - f, H - 0.02), (hi[0] + f, lo[1], H + 0.2), "BlackSteel", 0.004)
+    box("fascia back", rt, (lo[0] - f, hi[1], H - 0.02), (hi[0] + f, hi[1] + f, H + 0.2), "BlackSteel", 0.004)
+    box("fascia left", rt, (lo[0] - f, lo[1], H - 0.02), (lo[0], hi[1], H + 0.2), "BlackSteel", 0.004)
+    box("fascia right", rt, (hi[0], lo[1], H - 0.02), (hi[0] + f, hi[1], H + 0.2), "BlackSteel", 0.004)
     # a light inside
     cyl("lamp", rt, (0.0, 0.0, H - 0.02), 0.11, 0.04, "Bulb", seg=24, bevel=0.004)
     # the inside: a shelf unit on the back wall with tins, boxes and a bucket, tools hanging on the left wall, a workbench

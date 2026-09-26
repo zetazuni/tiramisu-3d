@@ -272,8 +272,8 @@ namespace Tiramisu
             bool free = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
             float x = p.x + grabOffset.x, z = p.z + grabOffset.y;
             if (!free) { x = Mathf.Round(x / snap) * snap; z = Mathf.Round(z / snap) * snap; }
-            x = Mathf.Clamp(x, -0.5f, 32f);
-            z = Mathf.Clamp(z, -0.5f, 24f);
+            x = Mathf.Clamp(x, -2.7f, 33.9f);   // the whole plot inside the fence
+            z = Mathf.Clamp(z, -4.7f, 22.7f);
             // the piece's own origin sits on its base, so it rests exactly on the surface
             var target = new Vector3(x, p.y + 0.003f, z);
             held.transform.position = Vector3.Lerp(held.transform.position, target, 1f - Mathf.Exp(-30f * Time.unscaledDeltaTime));
