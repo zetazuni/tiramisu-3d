@@ -1728,7 +1728,7 @@ namespace Tiramisu.EditorTools
             g.transform.SetParent(head, true);
         }
 
-        public static float GlassesUp = 0.1f, GlassesForward = 0.09f, GlassesScale = 1.2f;
+        public static float GlassesUp = 0.1f, GlassesForward = 0.15f, GlassesScale = 1.2f;
 
         /// <summary>A seat or bed on a piece: where the pelvis goes (piece space), which way to face, and where to stand before getting on.</summary>
         static void Spot(GameObject piece, string label, CharacterRig.Pose pose, Vector3 pelvis, float yaw, Vector3 approach)
