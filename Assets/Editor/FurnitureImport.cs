@@ -43,6 +43,16 @@ namespace Tiramisu.EditorTools
             { "CarGlass",     (null, new Color(0.04f, 0.06f, 0.08f, 0.85f), new Vector2(0.97f, 0.97f), 0f, false) },
             { "Headlight",    (null, new Color(0.95f, 0.97f, 1f), new Vector2(0.95f, 0.95f), 0f, false) },
             { "Taillight",    (null, new Color(0.7f, 0.02f, 0.02f), new Vector2(0.9f, 0.9f), 0f, false) },
+            { "Apple",        (null, new Color(0.55f, 0.05f, 0.04f), new Vector2(0.7f, 0.7f), 0f, false) },
+            { "Orange",       (null, new Color(0.9f, 0.38f, 0.04f), new Vector2(0.5f, 0.5f), 0f, false) },
+            { "Lemon",        (null, new Color(0.95f, 0.82f, 0.12f), new Vector2(0.5f, 0.5f), 0f, false) },
+            { "Bread",        (null, new Color(0.5f, 0.28f, 0.11f), new Vector2(0.15f, 0.15f), 0f, false) },
+            { "Terracotta",   (null, new Color(0.6f, 0.28f, 0.18f), new Vector2(0.2f, 0.2f), 0f, false) },
+            { "Leaf",         (null, new Color(0.14f, 0.38f, 0.1f), new Vector2(0.45f, 0.45f), 0f, false) },
+            { "Cardboard",    (null, new Color(0.58f, 0.42f, 0.25f), new Vector2(0.1f, 0.1f), 0f, false) },
+            { "Wax",          (null, new Color(0.93f, 0.9f, 0.82f), new Vector2(0.4f, 0.4f), 0f, false) },
+            { "Flame",        (null, new Color(1f, 0.7f, 0.2f), new Vector2(0.5f, 0.5f), 0f, false) },
+            { "Coffee",       (null, new Color(0.08f, 0.05f, 0.03f), new Vector2(0.8f, 0.8f), 0f, false) },
             { "Cushion_main", ("rough_linen", new Color(0.60f, 0.68f, 0.54f), new Vector2(0f, 0.25f), 0f, true) },
         };
 
@@ -97,7 +107,8 @@ namespace Tiramisu.EditorTools
                 var pm = MaterialLibrary.Plain(path, l.tint, l.smooth.y, l.metal);
                 Color? glow = name == "Bulb" ? new Color(1f, 0.78f, 0.45f) * 6f
                     : name == "Headlight" ? new Color(0.9f, 0.95f, 1f) * 1.5f
-                    : name == "Taillight" ? new Color(1f, 0.05f, 0.03f) * 1.2f : (Color?)null;
+                    : name == "Flame" ? new Color(1f, 0.6f, 0.15f) * 8f
+                    : name == "Taillight" ? new Color(1f, 0.04f, 0.02f) * 5f : (Color?)null;
                 if (glow.HasValue) // bulbs and car lights glow
                 {
                     pm.SetFloat("_UseEmissiveIntensity", 0f);

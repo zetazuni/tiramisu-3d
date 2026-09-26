@@ -89,6 +89,10 @@
 - Found by looking: bike wheels lay flat (the torus helper only made flat rings, now has an `axis` option).
 - Tested: rebuilt the scene, checked the bathroom, garage and dining corner from inside. The car window edges are a bit jagged up close, worth a proper remodel later.
 
+- **Shower fixed:** now a fully glazed cubicle (fixed front panel, hinged door with handle, side panel and a glass ceiling, black frames), the left and back sides are the room walls. The steel bar from the wall to the glass is gone. Moved 23 cm left so it sits against the wall.
+- **Cars:** much brighter tail lights (emission x5, wrap-around light bar) and a red point light behind each light cluster.
+- **Props pass** (v0.7.0): `tools/blender_props.py` builds 11 small props (fruit bowl, bread on a board, mugs, espresso machine, utensil crock, herb pot, towel stack, candles, cardboard boxes, paint cans, spare tyres). The builder got a `Tabletop` table so things can stand on surfaces at a given height. All are real rigid bodies, so they can be knocked about.
+
 **Next**
-- Props for the kitchen (fruit bowl, cups, cutting board), bathroom (towels, candles) and garage (tools on the pegboard, boxes), and cleaner car windows.
+- Cleaner car windows (jagged glass edges), and a look at how the physics props settle when Play starts.
 - Then the rest of the "Next" list from session 5.

@@ -50,6 +50,17 @@ namespace Tiramisu.EditorTools
             { "evcharger", new FurnitureSpec { mass = 6f, dynamic = false } },
             { "sedan", new FurnitureSpec { mass = 1300f, dynamic = false } },
             { "mpv", new FurnitureSpec { mass = 1250f, dynamic = false } },
+            { "fruitbowl", new FurnitureSpec { mass = 0.9f, dynamic = true } },
+            { "cuttingboard", new FurnitureSpec { mass = 1.2f, dynamic = true } },
+            { "mug", new FurnitureSpec { mass = 0.3f, dynamic = true } },
+            { "espresso", new FurnitureSpec { mass = 5f, dynamic = true } },
+            { "utensils", new FurnitureSpec { mass = 0.8f, dynamic = true } },
+            { "herbs", new FurnitureSpec { mass = 1.4f, dynamic = true } },
+            { "towelstack", new FurnitureSpec { mass = 1.5f, dynamic = true } },
+            { "candles", new FurnitureSpec { mass = 0.7f, dynamic = true } },
+            { "cardboardboxes", new FurnitureSpec { mass = 9f, dynamic = true } },
+            { "paintcans", new FurnitureSpec { mass = 8f, dynamic = true } },
+            { "sparetyres", new FurnitureSpec { mass = 30f, dynamic = true } },
             { "cushion",     new FurnitureSpec { mass = 0.8f, dynamic = true, dropHeight = 0.9f } },
         };
 

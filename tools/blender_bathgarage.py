@@ -94,25 +94,56 @@ def bar(parent, name, a, b, r, material, seg=12):
 # ---------------------------------------------------------------- bathroom
 
 def shower():
+    """Fully glazed walk-in cubicle: the left and back sides are the room walls, the front (with a door),
+    the right side and the ceiling are glass. No bar across the middle."""
     rt = root("shower")
-    W, D = 1.4, 1.2                         # x, y (back wall at +Y)
-    box("tray", rt, (-W / 2, -D / 2, 0), (W / 2, D / 2, 0.03), "Marble_main", 0.004)
-    cyl("drain", rt, (0.0, 0.1, 0.031), 0.05, 0.004, "Stainless", seg=32, bevel=0.0005)
-    # fixed glass panel on the front, open end on the right
-    box("glass panel", rt, (-W / 2 + 0.02, -D / 2 + 0.02, 0.05), (0.25, -D / 2 + 0.03, 2.05), "ClearGlass", 0.001)
-    box("frame foot", rt, (-W / 2 + 0.02, -D / 2 + 0.015, 0.03), (0.25, -D / 2 + 0.035, 0.05), "BlackSteel", 0.002)
-    box("frame top", rt, (-W / 2 + 0.02, -D / 2 + 0.015, 2.05), (0.25, -D / 2 + 0.035, 2.08), "BlackSteel", 0.002)
-    box("frame left", rt, (-W / 2 + 0.02, -D / 2 + 0.015, 0.03), (-W / 2 + 0.04, -D / 2 + 0.035, 2.08), "BlackSteel", 0.002)
-    box("frame right", rt, (0.23, -D / 2 + 0.015, 0.03), (0.25, -D / 2 + 0.035, 2.08), "BlackSteel", 0.002)
-    cyl("support bar", rt, (0.0, 0.0, 2.05), 0.008, D - 0.1, "BlackSteel", 'Y', seg=16, bevel=0.001)
-    # rain head on an arm from the back wall
-    cyl("arm", rt, (0.0, D / 2 - 0.3, 2.3), 0.012, 0.6, "BlackSteel", 'Y', seg=20, bevel=0.002)
-    cyl("rain head", rt, (0.0, D / 2 - 0.55, 2.28), 0.16, 0.02, "BlackSteel", seg=48, bevel=0.004)
-    cyl("rain plate", rt, (0.0, D / 2 - 0.55, 2.268), 0.14, 0.004, "Stainless", seg=48, bevel=0.0005)
-    # valve plate and hand shower
-    cyl("valve", rt, (-0.2, D / 2 - 0.012, 1.1), 0.05, 0.024, "BlackSteel", 'Y', seg=32, bevel=0.003)
-    cyl("hand rail", rt, (0.25, D / 2 - 0.03, 1.15), 0.009, 0.7, "BlackSteel", seg=20, bevel=0.001)
-    cyl("hand shower", rt, (0.25, D / 2 - 0.07, 1.25), 0.02, 0.2, "BlackSteel", 'Z', seg=20, bevel=0.003)
+    W, D, H = 1.4, 1.2, 2.2                 # x, y (back wall at +Y), glass height
+    x0, x1, y0, y1 = -W / 2, W / 2, -D / 2, D / 2
+    t = 0.012                               # glass thickness
+    f = 0.02                                # frame width
+    box("tray", rt, (x0, y0, 0), (x1, y1, 0.03), "Marble_main", 0.004)
+    cyl("drain", rt, (0.15, 0.1, 0.031), 0.05, 0.004, "Stainless", seg=32, bevel=0.0005)
+
+    def pane(nm, a, b, z0, z1):
+        """Glass pane with a slim black frame. a and b are the two end points on the floor plan (x, y)."""
+        (ax, ay), (bx, by) = a, b
+        along_x = abs(bx - ax) > abs(by - ay)
+        if along_x:
+            lo, hi = (min(ax, bx), ay - t / 2, z0), (max(ax, bx), ay + t / 2, z1)
+        else:
+            lo, hi = (ax - t / 2, min(ay, by), z0), (ax + t / 2, max(ay, by), z1)
+        box(nm + " glass", rt, lo, hi, "ClearGlass", 0.001)
+        fl = (lo[0] - (0 if along_x else f / 2 - t / 2), lo[1] - (f / 2 - t / 2 if along_x else 0), lo[2])
+        fh = (hi[0] + (0 if along_x else f / 2 - t / 2), hi[1] + (f / 2 - t / 2 if along_x else 0), hi[2])
+        for (zz0, zz1) in ((z0, z0 + f), (z1 - f, z1)):
+            box(nm + " rail", rt, (fl[0], fl[1], zz0), (fh[0], fh[1], zz1), "BlackSteel", 0.002)
+        for k in (0, 1):
+            if along_x:
+                xx = (lo[0], lo[0] + f) if k == 0 else (hi[0] - f, hi[0])
+                box(nm + " stile", rt, (xx[0], fl[1], z0), (xx[1], fh[1], z1), "BlackSteel", 0.002)
+            else:
+                yy = (lo[1], lo[1] + f) if k == 0 else (hi[1] - f, hi[1])
+                box(nm + " stile", rt, (fl[0], yy[0], z0), (fh[0], yy[1], z1), "BlackSteel", 0.002)
+
+    zt = 0.03
+    pane("front fixed", (x0, y0), (0.05, y0), zt, H)         # fixed front panel
+    pane("front door", (0.06, y0 - 0.004), (x1, y0 - 0.004), zt, H - 0.02)  # hinged door on the right
+    pane("side", (x1, y0), (x1, y1), zt, H)                  # right side panel
+    # glass ceiling over the cubicle, kept steamy and dry
+    box("ceiling glass", rt, (x0, y0, H), (x1, y1, H + t), "ClearGlass", 0.001)
+    box("ceiling rim front", rt, (x0, y0 - 0.006, H), (x1, y0 + f, H + 0.02), "BlackSteel", 0.002)
+    box("ceiling rim side", rt, (x1 - f, y0, H), (x1 + 0.006, y1, H + 0.02), "BlackSteel", 0.002)
+    # door handle and hinges
+    cyl("door handle", rt, (0.22, y0 - 0.045, 1.05), 0.008, 0.5, "Stainless", 'Z', seg=16, bevel=0.001)
+    for hz in (0.3, 1.9):
+        box(f"hinge {hz}", rt, (x1 - 0.03, y0 - 0.015, hz), (x1, y0 + 0.012, hz + 0.09), "Stainless", 0.002)
+    # rain head on an arm from the back wall, hand shower and valve
+    cyl("arm", rt, (0.0, y1 - 0.3, 2.05), 0.012, 0.6, "BlackSteel", 'Y', seg=20, bevel=0.002)
+    cyl("rain head", rt, (0.0, y1 - 0.55, 2.03), 0.16, 0.02, "BlackSteel", seg=48, bevel=0.004)
+    cyl("rain plate", rt, (0.0, y1 - 0.55, 2.018), 0.14, 0.004, "Stainless", seg=48, bevel=0.0005)
+    cyl("valve", rt, (-0.2, y1 - 0.012, 1.1), 0.05, 0.024, "BlackSteel", 'Y', seg=32, bevel=0.003)
+    cyl("hand rail", rt, (0.25, y1 - 0.03, 1.15), 0.009, 0.7, "BlackSteel", seg=20, bevel=0.001)
+    cyl("hand shower", rt, (0.25, y1 - 0.07, 1.25), 0.02, 0.2, "BlackSteel", 'Z', seg=20, bevel=0.003)
     return rt
 
 
@@ -355,8 +386,9 @@ def car(name, body_mat, body_st, cabin_st, wheelbase, track, wr, roof_rails=Fals
     fy = ymin
     for sx in (-1, 1):
         box(f"headlight {sx}", rt, (sx * 0.46 - 0.16, fy + 0.03, zb + 0.16), (sx * 0.46 + 0.16, fy + 0.2, zb + 0.25), "Headlight", 0.02)
-        box(f"taillight {sx}", rt, (sx * 0.52 - 0.16, ymax - 0.2, zb + 0.32), (sx * 0.52 + 0.16, ymax - 0.03, zb + 0.42), "Taillight", 0.02)
+        box(f"taillight {sx}", rt, (sx * 0.47 - 0.2, ymax - 0.22, zb + 0.3), (sx * 0.47 + 0.2, ymax - 0.03, zb + 0.44), "Taillight", 0.02)
         box(f"mirror {sx}", rt, (sx * (track + 0.1) - 0.05, ymin + 1.35, body_st[3][2] + 0.03), (sx * (track + 0.1) + 0.05, ymin + 1.5, body_st[3][2] + 0.14), body_mat, 0.02)
+    box("light bar", rt, (-0.3, ymax - 0.09, zb + 0.35), (0.3, ymax - 0.02, zb + 0.39), "Taillight", 0.01)
     box("grille", rt, (-0.4, fy - 0.01, zb + 0.14), (0.4, fy + 0.1, zb + 0.28), "BlackSteel", 0.01)
     box("front splitter", rt, (-0.72, fy - 0.02, zb - 0.07), (0.72, fy + 0.3, zb + 0.06), "BlackSteel", 0.01)
     box("rear diffuser", rt, (-0.7, ymax - 0.3, zb - 0.07), (0.7, ymax + 0.02, zb + 0.06), "BlackSteel", 0.01)

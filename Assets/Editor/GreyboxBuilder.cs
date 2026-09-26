@@ -363,7 +363,7 @@ namespace Tiramisu.EditorTools
             ("pendant", 11.6f, 3.7f, 0f, 0),
             ("pendant", 12.7f, 3.7f, 0f, 0),
             // bathroom (x 16 to 22): shower, vanity and toilet along the back wall, tub in the middle, laundry on the right
-            ("shower", 16.95f, 0.62f, 0f, 0),
+            ("shower", 16.72f, 0.62f, 0f, 0),
             ("vanity", 18.75f, 0.27f, 0f, 0),
             ("bathmirror", 18.75f, 0.04f, 0f, 0),
             ("toilet", 20.1f, 0.33f, 0f, 0),
@@ -381,6 +381,26 @@ namespace Tiramisu.EditorTools
             ("garageshelf", 23.1f, 0.24f, 0f, 0),
             ("toolchest", 29.5f, 1.4f, 270f, 0),
             ("bicycle", 22.65f, 3.9f, 0f, 0),
+        };
+
+        /// <summary>Small things standing on surfaces: model id, x, y (height of the surface in metres), z and rotation.</summary>
+        static readonly (string id, float x, float y, float z, float rot)[] Tabletop =
+        {
+            // kitchen island top is 0.94 m, counter top 0.92 m
+            ("fruitbowl", 10.55f, 0.94f, 3.6f, 0f),
+            ("cuttingboard", 12.4f, 0.94f, 3.55f, 12f),
+            ("mug", 11.75f, 0.94f, 3.35f, 0f),
+            ("mug", 11.95f, 0.94f, 3.5f, 70f),
+            ("espresso", 9.8f, 0.92f, 0.33f, 0f),
+            ("utensils", 11.55f, 0.92f, 0.3f, 0f),
+            ("herbs", 12.0f, 0.92f, 0.32f, 20f),
+            // bathroom: vanity top is 0.84 m
+            ("towelstack", 19.25f, 0.84f, 0.3f, 0f),
+            ("candles", 19.45f, 0.02f, 2.9f, 0f),
+            // garage
+            ("cardboardboxes", 29.4f, 0.02f, 4.5f, 10f),
+            ("paintcans", 23.15f, 0.02f, 1.0f, 0f),
+            ("sparetyres", 22.6f, 0.02f, 6.9f, 0f),
         };
 
         static PropPlacer.Prop Pr(string id, string variant, float x, float y, float z, float rot, float scale,
@@ -429,17 +449,38 @@ namespace Tiramisu.EditorTools
             var backWall = GameObject.Find("House/Ground floor/Walls/Back wall");
             if (pic && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(pic);
 
-            foreach (var f in Layout)
+            var all = new System.Collections.Generic.List<(string id, float x, float y, float z, float rot, int floor)>();
+            foreach (var l in Layout) all.Add((l.id, l.x, -1f, l.z, l.rot, l.floor));   // y -1 = on the floor
+            foreach (var t in Tabletop) all.Add((t.id, t.x, t.y, t.z, t.rot, 0));
+            foreach (var f in all)
             {
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{FurnitureImport.ModelDir}/{f.id}.fbx");
                 if (!model) { Debug.LogWarning($"Tiramisu: model {f.id} not found, skipped."); continue; }
                 var go = (GameObject)PrefabUtility.InstantiatePrefab(model, f.floor == 0 ? ground : upper);
                 go.name = f.id;
                 var spec = PhysicsSetup.Spec(f.id);
-                go.transform.position = new Vector3(f.x, (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
+                go.transform.position = new Vector3(f.x, f.y >= 0f ? f.y + spec.dropHeight : (f.floor == 0 ? 0f : UPY) + FLOOR_TOP + spec.dropHeight, f.z);
                 go.transform.rotation = Quaternion.Euler(0f, f.rot, 0f);
                 PhysicsSetup.MakeSolid(go, spec);
                 if (f.id == "bathmirror" && backWall) backWall.GetComponent<WallCutaway>().attachments.Add(go); // hangs on the back wall
+                if (f.id == "sedan" || f.id == "mpv") // red glow behind the tail lights
+                {
+                    float rear = f.id == "sedan" ? 2.3f : 2.08f; // metres behind the centre (Blender +Y is Unity -Z)
+                    for (int side = -1; side <= 1; side += 2)
+                    {
+                        var lg = new GameObject("Tail light glow");
+                        lg.transform.SetParent(go.transform, false);
+                        lg.transform.position = go.transform.position + new Vector3(side * 0.5f, 0.78f, -(rear + 0.12f));
+                        var l = lg.AddComponent<Light>();
+                        l.type = LightType.Point;
+                        lg.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
+                        l.lightUnit = LightUnit.Lumen;
+                        l.intensity = 60f;
+                        l.color = new Color(1f, 0.05f, 0.03f);
+                        l.range = 2.5f;
+                        l.shadows = LightShadows.None;
+                    }
+                }
                 if (f.id == "pendant") // a small warm light inside each shade
                 {
                     var lg = new GameObject("Pendant light");
