@@ -1466,7 +1466,6 @@ namespace Tiramisu.EditorTools
             ("towelstack", 21.6f, 0.87f, 6.1f, 90f),
             ("candles", 19.45f, 0.02f, 2.9f, 0f),
             ("candles", 2.45f, 0.47f, 2.95f, 0f),
-            ("globe", 2.2f, 0.02f, 7.0f, 0f),
             // garage
             ("cardboardboxes", 29.4f, 0.02f, 7.2f, 10f),
             ("paintcans", 23.15f, 0.02f, 1.0f, 0f),
@@ -1547,8 +1546,6 @@ namespace Tiramisu.EditorTools
             Pr("modern_arm_chair_01", null, 6.5f, FLOOR_TOP, 4.5f, 250f, 1f, PropPlacer.Body.Dynamic, 18f),
             Pr("side_table_01", null, 5.55f, FLOOR_TOP, 2.95f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
             Pr("side_table_01", null, 2.45f, FLOOR_TOP, 2.95f, 0f, 1f, PropPlacer.Body.Dynamic, 6f),
-            Pr("potted_plant_04", null, 1.0f, FLOOR_TOP, 7.3f, 20f, 1.2f, PropPlacer.Body.Static, 0f, 0.55f),
-            Pr("calathea_orbifolia_01", null, 7.1f, FLOOR_TOP, 7.3f, 0f, 1.1f, PropPlacer.Body.Static, 0f, 0.5f),
             Pr("desk_lamp_arm_01", null, 5.6f, SideTop + 0.002f, 2.9f, 200f, 1f, PropPlacer.Body.Dynamic, 2.5f),
             Pr("book_encyclopedia_set_01", null, 3.95f, TableTop + 0.004f, 4.6f, 0f, 1f, PropPlacer.Body.DynamicParts, 0.7f),
             Pr("ceramic_vase_03", null, 4.45f, TableTop + 0.002f, 4.62f, 0f, 1f, PropPlacer.Body.Dynamic, 1.2f),
@@ -1755,6 +1752,52 @@ namespace Tiramisu.EditorTools
             UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
             EditorUtility.SetDirty(m);
             return m;
+        }
+
+        /// <summary>The soft round sprite and the four materials for petals, leaves, snow and fireflies.</summary>
+        static void SeasonAssets(SeasonCycle sc)
+        {
+            System.IO.Directory.CreateDirectory("Assets/Art/Materials");
+            const string tp = "Assets/Art/Textures/SoftDot.png";
+            if (!System.IO.File.Exists(tp))
+            {
+                var t = new Texture2D(64, 64, TextureFormat.RGBA32, false);
+                for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 64; x++)
+                    {
+                        float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(32f, 32f)) / 32f;
+                        float a = Mathf.Clamp01(1f - d); a = a * a * (3f - 2f * a);
+                        t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                    }
+                t.Apply();
+                System.IO.File.WriteAllBytes(tp, t.EncodeToPNG());
+                AssetDatabase.ImportAsset(tp);
+                var imp = (TextureImporter)AssetImporter.GetAtPath(tp);
+                imp.alphaIsTransparency = true; imp.mipmapEnabled = true; imp.sRGBTexture = true;
+                imp.SaveAndReimport();
+            }
+            var soft = AssetDatabase.LoadAssetAtPath<Texture2D>(tp);
+            Material Dot(string name, Color col, float glow)
+            {
+                string path = $"Assets/Art/Materials/{name}.mat";
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (!m) { m = new Material(Shader.Find("HDRP/Unlit")); AssetDatabase.CreateAsset(m, path); }
+                m.SetFloat("_SurfaceType", 1f);
+                m.SetFloat("_BlendMode", 0f);
+                m.SetFloat("_ZWrite", 0f);
+                m.SetFloat("_DoubleSidedEnable", 1f);
+                m.SetTexture("_UnlitColorMap", soft);
+                m.SetColor("_UnlitColor", col);
+                m.SetColor("_EmissiveColor", col * glow);
+                UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(m);
+                EditorUtility.SetDirty(m);
+                return m;
+            }
+            sc.soft = soft;
+            sc.petalMaterial = Dot("SeasonPetal", new Color(1f, 0.8f, 0.88f, 1f), 0.6f);
+            sc.leafMaterial = Dot("SeasonLeaf", new Color(1f, 0.6f, 0.2f, 1f), 0.15f);
+            sc.snowMaterial = Dot("SeasonSnow", new Color(1f, 1f, 1f, 1f), 0.8f);
+            sc.fireflyMaterial = Dot("SeasonFirefly", new Color(1f, 0.95f, 0.5f, 1f), 6f);
         }
 
         /// <summary>The green diamond over the person you are playing.</summary>
@@ -2035,6 +2078,8 @@ namespace Tiramisu.EditorTools
             game.AddComponent<HouseHud>();
             game.AddComponent<DecorateMode>().ghostMaterial = GhostMaterial();
             game.AddComponent<LiveMode>().plumbobMaterial = PlumbobMaterial();
+            var seasons = game.AddComponent<SeasonCycle>();
+            SeasonAssets(seasons);
             game.AddComponent<TiramisuNav>();
             game.AddComponent<CharacterHud>();
             var dn = game.AddComponent<DayNightCycle>();

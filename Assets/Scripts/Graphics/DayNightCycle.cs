@@ -28,6 +28,9 @@ namespace Tiramisu
         HDAdditionalLightData moonData;
         HDAdditionalReflectionData[] probes;
         float nightAmount;
+        Fog fog;
+        float baseFog = -1f;
+        public int DayCount { get; private set; }
 
         public float Night01 => nightAmount;
         public string Clock => $"{Mathf.FloorToInt(hour) % 24:00}:{Mathf.FloorToInt((hour % 1f) * 60f):00}";
@@ -83,9 +86,12 @@ namespace Tiramisu
         {
             if (auto)
             {
+                float before = hour;
                 hour = Mathf.Repeat(hour + Time.deltaTime / Mathf.Max(secondsPerHour, 1f), 24f);
+                if (hour < before) DayCount++;
                 Apply();
             }
+            else if (SeasonCycle.Instance) Apply();     // the sun follows the season while the clock is stopped
         }
 
         void OnApplicationQuit() => PlayerPrefs.SetFloat(PrefKey, hour);
@@ -95,9 +101,10 @@ namespace Tiramisu
         /// <summary>Sun elevation in degrees for an hour of the day. 6:00 sunrise, 18:00 sunset.</summary>
         static float Elevation(float h)
         {
-            float t = Mathf.Repeat(h - 6f, 24f);              // hours since sunrise
-            if (t <= 12f) return 68f * Mathf.Sin(Mathf.PI * t / 12f);
-            return -38f * Mathf.Sin(Mathf.PI * (t - 12f) / 12f);
+            float rise = SeasonCycle.Sunrise, len = Mathf.Max(6f, SeasonCycle.Sunset - SeasonCycle.Sunrise);
+            float t = Mathf.Repeat(h - rise, 24f);              // hours since sunrise
+            if (t <= len) return SeasonCycle.SunPeak * Mathf.Sin(Mathf.PI * t / len);
+            return -38f * Mathf.Sin(Mathf.PI * (t - len) / (24f - len));
         }
 
         static Vector3 Direction(float azimuthDeg, float elevationDeg)
@@ -109,7 +116,8 @@ namespace Tiramisu
         void Apply()
         {
             float e = Elevation(hour);
-            float az = 90f + 180f * Mathf.Repeat(hour - 6f, 24f) / 12f;   // east at sunrise, west 12 hours later
+            float dayLen = Mathf.Max(6f, SeasonCycle.Sunset - SeasonCycle.Sunrise);
+            float az = 90f + 180f * Mathf.Repeat(hour - SeasonCycle.Sunrise, 24f) / dayLen;   // east at sunrise, west at sunset
             var toSun = Direction(az, e);
             float day = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-5f, 12f, e));
             nightAmount = 1f - day;
@@ -119,8 +127,8 @@ namespace Tiramisu
             {
                 sun.transform.rotation = Quaternion.LookRotation(-toSun, Vector3.up);
                 float k = sunK;
-                sun.intensity = 100000f * k;
-                sun.colorTemperature = Mathf.Lerp(2300f, 6000f, Mathf.InverseLerp(0f, 30f, e));
+                sun.intensity = 100000f * k * SeasonCycle.SunPower;
+                sun.colorTemperature = Mathf.Lerp(2300f, 6000f, Mathf.InverseLerp(0f, 30f, e)) - SeasonCycle.Warm * Mathf.Clamp01(e / 30f + 0.3f);
                 sun.enabled = k > 0.001f;
             }
             if (moon)
@@ -142,7 +150,13 @@ namespace Tiramisu
                 exposure.compensation.Override(Mathf.Lerp(-0.2f, 0f, day));
             }
             if (sky != null) sky.multiplier.Override(Mathf.Lerp(0.01f, 1f, day));      // the atmosphere goes dark, only stars and the moon are left
-            if (clouds != null) clouds.opacity.Override(Mathf.Lerp(0.1f, 0.85f, day));
+            if (clouds != null) clouds.opacity.Override(Mathf.Clamp01(Mathf.Lerp(0.1f, 0.85f, day) * SeasonCycle.CloudScale));
+            if (fog == null && volume && volume.profile) volume.profile.TryGet(out fog);
+            if (fog != null)
+            {
+                if (baseFog < 0f) baseFog = fog.meanFreePath.value;
+                fog.meanFreePath.Override(baseFog / SeasonCycle.HazeScale);
+            }
             if (bloom != null) bloom.intensity.Override(Mathf.Lerp(0.02f, 0.18f, day));   // less glow at night
             if (probes != null)
                 {

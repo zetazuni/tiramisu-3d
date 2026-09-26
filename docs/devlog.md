@@ -253,3 +253,10 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Shed:** the floating black square and sticks were the model's window and pegboard with hung tools outside the west wall: removed. Tool rack moved beside the shed door wall.
 - **Flower beds** in the yards are on one line each (z 19.8 at the back, z -2.8 at the front, so they run parallel to the pavement).
 - **Default layout:** the six pieces moved since last time (wheelbarrow, sectional, armchair, two lanterns, beach ball) were added to `Assets/Editor/DefaultLayout.json`.
+
+## Session 26: four seasons, colourful atom, petting pose (2026-09-27) · v0.23.0
+
+- **Seasons** (`SeasonCycle.cs`): see `docs/SIMS4_PLAN.md`. Recolours copies of the Lawn, LawnEdge, Hedge and outdoor leaf materials (never the assets, so git stays clean), hides flowers and leaves in winter, and drives `DayNightCycle` through static values (sun peak 32 to 74 degrees, sunrise 5:30 to 7:00, sunset 17:15 to 19:00, warmth, clouds, haze). Weather is four particle systems over the plot. Checked all four by looking (winter needed a very bright lawn tint to read as snow; the first autumn was muddy, so the warm shift and haze were toned down). The chosen season is saved (`tiramisu.season`).
+- **Petting pose:** the crouch is now solved from the leg length so the feet are on the floor and the hip is at 0.5 m, with a forward lean. **Found:** Amir's spine and neck bones are turned the other way round to Athirah's, so the sign is flipped for him in `CharacterRig.Set` (this also changes how he leans when sitting: back against the sofa now).
+- **Atom marker:** higher, and each part has its own colour that drifts round the rainbow.
+- **Removed** from the living room: potted plant 4, the calathea and the globe. Default layout updated again.

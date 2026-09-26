@@ -14,6 +14,9 @@ Rule 7 in `docs/RULES.md` asks for gameplay that imitates The Sims 4 (original a
 - Space pauses, 1 2 3 change the speed (1x, 2.5x, 5x), Pause and speed buttons bottom right. WASD and Q/E turn as before, middle mouse drag turns the camera (like the game), floors moved to Page Up, Page Down and Home.
 - Not there yet: more actions in the pie menu (eat, cook, watch, swim, shower), menus for doors and windows, a "Move" entry that starts decorating, queue view with icons, right click on the ground.
 
+## Also done: four seasons (v0.23.0, not in the original list, asked for by Amir)
+- `SeasonCycle`: spring, summer, autumn, winter. Each changes the lawn, hedges, tree leaves, flowers, how high the sun climbs, the length of the day, warmth of the light, clouds and haze, and what falls from the sky (petals, fireflies at night, golden leaves, snow). Trees are bare in winter. Use the "Season" button under the clock, or let time run: a season lasts 3 days.
+
 ## Milestones (in order, each one playable on its own)
 1. **Live mode controls.** Click a person to select them (plumbob style marker over the head), a portrait panel at the bottom left, click on the world to send the selected person there, pause and speed buttons (space, 1, 2, 3), WASD panning like the game.
 2. **Pie menu.** Click an object: a round menu with the actions it offers (sit, lie, look, use, move). Actions queue and people walk over and do them with the right pose. Objects get an action list (data driven, `UseSpot` grows into an `Interaction`).

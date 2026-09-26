@@ -87,7 +87,7 @@ namespace Tiramisu
             var day = DayNightCycle.Instance;
             if (day)
             {
-                timePanel = new Rect(w - 262, 12, 250, 150);
+                timePanel = new Rect(w - 262, 12, 250, 194);
                 GUILayout.BeginArea(timePanel);
                 GUILayout.Label($"{day.Phase} · {day.Clock}", label);
                 float nh = GUILayout.HorizontalSlider(day.hour, 0f, 24f);
@@ -101,6 +101,8 @@ namespace Tiramisu
                 if (GUILayout.Button("Night", btn)) day.SetHour(22.5f);
                 GUILayout.EndHorizontal();
                 if (Button(day.auto ? "Time is running" : "Let time run", day.auto)) day.auto = !day.auto;
+                var sea = SeasonCycle.Instance;
+                if (sea && Button("Season: " + sea.Label, false)) sea.Next();
                 GUILayout.EndArea();
             }
 

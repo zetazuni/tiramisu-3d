@@ -235,6 +235,7 @@ namespace Tiramisu
         // ---------------------------------------------------------------- the green diamond
 
         Transform[] rings;
+        Material[] atomMats;   // one material each for the core and the three rings, so they can be different colours
 
         static Mesh Torus(float radius, float tube, int seg, int sides)
         {
@@ -264,6 +265,7 @@ namespace Tiramisu
         /// <summary>A small glowing atom: a ball with three rings that spin, over the person you are playing.</summary>
         void MakePlumbob()
         {
+            var mats = new List<Material>();
             var root = new GameObject("Plumbob");
             root.transform.SetParent(transform, false);
             void Setup(GameObject go)
@@ -271,7 +273,7 @@ namespace Tiramisu
                 var mr = go.GetComponent<MeshRenderer>();
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;
-                if (plumbobMaterial) mr.sharedMaterial = plumbobMaterial;
+                if (plumbobMaterial) { var m = new Material(plumbobMaterial); mr.sharedMaterial = m; mats.Add(m); }
             }
             var core = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             Destroy(core.GetComponent<Collider>());
@@ -290,6 +292,7 @@ namespace Tiramisu
                 rings[i] = g.transform;
             }
             plumbob = root.transform;
+            atomMats = mats.ToArray();
         }
 
         void UpdatePlumbob()
@@ -303,7 +306,15 @@ namespace Tiramisu
             float t = Time.unscaledTime;
             var rg = Selected.GetComponent<CharacterRig>();
             var head = rg ? rg.HeadTop : Selected.transform.position + Vector3.up * (1.75f * Selected.scale);
-            plumbob.position = head + Vector3.up * (0.22f + 0.04f * Mathf.Sin(t * 2.4f));
+            plumbob.position = head + Vector3.up * (0.36f + 0.04f * Mathf.Sin(t * 2.4f));
+            if (atomMats != null)
+                for (int i = 0; i < atomMats.Length; i++)
+                {
+                    // every part has its own colour and the colours drift round the rainbow over time
+                    var c = Color.HSVToRGB(Mathf.Repeat(t * 0.12f + i * 0.23f, 1f), 0.65f, 1f);
+                    atomMats[i].SetColor("_UnlitColor", c);
+                    atomMats[i].SetColor("_EmissiveColor", c * 3f);
+                }
             plumbob.rotation = Quaternion.identity;
             if (rings != null)
             {

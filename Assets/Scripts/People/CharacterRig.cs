@@ -149,6 +149,7 @@ namespace Tiramisu
         void Set(string n, float forward = 0f, float lift = 0f, float yaw = 0f)
         {
             if (!j.TryGetValue(n, out var jt)) return;
+            if (kind == "amir" && (n == "spine" || n == "neck")) forward = -forward;   // his spine bones are turned the other way round
             jt.tgt = forward; jt.liftTgt = lift; jt.yawTgt = yaw;
         }
 
@@ -210,11 +211,7 @@ namespace Tiramisu
                     Set("arm.R", 165f); Set("forearm.R", 30f + 25f * Mathf.Sin(clock * 9f));
                     Set("spine", breathe);
                     break;
-                case Pose.Crouch:
-                    Set("pelvis", 0f, -(RestHip - 0.53f));
-                    Set("leg.L", 105f); Set("leg.R", 105f); Set("shin.L", -120f); Set("shin.R", -120f);
-                    Set("spine", 22f); Set("arm.L", 50f); Set("arm.R", 50f); Set("forearm.L", 30f + 10f * Mathf.Sin(clock * 3f)); Set("forearm.R", 30f);
-                    break;
+                case Pose.Crouch: CrouchTargets(); break;
                 default:
                     Set("spine", breathe * 1.2f);
                     Set("arm.L", 2f); Set("arm.R", 2f);
@@ -260,6 +257,27 @@ namespace Tiramisu
             Set("neck", rec * 0.6f);                                    // the head stays up
             float lap = Mathf.Lerp(24f, 14f, Mathf.Clamp01(rec / 25f));
             Set("arm.L", lap); Set("arm.R", lap); Set("forearm.L", 62f); Set("forearm.R", 62f);
+        }
+
+        /// <summary>
+        /// Crouching down to a pet: the pelvis drops to knee height and the legs are solved so the feet stay on the floor
+        /// (the old pose left the knees bent but the body hanging in the air), the back leans forward and one hand reaches out.
+        /// </summary>
+        void CrouchTargets()
+        {
+            float hip = 0.5f;
+            float L = Mathf.Max(0.3f, (RestHip - 0.06f) * 0.5f);
+            float s0 = -32f;
+            float cosA = Mathf.Clamp((hip - 0.06f) / L - Mathf.Cos(s0 * Mathf.Deg2Rad), -1f, 1f);
+            float a = Mathf.Acos(cosA) * Mathf.Rad2Deg;
+            Set("pelvis", 0f, -(RestHip - hip));
+            Set("leg.L", a); Set("leg.R", a);
+            Set("shin.L", s0 - a); Set("shin.R", s0 - a);
+            Set("spine", 24f, 0f, 0f);
+            Set("neck", -10f);
+            float stroke = Mathf.Sin(clock * 3.2f);
+            Set("arm.L", 62f + 8f * stroke); Set("forearm.L", 30f + 12f * stroke);      // the petting hand
+            Set("arm.R", 22f); Set("forearm.R", 50f);                                    // the other rests on the knee
         }
 
         /// <summary>Lying follows the piece: a flat bed, a lounger with its backrest raised, a hammock that curves up at both ends.</summary>
