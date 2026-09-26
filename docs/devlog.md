@@ -236,3 +236,10 @@ Amir's notes: night too dark outside, skylights, lounger backrest upside down, b
 - **Athirah's face** had been flattened by the outfit fitting (the face skin was sunk under the hijab while the eyes stayed put): the fitting now leaves the head and feet alone. **Her pinky** stuck straight up because part of that hand was weighted to the upper arm: hands are now one rigid piece on the forearm (radius 0.2 beyond the width of the body). **Her feet** were stretched because there were no foot bones: `foot.L` and `foot.R` are added at the ankles and `CharacterRig.FeetTargets` keeps them flat (with toe-off and heel strike when walking). All in `tools/blender_rig_athirah.py`. Checked in Play mode: face, hand, walking feet.
 - **Lounger:** the seat point is lifted out of the pad (0.55 up, 0.16 back) so she lies on it, not in it.
 - **Picked person marker:** an atom (glowing ball with three spinning rings) replaces the green diamond, and follows the head (`CharacterRig.HeadTop`), also when sitting or lying.
+
+## Session 24: Athirah made symmetrical (2026-09-27) · v0.21.2
+
+- The Sketchfab model is built from separate parts (79 islands: each sleeve, arm, hand, nail, pant leg, shoe...), and the two sides came from a posed figure (left arm raised in a wave, legs mid stride), so after straightening she was lopsided. `tools/blender_symmetrize.py` now throws away her left arm parts and right leg parts and rebuilds them as mirrored copies of the right arm and the left leg (same materials and UVs, weights with L and R swapped), then moves the bones of those limbs to the mirror of the master bones. Result: front, side and back views match on both sides.
+- **Side effect handled:** the mirrored left pant leg poked through the back of the tunic (the tunic is a bit flatter on that side), so the top of the pant legs is pulled in and forward under the tunic.
+- Run order in `tools/blender_rig_athirah.py`: fit the layers, skin, hands, copy weights, join, straighten, symmetrize, feet, export. After exporting, copy the edited skin texture back (the export overwrites the PNGs).
+- Checked in Play mode: front view standing and mid stride, hands, legs.

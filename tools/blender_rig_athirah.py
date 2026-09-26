@@ -148,5 +148,7 @@ def add_feet(mesh, arm):
     print("foot vertices:", n)
 
 
+exec(open(os.path.join(r"S:\Tiramisu Corner by Zetazuni", "tools", "blender_symmetrize.py"), encoding="utf-8").read())
+symmetrize(mesh, arm)   # left arm = mirrored right arm, right leg = mirrored left leg
 add_feet(mesh, arm)
 info = export_character("athirah", mesh, arm)
